@@ -23,3 +23,10 @@ test('rejects bad phone, off-list choice and missing choice', () => {
   assert.match(validateIntake('black', 'black-gst', {...base, practice: 'Hacker'}).error, /Choose/);
   assert.match(validateIntake('black', 'black-gst', {phone: base.phone}).error, /Choose/);
 });
+
+test('gift orders need a recipient, address and valid PIN', () => {
+  const base = valid('giftox', 'giftox-welcome-kit');
+  assert.equal(validateIntake('giftox', 'giftox-welcome-kit', {...base, pincode: '110001'}).error, undefined);
+  assert.match(validateIntake('giftox', 'giftox-welcome-kit', {...base, address: ''}).error, /Delivery address/);
+  assert.match(validateIntake('giftox', 'giftox-welcome-kit', {...base, pincode: '012345'}).error, /pin code/i);
+});

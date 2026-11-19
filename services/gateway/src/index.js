@@ -16,6 +16,7 @@ const ROUTES = {
   learning: env('LEARNING_URL', 'http://127.0.0.1:4006'),
   vault: env('VAULT_URL', 'http://127.0.0.1:4007'),
   support: env('SUPPORT_URL', 'http://127.0.0.1:4008'),
+  ai: env('AI_URL', 'http://127.0.0.1:4009'),
 };
 
 // Razorpay Checkout loads its script and opens its frame from these hosts.

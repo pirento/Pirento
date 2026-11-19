@@ -19,7 +19,7 @@ import {
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig, webhookSignatureOk} from './razorpay.js';
 
 const WALLET_URL = env('WALLET_URL', 'http://127.0.0.1:4002');
-const CODE_PREFIX = {legal: 'LGL', black: 'BLK', green: 'GRN'};
+const CODE_PREFIX = {legal: 'LGL', black: 'BLK', green: 'GRN', giftox: 'GFT'};
 
 const nextOrderNo = async () => (await nextSeq('order')) + 100000;
 
@@ -45,7 +45,18 @@ const Order = mongoose.model(
         refunded: Boolean,
       },
       code: {type: String, unique: true, sparse: true}, // public completion code, e.g. BLK-7F3A9C
+      ref: {type: String, index: true}, // Pirento One partner code that brought this order
     },
+    {timestamps: true},
+  ),
+);
+
+// Pirento One: a partner shares a code; orders placed with it are credited to them.
+// shortcut: tracking only; commission payout is not built, so no money moves for partners.
+const Partner = mongoose.model(
+  'Partner',
+  new mongoose.Schema(
+    {userId: {type: String, required: true, unique: true}, code: {type: String, required: true, unique: true}},
     {timestamps: true},
   ),
 );
@@ -118,6 +129,7 @@ app.post(
     z.object({
       serviceSlug: z.string().max(80),
       quantity: z.number().int().min(1).default(1),
+      ref: z.string().trim().toUpperCase().max(12).optional(),
       intake: z.record(z.string(), z.string()).default({}),
     }),
   ),
@@ -129,7 +141,11 @@ app.post(
     if (req.body.quantity > (service.maxQty ?? 1)) {
       throw new ApiError(400, 'INVALID_INPUT', `You can order at most ${service.maxQty ?? 1} at a time`);
     }
+    // An unknown code or your own code is ignored, never an error: it must not block a purchase.
+    const partner = req.body.ref && (await Partner.findOne({code: req.body.ref}));
+    const ref = partner && partner.userId !== req.user.sub ? partner.code : undefined;
     const order = await Order.create({
+      ref,
       orderNo: await nextOrderNo(),
       userId: req.user.sub,
       email: req.user.email,
@@ -149,6 +165,46 @@ app.get(
   '/',
   asyncHandler(async (req, res) => {
     res.json({data: await Order.find({userId: req.user.sub}).sort({createdAt: -1}).limit(100)});
+  }),
+);
+
+app.post(
+  '/partner/join',
+  asyncHandler(async (req, res) => {
+    const existing = await Partner.findOne({userId: req.user.sub});
+    if (existing) return res.json({data: existing});
+    const partner = await Partner.create({
+      userId: req.user.sub,
+      code: `P${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+    });
+    res.status(201).json({data: partner});
+  }),
+);
+
+app.get(
+  '/partner/me',
+  asyncHandler(async (req, res) => {
+    const partner = await Partner.findOne({userId: req.user.sub});
+    if (!partner) return res.json({data: null});
+    // Only what a partner needs to see: never the customer's email or answers.
+    const orders = await Order.find(
+      {ref: partner.code},
+      {orderNo: 1, serviceName: 1, quantity: 1, status: 1, amount: 1, createdAt: 1},
+    )
+      .sort({createdAt: -1})
+      .limit(200);
+    res.json({data: {code: partner.code, orders}});
+  }),
+);
+
+app.get(
+  '/staff/stats',
+  requireRole(...STAFF),
+  asyncHandler(async (_req, res) => {
+    const rows = await Order.aggregate([{$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]);
+    const by = Object.fromEntries(rows.map((r) => [r._id, r]));
+    const earned = ['paid', 'in_progress', 'completed'].reduce((n, st) => n + (by[st]?.amount ?? 0), 0);
+    res.json({data: {byStatus: Object.fromEntries(rows.map((r) => [r._id, r.count])), revenue: earned}});
   }),
 );
 

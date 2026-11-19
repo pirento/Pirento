@@ -28,6 +28,10 @@ export const productApps = {
   intern: '/intern',
   vault: '/vault',
   'bharat-id': '/bharat-id',
+  ai: '/ai',
+  one: '/one',
+  capital: '/capital',
+  giftox: '/products/giftox#services',
 };
 
 export const socials = [

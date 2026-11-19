@@ -19,10 +19,18 @@ export const STAFF_TRANSITIONS = {
 export const statusLabel = (status) =>
   status === 'cancelled' ? 'Cancelled' : (ORDER_STEPS.find((s) => s.status === status)?.label ?? status);
 
+// A gift needs somewhere to go.
+const GIFT_DELIVERY = [
+  {id: 'recipientName', label: 'Recipient name', required: true},
+  {id: 'address', label: 'Delivery address', placeholder: 'House, street, area, city', required: true},
+  {id: 'pincode', label: 'PIN code', placeholder: '6 digits', pattern: '^[1-9]\\d{5}$'},
+];
+
 /** Phone is always asked; then the product's own questions. */
 export function checkoutQuestions(product, slug) {
   return [
     {id: 'phone', label: 'Phone number', placeholder: '10-digit mobile number', pattern: '^[6-9]\\d{9}$'},
+    ...(product === 'giftox' ? GIFT_DELIVERY : []),
     ...intakeQuestions(product, slug),
   ];
 }
@@ -40,6 +48,8 @@ export function validateIntake(product, slug, input) {
       if (!q.options.includes(value)) return {error: `Choose an answer for "${q.label}"`};
     } else if (q.pattern) {
       if (!new RegExp(q.pattern).test(value)) return {error: `Enter a valid ${q.label.toLowerCase()}`};
+    } else if (q.required && !value) {
+      return {error: `Enter "${q.label}"`};
     } else if (value.length > 500) {
       return {error: `"${q.label}" must be 500 characters or fewer`};
     }

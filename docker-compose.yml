@@ -1,4 +1,4 @@
-# Full stack: docker compose up --build  →  http://localhost:4000
+# Full stack: docker compose up --build  →  https://$DOMAIN (or http://localhost:4000 on the server itself)
 x-service: &service
   build: .
   restart: unless-stopped
@@ -73,6 +73,15 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_support
     depends_on: [mongo]
 
+  ai:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: ai
+      MONGO_URI: mongodb://mongo:27017/pirento_ai
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on: [mongo]
+
   gateway:
     <<: *service
     environment:
@@ -87,8 +96,21 @@ services:
       LEARNING_URL: http://learning:4006
       VAULT_URL: http://vault:4007
       SUPPORT_URL: http://support:4008
-    ports: ['4000:4000']
-    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support]
+      AI_URL: http://ai:4009
+    ports: ['127.0.0.1:4000:4000'] # public traffic comes through caddy
+    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support, ai]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [gateway]
 
 volumes:
   mongo-data:
+  caddy-data:

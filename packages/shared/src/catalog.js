@@ -2,6 +2,7 @@ import {LEGAL_SERVICES} from './data/legalCatalogue.js';
 import {LEGAL_PRICING} from './data/legalPricing.js';
 import {STATIC_SERVICE_PRICES} from './data/servicePricing.js';
 import {GREEN_DRIVES} from './data/greenDrives.js';
+import {GIFT_BOXES} from './data/giftBoxes.js';
 
 // One flat list of every sellable service. Prices are in rupees and are only
 // ever read on the server; the browser never sends a price.
@@ -37,7 +38,21 @@ const green = GREEN_DRIVES.map((d) => ({
   maxQty: 500,
 }));
 
-export const SERVICES = [...legal, ...others, ...green];
+const giftox = GIFT_BOXES.map((b) => ({
+  slug: `giftox-${b.boxId}`,
+  product: 'giftox',
+  name: b.name,
+  category: b.category,
+  price: b.price,
+  deliveryTime: null,
+  model: 'fixed',
+  unit: 'box',
+  maxQty: 50,
+  description: b.description,
+  items: b.items,
+}));
+
+export const SERVICES = [...legal, ...others, ...green, ...giftox];
 
 export const getService = (slug) => SERVICES.find((s) => s.slug === slug) ?? null;
 export const servicesFor = (product) => SERVICES.filter((s) => s.product === product);

@@ -108,7 +108,7 @@ export function Service() {
 
   return (
     <div ref={ref} key={slug}>
-      <PageHero label={service.category} title={service.name} />
+      <PageHero label={service.category} title={service.name} intro={service.description} />
       <Section className="pt-0! md:pt-0!">
         <div className="grid gap-10 lg:grid-cols-12">
           <div className="lg:col-span-7" data-reveal>
@@ -129,11 +129,15 @@ export function Service() {
             </p>
             <div className="mt-8">
               <CheckList
-                items={[
-                  'Our team reviews your details before starting',
-                  'Every update is recorded in your account',
-                  'Support by email at any step',
-                ]}
+                items={
+                  service.items
+                    ? service.items.map((i) => `In the box: ${i}`)
+                    : [
+                        'Our team reviews your details before starting',
+                        'Every update is recorded in your account',
+                        'Support by email at any step',
+                      ]
+                }
               />
             </div>
           </div>

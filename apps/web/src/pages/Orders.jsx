@@ -36,6 +36,14 @@ export function useSignedIn() {
   return {user, ready};
 }
 
+const savedRef = () => {
+  try {
+    return localStorage.getItem('pirento.ref') ?? undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const qty = (o) => (o.quantity > 1 ? ` × ${o.quantity}` : '');
 
 // ── Checkout ─────────────────────────────────────────────────────────────
@@ -45,7 +53,7 @@ function Question({q, value, onChange}) {
     return (
       <Field
         label={q.label}
-        required={Boolean(q.pattern)}
+        required={Boolean(q.pattern || q.required)}
         placeholder={q.placeholder}
         inputMode={q.pattern ? 'numeric' : undefined}
         maxLength={q.pattern ? 10 : 500}
@@ -128,7 +136,10 @@ export function Checkout() {
     setError('');
     setBusy(true);
     try {
-      const order = await api('/orders', {method: 'POST', body: {serviceSlug: slug, quantity, intake: answers}});
+      const order = await api('/orders', {
+        method: 'POST',
+        body: {serviceSlug: slug, quantity, intake: answers, ref: savedRef()},
+      });
       navigate(`/orders/${order._id}`);
     } catch (err) {
       setError(err.message);

@@ -313,5 +313,112 @@ const back = (await call(`/support/${t._id}/messages`, {method: 'POST', token: u
 check('customer reply → open', back?.status === 'open');
 check('close', (await call(`/support/${t._id}/close`, {method: 'POST', token: user})).data?.status === 'closed');
 
+// ── Sessions: refresh rotation, logout ──────────────────────────────────
+async function loginWithCookie(email) {
+  const {data} = await call('/auth/otp/request', {method: 'POST', body: {email}});
+  const r = await fetch(B + '/auth/otp/verify', {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({email, code: data.devCode}),
+  });
+  const cookie = r.headers.get('set-cookie')?.split(';')[0];
+  return {token: (await r.json()).data.token, cookie};
+}
+const sess = await loginWithCookie(`s${Date.now()}@example.com`);
+check('refresh cookie is httpOnly', /^pirento_rt=/.test(sess.cookie ?? ''));
+const r1 = await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: sess.cookie}});
+const next = r1.headers.get('set-cookie')?.split(';')[0];
+check('refresh issues a new token', r1.status === 200 && next && next !== sess.cookie);
+check(
+  'old refresh token is single-use',
+  (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: sess.cookie}})).status === 401,
+);
+await fetch(B + '/auth/logout', {method: 'POST', headers: {cookie: next}});
+check('logout revokes', (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: next}})).status === 401);
+
+// ── Admin: roles ────────────────────────────────────────────────────────
+const staffer = await loginWithCookie(`staff${Date.now()}@example.com`);
+check('customer cannot list users', (await call('/auth/admin/users', {token: user})).status === 403);
+const found = (await call(`/auth/admin/users?q=${encodeURIComponent('staff')}`, {token: boss})).data;
+const target = found.users.find((u) => u.email.startsWith('staff'));
+check('admin can search users', found.total > 0 && target);
+const bossId = (await call('/auth/admin/users?q=boss%40example.com', {token: boss})).data.users[0]._id;
+check(
+  'cannot change own role',
+  (await call(`/auth/admin/users/${bossId}/role`, {method: 'PATCH', token: boss, body: {role: 'customer'}})).status ===
+    400,
+);
+const promoted = (
+  await call(`/auth/admin/users/${target._id}/role`, {method: 'PATCH', token: boss, body: {role: 'staff'}})
+).data;
+check('promote to staff', promoted?.role === 'staff');
+check(
+  'role change ends sessions',
+  (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: staffer.cookie}})).status === 401,
+);
+const staffToken = (await loginWithCookie(target.email)).token;
+check('new staff sees the queue', (await call('/orders/staff/queue', {token: staffToken})).status === 200);
+const stats = (await call('/orders/staff/stats', {token: boss})).data;
+check('order stats', stats?.revenue > 0 && stats.byStatus.completed >= 1, stats);
+
+// ── Pirento One + Giftox ────────────────────────────────────────────────
+const partner = (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data;
+check('partner code', /^P[0-9A-F]{6}$/.test(partner?.code ?? ''), partner);
+check(
+  'join is idempotent',
+  (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data?.code === partner.code,
+);
+const gift = {
+  phone: '9876500000',
+  recipientName: 'Ravi',
+  address: '12 MG Road, Pune',
+  pincode: '411001',
+  occasion: 'Personal celebration',
+  whoFor: 'A gift for someone',
+  timeline: 'As soon as possible',
+};
+check(
+  'gift needs an address',
+  (
+    await call('/orders', {
+      method: 'POST',
+      token: user,
+      body: {serviceSlug: 'giftox-diwali-collection', intake: {...gift, address: ''}},
+    })
+  ).status === 400,
+);
+const go = (
+  await call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'giftox-diwali-collection', quantity: 2, ref: partner.code.toLowerCase(), intake: gift},
+  })
+).data;
+check('gift order with referral', go?.amount === 399800 && go.ref === partner.code, go);
+const own = (
+  await call('/orders', {
+    method: 'POST',
+    token: staffToken,
+    body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
+  })
+).data;
+check('own code is ignored', own && !own.ref);
+const pm = (await call('/orders/partner/me', {token: staffToken})).data;
+check(
+  'partner sees referred order without customer data',
+  pm?.orders.length === 1 && !JSON.stringify(pm).includes('9876500000') && !JSON.stringify(pm).includes('@'),
+  pm,
+);
+
+// ── AI ──────────────────────────────────────────────────────────────────
+const ai = (await call('/ai/status', {token: user})).data;
+if (ai?.enabled) console.log('note: ANTHROPIC_API_KEY is set; skipping the AI-off check');
+else
+  check(
+    'AI off without a key',
+    (await call('/ai/chats/new/messages', {method: 'POST', token: user, body: {content: 'hi'}})).status === 503,
+  );
+check('AI needs sign-in', (await call('/ai/status')).status === 401);
+
 console.log(`${ok} passed, ${bad} failed`);
 process.exitCode = bad ? 1 : 0;

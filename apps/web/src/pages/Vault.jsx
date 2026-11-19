@@ -1,6 +1,6 @@
 import {useRef, useState} from 'react';
 import {Copy, Download, Eye, FileText, Trash2, Upload} from 'lucide-react';
-import {api, useApi} from '../lib/api';
+import {api, authFetch, useApi} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
 import {Button, Field, Label, Section} from '../components/ui';
@@ -9,19 +9,9 @@ import {formatDate, useSignedIn} from './Orders';
 
 const mb = (bytes) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-const token = () => {
-  try {
-    return localStorage.getItem('pirento.token');
-  } catch {
-    return null;
-  }
-};
-// Files are binary, so these two skip the JSON helper.
+// Files are binary, so these skip the JSON helper.
 async function raw(path, init = {}) {
-  const res = await fetch(`/api/vault${path}`, {
-    ...init,
-    headers: {...init.headers, authorization: `Bearer ${token()}`},
-  });
+  const res = await authFetch(`/api/vault${path}`, init);
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error?.message ?? 'Something went wrong');
   return res;
 }

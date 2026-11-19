@@ -157,11 +157,12 @@ export const CheckList = ({items}) => (
 
 export function StatsRow({stats}) {
   return (
-    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-[22px] border border-rule bg-rule lg:grid-cols-4">
+    // Flex-wrap, not a fixed grid: any number of stats fills each row with no empty cell.
+    <dl className="flex flex-wrap gap-px overflow-hidden rounded-[22px] border border-rule bg-rule">
       {stats.map((s) => (
-        <div key={s.label} className="bg-paper p-6 md:p-8" data-reveal>
+        <div key={s.label} className="min-w-0 flex-1 basis-52 bg-paper p-6 md:p-8" data-reveal>
           <dt className="eyebrow">{s.label}</dt>
-          <dd className="num mt-6">{s.value}</dd>
+          <dd className="num mt-6 text-[clamp(1.75rem,3vw,2.75rem)]!">{s.value}</dd>
         </div>
       ))}
     </dl>

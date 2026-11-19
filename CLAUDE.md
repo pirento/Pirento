@@ -14,6 +14,10 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Sequences:** order, ticket and Bharat ID numbers come from `nextSeq(name)` in `@pirento/shared/server`. Bharat IDs only through `bharatIdFromSeq`; validate with `isBharatId`.
 - **Exam answers** (`@pirento/shared/exam`) are server-only. The web app must never import that module.
 - **Vault** encrypts with `services/vault/src/cipher.js`; never return plaintext file bytes or passwords outside the two decrypt routes.
+- **Sessions:** never put the access token in storage. `authFetch` / `api` in `apps/web/src/lib/api.jsx` attach it and refresh once on a 401; use them for every call, binary ones included.
+- **Claude calls** live only in `services/ai`. Model `claude-opus-5-5`; keep `SYSTEM` in `services/ai/src/prompt.js` byte-stable (no dates or ids) so the prompt cache keeps hitting.
+- **Effects:** wrap `useEffect` bodies in braces. An arrow that returns a value (e.g. `scrollIntoView`, which returns a Promise in new browsers) crashes React on unmount.
+- **Layout check:** `html` has `overflow-x: clip`, so `scrollWidth` never shows overflow. Check element edges against the viewport instead.
 - **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser.
 - **Motion:** pages call `usePageMotion(ref)`. Mark elements with `data-reveal`, hero extras with `data-hero-fade`, heading lines with `<Heading data-lines>`. All of it is skipped under reduced motion.
 - **New page:** add the route in `apps/web/src/main.jsx`, call `usePageMeta`, keep one `<h1>`.

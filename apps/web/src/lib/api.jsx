@@ -1,22 +1,63 @@
 import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
-const TOKEN_KEY = 'pirento.token';
-const readToken = () => {
+// The access token lives only in memory (15 min). The refresh token is an
+// httpOnly cookie the page cannot read; a localStorage flag only says whether
+// trying a refresh is worth it, so signed-out visitors make no failing request.
+let accessToken = null;
+const FLAG = 'pirento.session';
+const flag = (on) => {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    if (on) localStorage.setItem(FLAG, '1');
+    else localStorage.removeItem(FLAG);
   } catch {
-    return null;
+    /* storage blocked: the session just lasts until reload */
+  }
+};
+const hasFlag = () => {
+  try {
+    return localStorage.getItem(FLAG) === '1';
+  } catch {
+    return false;
   }
 };
 
+let refreshing = null;
+async function refresh() {
+  // One refresh for many parallel 401s: the old cookie is single-use.
+  refreshing ??= fetch('/api/auth/refresh', {method: 'POST'})
+    .then(async (res) => {
+      if (!res.ok) throw new Error('signed out');
+      const {data} = await res.json();
+      accessToken = data.token;
+      return data.user;
+    })
+    .finally(() => (refreshing = null));
+  return refreshing;
+}
+
+/** fetch with the access token, refreshing once on 401. */
+export async function authFetch(url, init = {}) {
+  const send = () =>
+    fetch(url, {
+      ...init,
+      headers: {...init.headers, ...(accessToken ? {Authorization: `Bearer ${accessToken}`} : {})},
+    });
+  let res = await send();
+  if (res.status === 401 && !url.startsWith('/api/auth/') && hasFlag()) {
+    try {
+      await refresh();
+      res = await send();
+    } catch {
+      flag(false);
+    }
+  }
+  return res;
+}
+
 export async function api(path, {method = 'GET', body} = {}) {
-  const token = readToken();
-  const res = await fetch(`/api${path}`, {
+  const res = await authFetch(`/api${path}`, {
     method,
-    headers: {
-      ...(body ? {'Content-Type': 'application/json'} : {}),
-      ...(token ? {Authorization: `Bearer ${token}`} : {}),
-    },
+    headers: body ? {'Content-Type': 'application/json'} : {},
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));
@@ -43,31 +84,26 @@ const SessionContext = createContext(null);
 
 export function SessionProvider({children}) {
   const [user, setUser] = useState(null);
-  const [ready, setReady] = useState(!readToken());
+  const [ready, setReady] = useState(!hasFlag());
 
   useEffect(() => {
-    if (!readToken()) return;
-    api('/auth/me')
-      .then(setUser, () => signOut())
+    if (!hasFlag()) return;
+    refresh()
+      .then(setUser, () => flag(false))
       .finally(() => setReady(true));
   }, []);
 
   const signIn = (token, nextUser) => {
-    try {
-      localStorage.setItem(TOKEN_KEY, token);
-    } catch {
-      /* private mode: session lasts until reload */
-    }
+    accessToken = token;
+    flag(true);
     setUser(nextUser);
   };
-  function signOut() {
-    try {
-      localStorage.removeItem(TOKEN_KEY);
-    } catch {
-      /* nothing stored */
-    }
+  const signOut = () => {
+    fetch('/api/auth/logout', {method: 'POST'}).catch(() => {});
+    accessToken = null;
+    flag(false);
     setUser(null);
-  }
+  };
 
   return <SessionContext.Provider value={{user, ready, signIn, signOut, setUser}}>{children}</SessionContext.Provider>;
 }

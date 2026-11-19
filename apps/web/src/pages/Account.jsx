@@ -146,6 +146,8 @@ export function Account() {
               ['Bharat ID', '/bharat-id'],
               ['Intern', '/intern'],
               ['Vault', '/vault'],
+              ['AI', '/ai'],
+              ['One', '/one'],
               ['Support', '/support'],
             ].map(([label, to]) => (
               <Button key={to} to={to} variant="outline" className="px-4! py-2!">
@@ -156,6 +158,11 @@ export function Account() {
           {['staff', 'superadmin'].includes(user.role) && (
             <Button to="/staff" data-hero-fade>
               Work queue
+            </Button>
+          )}
+          {user.role === 'superadmin' && (
+            <Button to="/admin" variant="outline" data-hero-fade>
+              Admin
             </Button>
           )}
           <Button onClick={signOut} variant="outline" icon={LogOut} data-hero-fade>

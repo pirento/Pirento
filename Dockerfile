@@ -13,6 +13,7 @@ COPY services/identity/package.json services/identity/
 COPY services/learning/package.json services/learning/
 COPY services/vault/package.json services/vault/
 COPY services/support/package.json services/support/
+COPY services/ai/package.json services/ai/
 RUN npm ci
 
 FROM deps AS build
