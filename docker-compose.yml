@@ -1,0 +1,43 @@
+# Full stack: docker compose up --build  →  http://localhost:4000
+x-service: &service
+  build: .
+  restart: unless-stopped
+  environment: &env
+    JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    ports: ['127.0.0.1:27017:27017']
+    volumes: [mongo-data:/data/db]
+
+  auth:
+    <<: *service
+    environment: {<<: *env, SERVICE: auth, MONGO_URI: mongodb://mongo:27017/pirento_auth}
+    depends_on: [mongo]
+
+  wallet:
+    <<: *service
+    environment: {<<: *env, SERVICE: wallet, MONGO_URI: mongodb://mongo:27017/pirento_wallet}
+    depends_on: [mongo]
+
+  catalog:
+    <<: *service
+    environment: {<<: *env, SERVICE: catalog}
+
+  gateway:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: gateway
+      WEB_DIST: /app/apps/web/dist
+      AUTH_URL: http://auth:4001
+      WALLET_URL: http://wallet:4002
+      CATALOG_URL: http://catalog:4003
+    ports: ['4000:4000']
+    depends_on: [auth, wallet, catalog]
+
+volumes:
+  mongo-data:

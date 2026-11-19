@@ -1,0 +1,253 @@
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource-variable/inter';
+@import 'tailwindcss';
+
+@custom-variant dark (&:where([data-mode='dark'], [data-mode='dark'] *));
+
+/* Fixed design tokens. Components use only these, never a hex value. */
+:root {
+  --paper: #f1f3f0;
+  --stone: #e2e8e3;
+  --ink: #0f2620;
+  --muted: #56665f;
+  --rule: #cbd6cf;
+  --accent: #f2b33d;
+  --on-accent: #0f2620;
+  --inverse: #0f2620;
+  --on-inverse: #eef2ee;
+  --inverse-muted: #93a79e;
+  --inverse-rule: #24443a;
+  --ease-ui: cubic-bezier(0.7, 0, 0.2, 1);
+}
+[data-mode='dark'] {
+  --paper: #0b1a16;
+  --stone: #12261f;
+  --ink: #e9efea;
+  --muted: #98aaa2;
+  --rule: #21382f;
+  --inverse: #132b24;
+  --on-inverse: #e9efea;
+  --inverse-muted: #98aaa2;
+  --inverse-rule: #2a4a40;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-stone: var(--stone);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rule: var(--rule);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-inverse-muted: var(--inverse-muted);
+  --color-inverse-rule: var(--inverse-rule);
+  --font-display: 'Space Grotesk Variable', system-ui, sans-serif;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --ease-ui: cubic-bezier(0.7, 0, 0.2, 1);
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  overflow-x: clip;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  overflow-x: clip;
+  font-family: var(--font-sans);
+}
+::selection {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.inverse :focus-visible {
+  outline-color: var(--on-inverse);
+}
+
+h1,
+h2,
+h3,
+.display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  text-wrap: balance;
+}
+.h-hero {
+  font-size: clamp(2.75rem, 5.6vw, 5.75rem);
+}
+.h-section {
+  font-size: clamp(2.25rem, 5vw, 4.75rem);
+}
+.h-cta {
+  font-size: clamp(2.6rem, 7.4vw, 7.5rem);
+}
+.h-card {
+  font-size: clamp(1.5rem, 2.6vw, 2.25rem);
+}
+.num {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.body {
+  font-size: 1.065rem;
+  line-height: 1.72;
+  color: var(--muted);
+  max-width: 38rem;
+}
+.body strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.container-x {
+  max-width: 1360px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+@media (min-width: 640px) {
+  .container-x {
+    padding-inline: 32px;
+  }
+}
+@media (min-width: 1024px) {
+  .container-x {
+    padding-inline: 48px;
+  }
+}
+
+/* Dark panel: re-points the tokens so children just use ink/muted/rule. */
+.inverse {
+  background: var(--inverse);
+  --ink: var(--on-inverse);
+  --muted: var(--inverse-muted);
+  --rule: var(--inverse-rule);
+  --paper: var(--inverse);
+  color: var(--ink);
+}
+
+/* Preloader is always the fixed forest panel, in both modes. */
+.preloader {
+  background: #0f2620;
+  color: #eef2ee;
+}
+
+/* Heading line mask for the slide-up entrance. */
+.line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.08em;
+}
+.line > span {
+  display: block;
+}
+
+/* Highlighter: accent bar behind a word, sweeps in when .is-on is added. */
+.hl {
+  position: relative;
+  z-index: 0;
+  white-space: nowrap;
+}
+.hl::before {
+  content: '';
+  position: absolute;
+  inset: 6% -0.08em;
+  background: var(--accent);
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.9s var(--ease-ui);
+}
+.hl.is-on::before {
+  transform: scaleX(1);
+}
+.hl.is-on {
+  color: var(--on-accent);
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(var(--rule) 1px, transparent 1px), linear-gradient(90deg, var(--rule) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse at 50% 40%, #000 20%, transparent 72%);
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -60px;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--paper);
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+.skip-link:focus {
+  top: 16px;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+.pulse {
+  animation: pulse-dot 1.8s infinite;
+}
+@keyframes draw {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  51% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+.scroll-line {
+  animation: draw 2.2s var(--ease-ui) infinite;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
