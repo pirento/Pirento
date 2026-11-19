@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import {Link, useParams} from 'react-router-dom';
 import {AlertTriangle} from 'lucide-react';
 import {PRODUCTS, getProduct, servicesFor} from '@pirento/shared';
-import {productIllustration} from '../data/site';
+import {productApps, productIllustration} from '../data/site';
 import {inr} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
@@ -98,9 +98,13 @@ export function Product() {
       <PageHero label={product.name} title={product.quote.replace(/, /, ', / ')} intro={product.overview}>
         <div className="mt-8 flex items-center gap-3" data-hero-fade>
           <StatusTag status={product.status} />
-          {slug === 'legal' && (
-            <Button to="/legal" variant="accent">
-              Browse the catalogue
+          {productApps[slug] && (
+            <Button to={productApps[slug]} variant="accent">
+              {slug === 'legal'
+                ? 'Browse the catalogue'
+                : productApps[slug].includes('#')
+                  ? 'See prices'
+                  : `Open ${product.short}`}
             </Button>
           )}
         </div>
@@ -127,7 +131,7 @@ export function Product() {
       </Section>
 
       {services.length > 0 && (
-        <Section className="pt-0! md:pt-0!">
+        <Section id="services" className="pt-0! md:pt-0!">
           <SectionHeader n={2} label="Services" title="Prices you / see first." />
           <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {services.slice(0, 9).map((s) => (
@@ -137,8 +141,11 @@ export function Product() {
                   className="flex h-full flex-col rounded-[18px] border border-rule p-6 transition-colors hover:border-ink"
                 >
                   <span className="text-lg font-medium">{s.name}</span>
-                  <span className="mt-1 text-sm text-muted">{s.deliveryTime}</span>
-                  <span className="num mt-8">{inr(s.price)}</span>
+                  <span className="mt-1 text-sm text-muted">{s.deliveryTime ?? s.category}</span>
+                  <span className="num mt-8">
+                    {inr(s.price)}
+                    {s.unit && <span className="text-base text-muted"> / {s.unit}</span>}
+                  </span>
                 </Link>
               </li>
             ))}

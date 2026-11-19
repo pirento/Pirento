@@ -11,6 +11,9 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Shared helpers:** `createApp`, `finish`, `validate(zod)`, `requireAuth`, `ApiError` from `@pirento/shared/server`. Responses are always `{data}` or `{error: {code, message}}`.
 - **Internal calls:** a service calls another with `callService(url, '/internal/…', body)`; the receiver guards with `requireInternal`. Never expose an `/internal` route without it.
 - **Orders:** status moves only through `STAFF_TRANSITIONS` (`packages/shared/src/orders.js`), with an update conditional on the old status. Intake answers are validated by `validateIntake` on the server.
+- **Sequences:** order, ticket and Bharat ID numbers come from `nextSeq(name)` in `@pirento/shared/server`. Bharat IDs only through `bharatIdFromSeq`; validate with `isBharatId`.
+- **Exam answers** (`@pirento/shared/exam`) are server-only. The web app must never import that module.
+- **Vault** encrypts with `services/vault/src/cipher.js`; never return plaintext file bytes or passwords outside the two decrypt routes.
 - **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser.
 - **Motion:** pages call `usePageMotion(ref)`. Mark elements with `data-reveal`, hero extras with `data-hero-fade`, heading lines with `<Heading data-lines>`. All of it is skipped under reduced motion.
 - **New page:** add the route in `apps/web/src/main.jsx`, call `usePageMeta`, keep one `<h1>`.

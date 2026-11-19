@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.js",
     "./server": "./src/server.js",
-    "./exam": "./src/data/examBank.js"
+    "./exam": "./src/data/examBank.js",
+    "./intake": "./src/data/intake.js"
   },
   "scripts": {
     "test": "node --test"

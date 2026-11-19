@@ -120,7 +120,10 @@ export function Service() {
                 </>
               ) : (
                 <>
-                  <strong>This is a fixed-price service.</strong> The price below covers the whole job.
+                  <strong>This is a fixed-price service.</strong>{' '}
+                  {service.unit
+                    ? `The price is per ${service.unit}; you choose how many at checkout.`
+                    : 'The price below covers the whole job.'}
                 </>
               )}
             </p>
@@ -136,7 +139,10 @@ export function Service() {
           </div>
           <aside className="rounded-[22px] border border-accent p-8 lg:col-span-5" data-reveal>
             <Tag tone="accent">{consult ? 'Consultation' : 'Fixed price'}</Tag>
-            <p className="num mt-8 text-[clamp(2.5rem,5vw,4rem)]!">{service.price ? inr(service.price) : 'On quote'}</p>
+            <p className="num mt-8 text-[clamp(2.5rem,5vw,4rem)]!">
+              {service.price ? inr(service.price) : 'On quote'}
+              {service.unit && <span className="text-xl text-muted"> / {service.unit}</span>}
+            </p>
             {service.deliveryTime && (
               <p className="mt-3 flex items-center gap-2 text-sm text-muted">
                 <Clock aria-hidden className="size-4" /> {service.deliveryTime}

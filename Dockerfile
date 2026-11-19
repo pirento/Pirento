@@ -9,6 +9,10 @@ COPY services/wallet/package.json services/wallet/
 COPY services/catalog/package.json services/catalog/
 COPY services/gateway/package.json services/gateway/
 COPY services/orders/package.json services/orders/
+COPY services/identity/package.json services/identity/
+COPY services/learning/package.json services/learning/
+COPY services/vault/package.json services/vault/
+COPY services/support/package.json services/support/
 RUN npm ci
 
 FROM deps AS build

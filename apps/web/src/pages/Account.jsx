@@ -141,6 +141,18 @@ export function Account() {
             </p>
             <Heading as="h1" text={`Hello, / ${user.name || user.email.split('@')[0]}.`} className="h-hero mt-6" />
           </div>
+          <nav aria-label="Your products" className="flex flex-wrap gap-2" data-hero-fade>
+            {[
+              ['Bharat ID', '/bharat-id'],
+              ['Intern', '/intern'],
+              ['Vault', '/vault'],
+              ['Support', '/support'],
+            ].map(([label, to]) => (
+              <Button key={to} to={to} variant="outline" className="px-4! py-2!">
+                {label}
+              </Button>
+            ))}
+          </nav>
           {['staff', 'superadmin'].includes(user.role) && (
             <Button to="/staff" data-hero-fade>
               Work queue

@@ -9,20 +9,19 @@ import {
   createApp,
   env,
   finish,
+  nextSeq,
   requireAuth,
   requireRole,
+  STAFF,
   start,
   validate,
 } from '@pirento/shared/server';
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig, webhookSignatureOk} from './razorpay.js';
 
 const WALLET_URL = env('WALLET_URL', 'http://127.0.0.1:4002');
-const STAFF = ['staff', 'superadmin'];
-const CODE_PREFIX = {legal: 'LGL', black: 'BLK'};
+const CODE_PREFIX = {legal: 'LGL', black: 'BLK', green: 'GRN'};
 
-const Counter = mongoose.model('Counter', new mongoose.Schema({_id: String, seq: Number}));
-const nextOrderNo = async () =>
-  (await Counter.findOneAndUpdate({_id: 'order'}, {$inc: {seq: 1}}, {upsert: true, new: true})).seq + 100000;
+const nextOrderNo = async () => (await nextSeq('order')) + 100000;
 
 const Order = mongoose.model(
   'Order',
@@ -34,7 +33,8 @@ const Order = mongoose.model(
       product: {type: String, required: true},
       serviceSlug: {type: String, required: true},
       serviceName: {type: String, required: true},
-      amount: {type: Number, required: true, min: 1}, // paise, from the server catalog
+      quantity: {type: Number, default: 1, min: 1},
+      amount: {type: Number, required: true, min: 1}, // paise, from the server catalog × quantity
       intake: {type: Object, default: {}},
       status: {type: String, required: true, default: 'pending_payment', index: true},
       timeline: [{_id: false, status: String, note: String, at: {type: Date, default: Date.now}}],
@@ -114,12 +114,21 @@ app.use(requireAuth);
 
 app.post(
   '/',
-  validate(z.object({serviceSlug: z.string().max(80), intake: z.record(z.string(), z.string()).default({})})),
+  validate(
+    z.object({
+      serviceSlug: z.string().max(80),
+      quantity: z.number().int().min(1).default(1),
+      intake: z.record(z.string(), z.string()).default({}),
+    }),
+  ),
   asyncHandler(async (req, res) => {
     const service = getService(req.body.serviceSlug);
     if (!service?.price) throw new ApiError(400, 'NOT_FOR_SALE', 'This service cannot be bought online yet');
     const {answers, error} = validateIntake(service.product, service.slug, req.body.intake);
     if (error) throw new ApiError(400, 'INVALID_INPUT', error);
+    if (req.body.quantity > (service.maxQty ?? 1)) {
+      throw new ApiError(400, 'INVALID_INPUT', `You can order at most ${service.maxQty ?? 1} at a time`);
+    }
     const order = await Order.create({
       orderNo: await nextOrderNo(),
       userId: req.user.sub,
@@ -127,7 +136,8 @@ app.post(
       product: service.product,
       serviceSlug: service.slug,
       serviceName: service.name,
-      amount: service.price * 100,
+      quantity: req.body.quantity,
+      amount: service.price * 100 * req.body.quantity,
       intake: answers,
       timeline: [{status: 'pending_payment', note: 'Order placed'}],
     });

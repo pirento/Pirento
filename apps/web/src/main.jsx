@@ -14,6 +14,10 @@ import {Product, Products} from './pages/Products';
 import {Legal, Service} from './pages/Legal';
 import {Account, Login} from './pages/Account';
 import {Checkout, OrderPage, Staff, Verify} from './pages/Orders';
+import {BharatId} from './pages/BharatId';
+import {Intern} from './pages/Intern';
+import {Vault} from './pages/Vault';
+import {Support, Ticket} from './pages/Support';
 import {NotFound} from './pages/NotFound';
 
 // Scroll to top on page change (or to #hash), and fade the new page in.
@@ -53,6 +57,11 @@ function App() {
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify/:code" element={<Verify />} />
           <Route path="/staff" element={<Staff />} />
+          <Route path="/bharat-id" element={<BharatId />} />
+          <Route path="/intern" element={<Intern />} />
+          <Route path="/vault" element={<Vault />} />
+          <Route path="/support" element={<Support />} />
+          <Route path="/support/:id" element={<Ticket />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

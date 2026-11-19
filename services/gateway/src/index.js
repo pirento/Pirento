@@ -12,6 +12,10 @@ const ROUTES = {
   wallet: env('WALLET_URL', 'http://127.0.0.1:4002'),
   catalog: env('CATALOG_URL', 'http://127.0.0.1:4003'),
   orders: env('ORDERS_URL', 'http://127.0.0.1:4004'),
+  identity: env('IDENTITY_URL', 'http://127.0.0.1:4005'),
+  learning: env('LEARNING_URL', 'http://127.0.0.1:4006'),
+  vault: env('VAULT_URL', 'http://127.0.0.1:4007'),
+  support: env('SUPPORT_URL', 'http://127.0.0.1:4008'),
 };
 
 // Razorpay Checkout loads its script and opens its frame from these hosts.

@@ -92,6 +92,15 @@ export async function callService(baseUrl, path, body) {
   return json.data;
 }
 
+export const STAFF = ['staff', 'superadmin'];
+
+// Atomic counter per service database: order numbers, ticket numbers, ID sequences.
+let Counter;
+export async function nextSeq(name) {
+  Counter ??= mongoose.model('Counter', new mongoose.Schema({_id: String, seq: Number}));
+  return (await Counter.findOneAndUpdate({_id: name}, {$inc: {seq: 1}}, {upsert: true, new: true})).seq;
+}
+
 export async function start(app, {name, port, mongoUri}) {
   if (mongoUri) await mongoose.connect(mongoUri);
   app.listen(port, () => console.log(`${name} listening on :${port}`));

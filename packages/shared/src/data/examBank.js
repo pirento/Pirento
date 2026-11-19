@@ -601,3 +601,13 @@ export function bankFor(track) {
   }
   return {track: 'general', questions: BANKS.general};
 }
+
+// Public track list (names only — answers never leave the server).
+export const TRACKS = [
+  {slug: 'general', name: 'General'},
+  {slug: 'web-development', name: 'Web development'},
+  {slug: 'data-science', name: 'Data science'},
+  {slug: 'marketing', name: 'Marketing'},
+  {slug: 'design', name: 'Design'},
+];
+export const bankForSlug = (slug) => BANKS[slug] ?? null;

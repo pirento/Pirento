@@ -40,6 +40,39 @@ services:
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
     depends_on: [mongo, wallet]
 
+  identity:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: identity
+      MONGO_URI: mongodb://mongo:27017/pirento_identity
+    depends_on: [mongo]
+
+  learning:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: learning
+      MONGO_URI: mongodb://mongo:27017/pirento_learning
+    depends_on: [mongo]
+
+  vault:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: vault
+      MONGO_URI: mongodb://mongo:27017/pirento_vault
+      VAULT_ENCRYPTION_KEY: ${VAULT_ENCRYPTION_KEY:?set VAULT_ENCRYPTION_KEY in .env}
+    depends_on: [mongo]
+
+  support:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: support
+      MONGO_URI: mongodb://mongo:27017/pirento_support
+    depends_on: [mongo]
+
   gateway:
     <<: *service
     environment:
@@ -50,8 +83,12 @@ services:
       WALLET_URL: http://wallet:4002
       CATALOG_URL: http://catalog:4003
       ORDERS_URL: http://orders:4004
+      IDENTITY_URL: http://identity:4005
+      LEARNING_URL: http://learning:4006
+      VAULT_URL: http://vault:4007
+      SUPPORT_URL: http://support:4008
     ports: ['4000:4000']
-    depends_on: [auth, wallet, catalog, orders]
+    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support]
 
 volumes:
   mongo-data:

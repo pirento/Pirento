@@ -1,7 +1,17 @@
 import {useRef, useState} from 'react';
 import {Link, Navigate, useLocation, useNavigate, useParams} from 'react-router-dom';
 import {BadgeCheck, CreditCard, Search, ShieldCheck, Wallet, X} from 'lucide-react';
-import {ORDER_STEPS, STAFF_TRANSITIONS, checkoutQuestions, getService, statusLabel} from '@pirento/shared';
+import {QRCodeSVG} from 'qrcode.react';
+import {
+  ORDER_STEPS,
+  STAFF_TRANSITIONS,
+  checkoutQuestions,
+  formatBharatId,
+  getService,
+  statusLabel,
+} from '@pirento/shared';
+import {IdentityQueue} from './BharatId';
+import {TicketQueue} from './Support';
 import {api, inr, useApi, useSession} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
@@ -9,7 +19,7 @@ import {Button, Field, Heading, Label, Section, Tag} from '../components/ui';
 import {PageHero} from './Products';
 import {NotFound} from './NotFound';
 
-const formatDate = (d) =>
+export const formatDate = (d) =>
   new Date(d).toLocaleString('en-IN', {
     day: 'numeric',
     month: 'short',
@@ -19,12 +29,14 @@ const formatDate = (d) =>
   });
 
 /** Sends signed-out visitors to /login and back here afterwards. */
-function useSignedIn() {
+export function useSignedIn() {
   const {user, ready} = useSession();
   const {pathname} = useLocation();
   if (ready && !user) return {redirect: <Navigate to={`/login?next=${encodeURIComponent(pathname)}`} replace />};
   return {user, ready};
 }
+
+const qty = (o) => (o.quantity > 1 ? ` × ${o.quantity}` : '');
 
 // ── Checkout ─────────────────────────────────────────────────────────────
 
@@ -101,6 +113,7 @@ export function Checkout() {
   const navigate = useNavigate();
   const {redirect} = useSignedIn();
   const [answers, setAnswers] = useState({});
+  const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const ref = useRef(null);
@@ -115,7 +128,7 @@ export function Checkout() {
     setError('');
     setBusy(true);
     try {
-      const order = await api('/orders', {method: 'POST', body: {serviceSlug: slug, intake: answers}});
+      const order = await api('/orders', {method: 'POST', body: {serviceSlug: slug, quantity, intake: answers}});
       navigate(`/orders/${order._id}`);
     } catch (err) {
       setError(err.message);
@@ -129,6 +142,17 @@ export function Checkout() {
       <Section className="pt-0! md:pt-0!">
         <form onSubmit={submit} noValidate className="grid gap-10 lg:grid-cols-12">
           <div className="space-y-8 lg:col-span-7" data-reveal>
+            {service.maxQty > 1 && (
+              <Field
+                label={`How many ${service.unit}s? (up to ${service.maxQty})`}
+                type="number"
+                min={1}
+                max={service.maxQty}
+                required
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, Math.min(service.maxQty, Number(e.target.value) || 1)))}
+              />
+            )}
             {questions.map((q) => (
               <Question
                 key={q.id}
@@ -146,8 +170,11 @@ export function Checkout() {
             <h2 className="mt-4 text-3xl">{service.name}</h2>
             <p className="mt-2 text-sm text-muted">{service.deliveryTime}</p>
             <div className="mt-8 flex items-baseline justify-between border-t border-rule pt-6">
-              <span className="text-muted">{service.model === 'consult' ? 'Consultation' : 'Total'}</span>
-              <span className="num">{inr(service.price)}</span>
+              <span className="text-muted">
+                {service.model === 'consult' ? 'Consultation' : 'Total'}
+                {quantity > 1 && ` · ${quantity} × ${inr(service.price)}`}
+              </span>
+              <span className="num">{inr(service.price * quantity)}</span>
             </div>
             {error && (
               <p role="alert" className="mt-6 text-sm">
@@ -343,7 +370,7 @@ export function OrderPage() {
 
   return (
     <div ref={ref}>
-      <PageHero label={`Order #${order.orderNo}`} title={order.serviceName}>
+      <PageHero label={`Order #${order.orderNo}${qty(order)}`} title={order.serviceName}>
         <div className="mt-8 flex flex-wrap items-center gap-3" data-hero-fade>
           <Tag tone={order.status === 'completed' ? 'accent' : 'rule'}>{statusLabel(order.status)}</Tag>
           <span className="text-sm text-muted">Placed {formatDate(order.createdAt)}</span>
@@ -416,7 +443,8 @@ export function OrdersList() {
             <span>
               <span className="block font-medium">{o.serviceName}</span>
               <span className="text-xs text-muted">
-                #{o.orderNo} · {statusLabel(o.status)}
+                #{o.orderNo}
+                {qty(o)} · {statusLabel(o.status)}
               </span>
             </span>
             <span className="tabular-nums">{inr(o.amount / 100)}</span>
@@ -429,14 +457,63 @@ export function OrdersList() {
 
 // ── Verify ───────────────────────────────────────────────────────────────
 
+// Bharat IDs are 10 digits; certificates start PC-; everything else is an order code.
+const verifyPath = (code) =>
+  /^\d{10}$/.test(code)
+    ? `/identity/verify/${code}`
+    : code.startsWith('PC-')
+      ? `/learning/verify/${code}`
+      : `/orders/verify/${code}`;
+
+function VerifiedCard({code, data}) {
+  const rows = /^\d{10}$/.test(code)
+    ? {
+        title: data.name,
+        lines: [`Bharat ID ${formatBharatId(data.bharatId)}`, `${data.state} · issued ${formatDate(data.issuedAt)}`],
+      }
+    : code.startsWith('PC-')
+      ? {
+          title: data.fullName,
+          lines: [
+            `${data.trackName} · scored ${data.percent}%`,
+            `Theory ${data.skills?.theoretical ?? '—'}% · Practical ${data.skills?.practical ?? '—'}%`,
+            `Issued ${formatDate(data.issuedAt)} · ${data.code}`,
+          ],
+        }
+      : {title: data.serviceName, lines: [`Completed ${formatDate(data.completedAt)} · ${data.code}`]};
+  return (
+    <div className="flex max-w-2xl flex-wrap items-start justify-between gap-8 rounded-[22px] border border-accent p-8">
+      <div>
+        <p className="flex items-center gap-2 font-medium">
+          <BadgeCheck aria-hidden className="size-5" /> Verified
+        </p>
+        <p className="display mt-6 text-3xl">{rows.title}</p>
+        {rows.lines.map((l) => (
+          <p key={l} className="mt-2 text-muted">
+            {l}
+          </p>
+        ))}
+      </div>
+      <QRCodeSVG
+        value={`https://pirento.com/verify/${code}`}
+        size={112}
+        bgColor="transparent"
+        fgColor="currentColor"
+        title={`QR code for verify link ${code}`}
+      />
+    </div>
+  );
+}
+
 export function Verify() {
-  const {code} = useParams();
+  const {code: raw} = useParams();
+  const code = raw?.toUpperCase();
   const navigate = useNavigate();
   const [input, setInput] = useState(code ?? '');
-  const result = useApi(code ? `/orders/verify/${encodeURIComponent(code)}` : null);
+  const result = useApi(code ? verifyPath(code) : null);
   const ref = useRef(null);
   usePageMotion(ref, [code]);
-  usePageMeta({title: 'Verify a Pirento code', description: 'Check that a Pirento completion code is real.'});
+  usePageMeta({title: 'Verify a Pirento code', description: 'Check a Bharat ID, certificate or completion code.'});
 
   return (
     <div ref={ref}>
@@ -444,12 +521,13 @@ export function Verify() {
         label="Verify"
         title="Check a / Pirento code."
         hl="Pirento code."
-        intro="Every completed Legal and Black job gets a code. Enter it to confirm the work is on our records."
+        intro="Enter a Bharat ID, an Intern certificate code (PC-…) or a completion code (LGL-, BLK-, GRN-…) to see if it is on our records."
       >
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            if (input.trim()) navigate(`/verify/${input.trim().toUpperCase()}`);
+            const v = input.replace(/\s+/g, '').toUpperCase();
+            if (v) navigate(`/verify/${v}`);
           }}
           className="mt-10 flex max-w-xl items-center gap-3 rounded-full border border-rule bg-paper py-2 pr-2 pl-5 focus-within:border-ink"
           data-hero-fade
@@ -462,8 +540,8 @@ export function Verify() {
             id="code"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="BLK-1A2B3C4D"
-            className="w-full bg-transparent uppercase outline-none placeholder:text-muted"
+            placeholder="PC-1A2B3C4D or 10-digit ID"
+            className="w-full bg-transparent uppercase outline-none placeholder:text-muted placeholder:normal-case"
           />
           <Button type="submit" className="px-5! py-2.5!">
             Check
@@ -476,20 +554,10 @@ export function Verify() {
             {result.loading && <p className="body">Checking…</p>}
             {result.error && (
               <p className="body">
-                <strong>Not found.</strong> No completed work has the code {code}. Check for typos.
+                <strong>Not found.</strong> {result.error.message}. Check for typos.
               </p>
             )}
-            {result.data && (
-              <div className="max-w-xl rounded-[22px] border border-accent p-8">
-                <p className="flex items-center gap-2 font-medium">
-                  <BadgeCheck aria-hidden className="size-5" /> Verified
-                </p>
-                <p className="display mt-6 text-3xl">{result.data.serviceName}</p>
-                <p className="mt-2 text-muted">
-                  Completed {formatDate(result.data.completedAt)} · {result.data.code}
-                </p>
-              </div>
-            )}
+            {result.data && <VerifiedCard code={code} data={result.data} />}
           </div>
         </Section>
       )}
@@ -537,6 +605,7 @@ function StaffOrder({order, onChange}) {
         <span>
           <span className="block font-medium">
             #{order.orderNo} · {order.serviceName}
+            {qty(order)}
           </span>
           <span className="text-sm text-muted">
             {order.email} · {formatDate(order.createdAt)}
@@ -597,40 +666,75 @@ function StaffOrder({order, onChange}) {
   );
 }
 
+/** Pill tabs + list, shared by every staff queue. */
+export function StaffQueue({path, filters, render}) {
+  const [filter, setFilter] = useState(filters[0].value);
+  const queue = useApi(`${path}${filter ? `?status=${filter}` : ''}`);
+  return (
+    <>
+      <div role="tablist" aria-label="Filter" className="no-scrollbar mt-8 flex gap-2 overflow-x-auto">
+        {filters.map((f) => (
+          <button
+            key={f.label}
+            role="tab"
+            aria-selected={filter === f.value}
+            onClick={() => setFilter(f.value)}
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm ${filter === f.value ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-8 border-t border-rule">
+        {queue.error && <p className="body py-6">⚠ {queue.error.message}</p>}
+        {queue.data?.length === 0 && <p className="body py-6">Nothing here. All caught up.</p>}
+        {queue.data?.map((item) => render(item, queue.reload))}
+      </div>
+    </>
+  );
+}
+
+const SECTIONS = {
+  Orders: () => (
+    <StaffQueue
+      path="/orders/staff/queue"
+      filters={FILTERS}
+      render={(o, reload) => <StaffOrder key={o._id} order={o} onChange={reload} />}
+    />
+  ),
+  // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
+  'Bharat ID': () => <IdentityQueue />,
+  Tickets: () => <TicketQueue />,
+};
+
 export function Staff() {
   const {redirect, user} = useSignedIn();
-  const [filter, setFilter] = useState('');
+  const [section, setSection] = useState('Orders');
   const isStaff = ['staff', 'superadmin'].includes(user?.role);
-  const queue = useApi(isStaff ? `/orders/staff/queue${filter ? `?status=${filter}` : ''}` : null);
   usePageMeta({title: 'Work queue — Pirento'});
   if (redirect) return redirect;
   if (user && !isStaff) return <NotFound />;
+  if (!user) return <div className="min-h-dvh" />;
+  const Body = SECTIONS[section];
 
   return (
     <div className="pt-36 pb-28 md:pt-44">
       <div className="container-x">
         <p className="eyebrow">Staff</p>
         <Heading as="h1" text="Work queue." className="h-hero mt-6" />
-        <div role="tablist" aria-label="Filter orders" className="no-scrollbar mt-12 flex gap-2 overflow-x-auto">
-          {FILTERS.map((f) => (
+        <nav aria-label="Queues" className="mt-12 flex gap-6 border-b border-rule">
+          {Object.keys(SECTIONS).map((name) => (
             <button
-              key={f.label}
-              role="tab"
-              aria-selected={filter === f.value}
-              onClick={() => setFilter(f.value)}
-              className={`shrink-0 rounded-full border px-4 py-2 text-sm ${filter === f.value ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+              key={name}
+              onClick={() => setSection(name)}
+              aria-current={section === name ? 'page' : undefined}
+              className={`-mb-px border-b-2 pb-3 text-lg ${section === name ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
             >
-              {f.label}
+              {name}
             </button>
           ))}
-        </div>
-        <div className="mt-8 border-t border-rule">
-          {queue.error && <p className="body py-6">⚠ {queue.error.message}</p>}
-          {queue.data?.length === 0 && <p className="body py-6">Nothing here. All caught up.</p>}
-          {queue.data?.map((o) => (
-            <StaffOrder key={o._id} order={o} onChange={queue.reload} />
-          ))}
-        </div>
+        </nav>
+        <Body key={section} />
       </div>
     </div>
   );
