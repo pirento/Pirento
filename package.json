@@ -9,11 +9,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n gateway,auth,wallet,catalog,web -c yellow,blue,green,magenta,cyan \"npm run dev -w @pirento/gateway\" \"npm run dev -w @pirento/auth\" \"npm run dev -w @pirento/wallet\" \"npm run dev -w @pirento/catalog\" \"npm run dev -w @pirento/web\"",
+    "dev": "concurrently -n gateway,auth,wallet,catalog,orders,web -c yellow,blue,green,magenta,red,cyan \"npm run dev -w @pirento/gateway\" \"npm run dev -w @pirento/auth\" \"npm run dev -w @pirento/wallet\" \"npm run dev -w @pirento/catalog\" \"npm run dev -w @pirento/orders\" \"npm run dev -w @pirento/web\"",
     "db": "docker compose up -d mongo",
     "build": "npm run build -w @pirento/web",
     "test": "npm test -ws --if-present",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "e2e": "node scripts/e2e-orders.mjs"
   },
   "engines": {
     "node": ">=22"

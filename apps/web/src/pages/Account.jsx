@@ -1,14 +1,18 @@
 import {useRef, useState} from 'react';
-import {Navigate, useNavigate} from 'react-router-dom';
+import {Navigate, useNavigate, useSearchParams} from 'react-router-dom';
 import {ArrowDownLeft, ArrowUpRight, LogOut} from 'lucide-react';
 import {api, inr, useApi, useSession} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
 import {Button, Field, Heading, Label, Section} from '../components/ui';
+import {OrdersList} from './Orders';
 
 export function Login() {
   const {user, signIn} = useSession();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  // Only same-site paths, never an open redirect.
+  const next = /^\/(?!\/)/.test(params.get('next') ?? '') ? params.get('next') : '/account';
   const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -18,7 +22,7 @@ export function Login() {
   const ref = useRef(null);
   usePageMotion(ref);
   usePageMeta({title: 'Sign in — Pirento'});
-  if (user) return <Navigate to="/account" replace />;
+  if (user) return <Navigate to={next} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
@@ -32,7 +36,7 @@ export function Login() {
       } else {
         const res = await api('/auth/otp/verify', {method: 'POST', body: {email, code}});
         signIn(res.token, res.user);
-        navigate('/account');
+        navigate(next);
       }
     } catch (err) {
       setError(err.message);
@@ -137,6 +141,11 @@ export function Account() {
             </p>
             <Heading as="h1" text={`Hello, / ${user.name || user.email.split('@')[0]}.`} className="h-hero mt-6" />
           </div>
+          {['staff', 'superadmin'].includes(user.role) && (
+            <Button to="/staff" data-hero-fade>
+              Work queue
+            </Button>
+          )}
           <Button onClick={signOut} variant="outline" icon={LogOut} data-hero-fade>
             Sign out
           </Button>
@@ -170,10 +179,14 @@ export function Account() {
                 Add
               </Button>
             </form>
-            <p className="mt-3 text-xs text-muted">Test money only. Real payments are expected with checkout.</p>
+            <p className="mt-3 text-xs text-muted">Test money only, until card and UPI top-ups go live.</p>
           </div>
           <div className="rounded-[22px] border border-rule p-8 lg:col-span-7" data-reveal>
-            <Label n={2}>Transactions</Label>
+            <Label n={2}>Orders</Label>
+            <OrdersList />
+            <div className="mt-12">
+              <Label n={3}>Transactions</Label>
+            </div>
             {wallet.data?.transactions.length ? (
               <ul className="mt-6">
                 {wallet.data.transactions.map((t) => (

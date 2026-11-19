@@ -8,6 +8,7 @@ COPY services/auth/package.json services/auth/
 COPY services/wallet/package.json services/wallet/
 COPY services/catalog/package.json services/catalog/
 COPY services/gateway/package.json services/gateway/
+COPY services/orders/package.json services/orders/
 RUN npm ci
 
 FROM deps AS build

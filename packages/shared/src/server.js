@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import express from 'express';
 import helmet from 'helmet';
 import jwt from 'jsonwebtoken';
@@ -14,11 +15,12 @@ export class ApiError extends Error {
 
 export const asyncHandler = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
-export function createApp(name, {json = true} = {}) {
+export function createApp(name, {json = true, csp} = {}) {
   const app = express();
   app.disable('x-powered-by');
-  app.use(helmet());
-  if (json) app.use(express.json({limit: '100kb'}));
+  app.use(helmet(csp ? {contentSecurityPolicy: {directives: csp}} : {}));
+  // rawBody keeps the exact bytes, needed to check payment webhook signatures.
+  if (json) app.use(express.json({limit: '100kb', verify: (req, _res, buf) => (req.rawBody = buf)}));
   app.get('/health', (_req, res) => res.json({data: {service: name, ok: true}}));
   return app;
 }
@@ -40,8 +42,8 @@ export function finish(app) {
 export function env(name, fallback) {
   const value = process.env[name] ?? fallback;
   if (value === undefined) throw new Error(`Missing environment variable ${name}`);
-  if (process.env.NODE_ENV === 'production' && name === 'JWT_SECRET' && value === fallback) {
-    throw new Error('Set a real JWT_SECRET in production');
+  if (process.env.NODE_ENV === 'production' && value === fallback && /SECRET|KEY/.test(name)) {
+    throw new Error(`Set a real ${name} in production`);
   }
   return value;
 }
@@ -56,6 +58,38 @@ export function requireAuth(req, _res, next) {
   } catch {
     next(new ApiError(401, 'UNAUTHORIZED', 'Sign in to continue'));
   }
+}
+
+export const requireRole =
+  (...roles) =>
+  (req, _res, next) =>
+    roles.includes(req.user?.role) ? next() : next(new ApiError(403, 'FORBIDDEN', 'You do not have access to this'));
+
+// Service-to-service calls carry a shared key; the gateway never forwards /internal paths.
+const internalKey = () => env('INTERNAL_KEY', 'dev-only-internal-key');
+export const safeEqual = (a, b) => {
+  const x = Buffer.from(String(a ?? ''));
+  const y = Buffer.from(String(b ?? ''));
+  return x.length === y.length && crypto.timingSafeEqual(x, y);
+};
+export function requireInternal(req, _res, next) {
+  safeEqual(req.headers['x-internal-key'], internalKey())
+    ? next()
+    : next(new ApiError(403, 'FORBIDDEN', 'Internal route'));
+}
+
+/** POST to another service's /internal route. Throws its ApiError on failure. */
+export async function callService(baseUrl, path, body) {
+  const res = await fetch(baseUrl + path, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', 'x-internal-key': internalKey()},
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(10_000),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok)
+    throw new ApiError(res.status, json.error?.code ?? 'UPSTREAM', json.error?.message ?? 'Service unavailable');
+  return json.data;
 }
 
 export async function start(app, {name, port, mongoUri}) {

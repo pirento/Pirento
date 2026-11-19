@@ -4,6 +4,7 @@ x-service: &service
   restart: unless-stopped
   environment: &env
     JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    INTERNAL_KEY: ${INTERNAL_KEY:?set INTERNAL_KEY in .env}
     SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
 
 services:
@@ -27,6 +28,18 @@ services:
     <<: *service
     environment: {<<: *env, SERVICE: catalog}
 
+  orders:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: orders
+      MONGO_URI: mongodb://mongo:27017/pirento_orders
+      WALLET_URL: http://wallet:4002
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+    depends_on: [mongo, wallet]
+
   gateway:
     <<: *service
     environment:
@@ -36,8 +49,9 @@ services:
       AUTH_URL: http://auth:4001
       WALLET_URL: http://wallet:4002
       CATALOG_URL: http://catalog:4003
+      ORDERS_URL: http://orders:4004
     ports: ['4000:4000']
-    depends_on: [auth, wallet, catalog]
+    depends_on: [auth, wallet, catalog, orders]
 
 volumes:
   mongo-data:

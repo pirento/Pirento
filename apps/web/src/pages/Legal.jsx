@@ -143,12 +143,14 @@ export function Service() {
               </p>
             )}
             <div className="mt-8 flex flex-col gap-3">
-              <Button href={mail} variant="accent" icon={Mail}>
-                Request this service
+              {service.price ? (
+                <Button to={`/checkout/${service.slug}`} variant="accent">
+                  Start this service
+                </Button>
+              ) : null}
+              <Button href={mail} variant="outline" icon={Mail}>
+                {service.price ? 'Ask a question first' : 'Request a quote'}
               </Button>
-              <p className="text-sm text-muted">
-                Online checkout is expected soon. Until then, this opens your email app with the details filled in.
-              </p>
             </div>
           </aside>
         </div>
