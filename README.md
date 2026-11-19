@@ -78,8 +78,8 @@ Every page follows [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md): forest and pa
 
 | Phase | Scope                                                      | Status   |
 | ----- | ---------------------------------------------------------- | -------- |
-| 1     | Gateway, auth, wallet, catalog, design system, public site | Now      |
-| 2     | Orders and checkout (Razorpay), Legal and Black workflows  | Expected |
+| 1     | Gateway, auth, wallet, catalog, design system, public site | Done     |
+| 2     | Orders and checkout (Razorpay), Legal and Black workflows  | Done     |
 | 3     | Bharat ID, Green, Intern, Vault, support tickets           | Now      |
 | 4     | AI, Capital, One, Giftox, admin panel, deployment          | Expected |
 
