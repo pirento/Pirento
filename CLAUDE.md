@@ -4,6 +4,7 @@ Notes for AI-assisted work on this repo. Read README.md first.
 
 ## Rules
 
+- **Product sites:** each product site replaces the single accent with its own brand colour (`color`/`onColor` in `packages/shared/src/data/products.js`, applied by `useSiteTheme` in `apps/web/src/lib/site.js`). Everything else in the design system stays fixed. Keep the contrast test in `products.test.js` passing when a colour changes.
 - **Design is fixed.** Follow `docs/DESIGN_SYSTEM.md` exactly. Colours come only from the CSS tokens in `apps/web/src/index.css` (`bg-paper`, `text-ink`, `bg-accent` …); never put a hex value in a component. Accent stays under ~5% of a screen. Never two dark (`inverse`) sections in a row, except contact → footer.
 - **No invented facts.** Numbers, names, quotes and claims come from data files only. Stats are counted from the catalog (`apps/web/src/data/site.js`). Unbuilt products are labelled "Expected".
 - **Copy lives in data.** Site text in `apps/web/src/data/site.js`; products and prices in `packages/shared/src/data/`. Components only render.
@@ -20,7 +21,8 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Layout check:** `html` has `overflow-x: clip`, so `scrollWidth` never shows overflow. Check element edges against the viewport instead.
 - **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser.
 - **Motion:** pages call `usePageMotion(ref)`. Mark elements with `data-reveal`, hero extras with `data-hero-fade`, heading lines with `<Heading data-lines>`. All of it is skipped under reduced motion.
-- **New page:** add the route in `apps/web/src/main.jsx`, call `usePageMeta`, keep one `<h1>`.
+- **New page:** add the route in `apps/web/src/main.jsx` above the `/:slug` product routes, call `usePageMeta`, keep one `<h1>`.
+- **Bharat ID form:** steps and rules live once in `packages/shared/src/identityForm.js`; the browser and the identity service both validate with `validateSection`. Never store a full Aadhaar or account number.
 - Shortcuts are marked `// shortcut: <limit>, <when to upgrade>`. Grep for them before launch.
 
 ## Check before pushing

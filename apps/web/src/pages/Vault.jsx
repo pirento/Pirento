@@ -223,7 +223,7 @@ export function Vault() {
   return (
     <div ref={ref}>
       <PageHero
-        label="Pirento Vault"
+        label="Pirento Vault · Dashboard"
         title="Your files, / locked at rest."
         hl="locked at rest."
         intro="Everything here is encrypted with AES-256-GCM before it is stored. Pirento holds the key, so this is not end-to-end encryption."

@@ -10,17 +10,20 @@ import {Illustration} from '../components/Illustration';
 import {ContactCta} from '../components/Footer';
 import {Button, Faq, Heading, Section, SectionHeader, StatsRow, StatusTag, Steps, Tag} from '../components/ui';
 
+// Each card wears its product's own colour, a preview of that product's site.
 export function ProductCard({product}) {
   return (
     <Link
-      to={`/products/${product.slug}`}
+      to={`/${product.slug}`}
       data-reveal
-      data-cursor="View"
-      className="group flex flex-col rounded-[18px] border border-rule bg-paper p-6 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink"
+      data-cursor="Visit"
+      style={{'--brand': product.color, '--on-brand': product.onColor}}
+      className="group flex flex-col rounded-[18px] border border-rule bg-paper p-6 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-(--brand)"
     >
       <div className="flex items-start justify-between">
-        <span className="flex size-11 items-center justify-center rounded-full border border-rule transition-colors duration-500 group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
-          <ArrowUpRight aria-hidden className="size-4" />
+        <span className="relative flex size-11 items-center justify-center rounded-full border border-rule transition-colors duration-500 group-hover:border-(--brand) group-hover:bg-(--brand) group-hover:text-(--on-brand)">
+          <span aria-hidden className="size-2.5 rounded-[3px] bg-(--brand) transition-opacity group-hover:opacity-0" />
+          <ArrowUpRight aria-hidden className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100" />
         </span>
         <StatusTag status={product.status} />
       </div>
@@ -36,7 +39,7 @@ export function Home() {
   const ref = useRef(null);
   const tilt = useTilt();
   usePageMotion(ref);
-  usePageMeta({title: 'Pirento — One account for legal, tax, identity and more'});
+  usePageMeta({title: 'Pirento Ecosystem — one account for legal, tax, identity and more'});
 
   return (
     <div ref={ref}>
@@ -44,10 +47,13 @@ export function Home() {
         <div aria-hidden className="grid-bg absolute inset-0" />
         <div className="container-x relative grid gap-14 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-7">
-            <Heading as="h1" text={home.title} hl={home.highlight} className="h-hero" />
+            <p className="eyebrow" data-hero-fade>
+              Pirento Ecosystem · {PRODUCTS.length} products
+            </p>
+            <Heading as="h1" text={home.title} hl={home.highlight} className="h-hero mt-6" />
             <p className="body mt-8" data-hero-fade dangerouslySetInnerHTML={{__html: home.intro}} />
             <div className="mt-10 flex flex-wrap gap-3" data-hero-fade>
-              <Button to="/legal" variant="accent">
+              <Button to="/legal/services" variant="accent">
                 Browse legal services
               </Button>
               <Button to="/products" variant="outline">
@@ -123,7 +129,7 @@ export function Home() {
               ))}
             </div>
             <div className="mt-8" data-reveal>
-              <Button to="/legal" variant="outline">
+              <Button to="/legal/services" variant="outline">
                 All legal services
               </Button>
             </div>

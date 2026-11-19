@@ -31,9 +31,11 @@ export function finish(app) {
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     const status = err.status ?? 500;
-    if (status >= 500) console.error(err);
+    // Our own ApiErrors (and 4xx) are meant for the user; anything unexpected stays hidden.
+    const shown = err instanceof ApiError || status < 500;
+    if (!shown) console.error(err);
     res.status(status).json({
-      error: {code: err.code ?? 'INTERNAL', message: status >= 500 ? 'Something went wrong' : err.message},
+      error: {code: shown ? (err.code ?? 'ERROR') : 'INTERNAL', message: shown ? err.message : 'Something went wrong'},
     });
   });
   return app;

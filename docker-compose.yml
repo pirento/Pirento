@@ -16,7 +16,12 @@ services:
 
   auth:
     <<: *service
-    environment: {<<: *env, SERVICE: auth, MONGO_URI: mongodb://mongo:27017/pirento_auth}
+    environment:
+      <<: *env
+      SERVICE: auth
+      MONGO_URI: mongodb://mongo:27017/pirento_auth
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
+      EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
     depends_on: [mongo]
 
   wallet:

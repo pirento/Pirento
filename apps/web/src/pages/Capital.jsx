@@ -38,7 +38,7 @@ export function Capital() {
   return (
     <div ref={ref}>
       <PageHero
-        label="Pirento Capital"
+        label="Pirento Capital · Dashboard"
         title="Plan the loan / before you take it."
         hl="before you take it."
         intro="Pirento does not lend money yet. Use the calculator to plan, and join the waitlist to hear when lending opens."
@@ -101,7 +101,7 @@ export function Capital() {
             </form>
           ) : (
             <p className="body mt-6">
-              <Link to="/login?next=/capital" className="text-ink underline underline-offset-4">
+              <Link to="/login?next=/capital/dashboard" className="text-ink underline underline-offset-4">
                 Sign in
               </Link>{' '}
               to join the waitlist.

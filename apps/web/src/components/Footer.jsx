@@ -3,11 +3,13 @@ import {Link} from 'react-router-dom';
 import {ArrowUp, Copy, Check, Instagram, Linkedin, Twitter, Mail} from 'lucide-react';
 import {brand, home, nav, socials} from '../data/site';
 import {lenis} from '../lib/motion';
+import {siteName, useProductSite} from '../lib/site';
 import {Button, Heading, Label} from './ui';
 
 const icons = {twitter: Twitter, linkedin: Linkedin, instagram: Instagram};
 
 export function ContactCta({n}) {
+  const product = useProductSite();
   const [copied, setCopied] = useState(false);
   const copy = () =>
     navigator.clipboard.writeText(brand.email).then(() => {
@@ -18,10 +20,14 @@ export function ContactCta({n}) {
     <section id="contact" className="inverse py-28 md:py-40">
       <div className="container-x">
         <Label n={n}>{home.contact.label}</Label>
-        <Heading text={home.contact.title} className="h-cta mt-8" data-lines />
+        <Heading
+          text={product ? `Questions about / ${product.short}? Ask us.` : home.contact.title}
+          className="h-cta mt-8"
+          data-lines
+        />
         <div className="mt-12 flex flex-wrap gap-3" data-reveal>
-          <Button to="/legal" variant="inverse">
-            Browse legal services
+          <Button to={product ? `/${product.slug}/dashboard` : '/legal/services'} variant="inverse">
+            {product ? `Open ${product.short} dashboard` : 'Browse legal services'}
           </Button>
           <Button href={`mailto:${brand.email}?subject=Enquiry from pirento.com`} variant="outline" icon={Mail}>
             Email us
@@ -54,14 +60,26 @@ export function ContactCta({n}) {
 }
 
 export function Footer() {
+  const product = useProductSite();
+  const name = siteName(product);
+  const links = product
+    ? [
+        {label: `${product.short} home`, to: `/${product.slug}`},
+        {label: 'Dashboard', to: `/${product.slug}/dashboard`},
+        {label: 'All products', to: '/products'},
+        {label: 'Verify', to: '/verify'},
+        {label: 'Support', to: '/support'},
+        {label: 'Pirento Ecosystem', to: '/'},
+      ]
+    : nav;
   const toTop = () => (lenis ? lenis.scrollTo(0) : scrollTo({top: 0, behavior: 'smooth'}));
   return (
     <footer className="inverse border-t border-rule pt-20 pb-8">
       <div className="container-x">
         <div className="grid gap-12 md:grid-cols-12">
-          <p className="display text-3xl md:col-span-5">{brand.motto}</p>
+          <p className="display text-3xl md:col-span-5">{product?.quote ?? brand.motto}</p>
           <nav aria-label="Footer" className="grid grid-cols-2 gap-3 text-sm text-muted md:col-span-4">
-            {nav.map((l) => (
+            {links.map((l) => (
               <Link key={l.to} to={l.to} className="hover:text-ink">
                 {l.label}
               </Link>
@@ -98,16 +116,17 @@ export function Footer() {
             </button>
           </div>
         </div>
-        <svg viewBox="0 0 1000 210" className="mt-16 w-full" role="img" aria-label={brand.name}>
+        {/* The site's own name as the wordmark; the viewBox grows with the name so letters keep their shape. */}
+        <svg viewBox={`0 0 ${name.length * 140} 210`} className="mt-16 w-full" role="img" aria-label={name}>
           <text
             x="0"
             y="180"
-            textLength="1000"
+            textLength={name.length * 140}
             lengthAdjust="spacingAndGlyphs"
             fill="currentColor"
             style={{font: '600 230px var(--font-display)', letterSpacing: '-0.04em'}}
           >
-            {brand.name.toUpperCase()}
+            {name.toUpperCase()}
           </text>
         </svg>
         <p className="mt-8 flex flex-wrap gap-x-6 gap-y-1 border-t border-rule pt-6 text-xs text-muted">

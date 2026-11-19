@@ -15,7 +15,7 @@ import {TicketQueue} from './Support';
 import {api, inr, useApi, useSession} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
-import {Button, Field, Heading, Label, Section, Tag} from '../components/ui';
+import {Button, Field, Label, Section, Tag} from '../components/ui';
 import {PageHero} from './Products';
 import {NotFound} from './NotFound';
 
@@ -438,7 +438,7 @@ export function OrdersList() {
     return (
       <p className="body mt-6">
         No orders yet.{' '}
-        <Link to="/legal" className="text-ink underline underline-offset-4">
+        <Link to="/products" className="text-ink underline underline-offset-4">
           Browse services
         </Link>
       </p>
@@ -705,7 +705,8 @@ export function StaffQueue({path, filters, render}) {
   );
 }
 
-const SECTIONS = {
+// The work queues, shown as sections of the admin dashboard.
+export const STAFF_SECTIONS = {
   Orders: () => (
     <StaffQueue
       path="/orders/staff/queue"
@@ -718,35 +719,5 @@ const SECTIONS = {
   Tickets: () => <TicketQueue />,
 };
 
-export function Staff() {
-  const {redirect, user} = useSignedIn();
-  const [section, setSection] = useState('Orders');
-  const isStaff = ['staff', 'superadmin'].includes(user?.role);
-  usePageMeta({title: 'Work queue — Pirento'});
-  if (redirect) return redirect;
-  if (user && !isStaff) return <NotFound />;
-  if (!user) return <div className="min-h-dvh" />;
-  const Body = SECTIONS[section];
-
-  return (
-    <div className="pt-36 pb-28 md:pt-44">
-      <div className="container-x">
-        <p className="eyebrow">Staff</p>
-        <Heading as="h1" text="Work queue." className="h-hero mt-6" />
-        <nav aria-label="Queues" className="mt-12 flex gap-6 border-b border-rule">
-          {Object.keys(SECTIONS).map((name) => (
-            <button
-              key={name}
-              onClick={() => setSection(name)}
-              aria-current={section === name ? 'page' : undefined}
-              className={`-mb-px border-b-2 pb-3 text-lg ${section === name ? 'border-accent text-ink' : 'border-transparent text-muted hover:text-ink'}`}
-            >
-              {name}
-            </button>
-          ))}
-        </nav>
-        <Body key={section} />
-      </div>
-    </div>
-  );
-}
+/** Old address of the work queue; it now lives inside the admin dashboard. */
+export const Staff = () => <Navigate to="/admin?tab=Orders" replace />;

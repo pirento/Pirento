@@ -4,12 +4,15 @@ import {ArrowDownLeft, ArrowUpRight, LogOut} from 'lucide-react';
 import {api, inr, useApi, useSession} from '../lib/api';
 import {usePageMotion} from '../lib/motion';
 import {usePageMeta} from '../lib/page';
+import {siteName, useProductSite} from '../lib/site';
 import {Button, Field, Heading, Label, Section} from '../components/ui';
 import {OrdersList} from './Orders';
+import {PRODUCTS} from '@pirento/shared';
 
 export function Login() {
   const {user, signIn} = useSession();
   const navigate = useNavigate();
+  const product = useProductSite();
   const [params] = useSearchParams();
   // Only same-site paths, never an open redirect.
   const next = /^\/(?!\/)/.test(params.get('next') ?? '') ? params.get('next') : '/account';
@@ -21,7 +24,7 @@ export function Login() {
   const [busy, setBusy] = useState(false);
   const ref = useRef(null);
   usePageMotion(ref);
-  usePageMeta({title: 'Sign in — Pirento'});
+  usePageMeta({title: `Sign in — ${siteName(product)}`});
   if (user) return <Navigate to={next} replace />;
 
   const submit = async (e) => {
@@ -30,7 +33,7 @@ export function Login() {
     setBusy(true);
     try {
       if (step === 'email') {
-        const res = await api('/auth/otp/request', {method: 'POST', body: {email}});
+        const res = await api('/auth/otp/request', {method: 'POST', body: {email, product: product?.slug}});
         setDevCode(res.devCode ?? '');
         setStep('code');
       } else {
@@ -51,9 +54,14 @@ export function Login() {
       <div className="container-x relative grid gap-14 lg:grid-cols-12">
         <div className="lg:col-span-6">
           <p className="eyebrow" data-hero-fade>
-            Sign in
+            Sign in · {siteName(product)}
           </p>
-          <Heading as="h1" text="One code. / Every product." hl="Every product." className="h-hero mt-6" />
+          <Heading
+            as="h1"
+            text={product ? `Sign in to / ${product.name}.` : 'One code. / Every product.'}
+            hl={product ? `${product.name}.` : 'Every product.'}
+            className="h-hero mt-6"
+          />
           <p className="body mt-8" data-hero-fade>
             Enter your email and we send a 6-digit code. <strong>No password to remember</strong>, and the same account
             works across Pirento.
@@ -142,26 +150,14 @@ export function Account() {
             <Heading as="h1" text={`Hello, / ${user.name || user.email.split('@')[0]}.`} className="h-hero mt-6" />
           </div>
           <nav aria-label="Your products" className="flex flex-wrap gap-2" data-hero-fade>
-            {[
-              ['Bharat ID', '/bharat-id'],
-              ['Intern', '/intern'],
-              ['Vault', '/vault'],
-              ['AI', '/ai'],
-              ['One', '/one'],
-              ['Support', '/support'],
-            ].map(([label, to]) => (
-              <Button key={to} to={to} variant="outline" className="px-4! py-2!">
-                {label}
+            {PRODUCTS.map((p) => (
+              <Button key={p.slug} to={`/${p.slug}/dashboard`} variant="outline" className="px-4! py-2!">
+                {p.short}
               </Button>
             ))}
           </nav>
           {['staff', 'superadmin'].includes(user.role) && (
-            <Button to="/staff" data-hero-fade>
-              Work queue
-            </Button>
-          )}
-          {user.role === 'superadmin' && (
-            <Button to="/admin" variant="outline" data-hero-fade>
+            <Button to="/admin" data-hero-fade>
               Admin
             </Button>
           )}

@@ -175,7 +175,7 @@ export function Intern() {
   return (
     <div ref={ref}>
       <PageHero
-        label="Pirento Intern"
+        label="Pirento Intern · Dashboard"
         title="Pass the exam. / Prove it anywhere."
         hl="Prove it anywhere."
         intro="Pick a track and take the final exam. Score 60% or more and you get a certificate with a public verify page."

@@ -34,7 +34,7 @@ export function One() {
   return (
     <div>
       <PageHero
-        label="Pirento One"
+        label="Pirento One · Dashboard"
         title="Share Pirento. / See what it brings."
         intro="Get a partner code. Every order a client places through your link shows up here."
       />

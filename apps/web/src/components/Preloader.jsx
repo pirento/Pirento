@@ -1,6 +1,6 @@
 import {useLayoutEffect, useRef, useState} from 'react';
 import gsap from 'gsap';
-import {brand} from '../data/site';
+import {siteName, useProductSite} from '../lib/site';
 import {finishPreloader, reducedMotion} from '../lib/motion';
 
 const seen = () => {
@@ -13,6 +13,7 @@ const seen = () => {
 
 // First load of a session only: counter 000 → 100, accent bar, curtain lifts.
 export function Preloader() {
+  const name = siteName(useProductSite());
   const [show] = useState(() => !seen() && !reducedMotion());
   const [gone, setGone] = useState(!show);
   const ref = useRef(null);
@@ -60,7 +61,7 @@ export function Preloader() {
     >
       <div className="flex justify-between font-display text-sm tracking-[0.04em] uppercase">
         <span className="overflow-hidden" data-top>
-          <span className="block">{brand.name}</span>
+          <span className="block">{name}</span>
         </span>
         <span className="overflow-hidden" data-top>
           <span className="block">© {new Date().getFullYear()}</span>

@@ -251,3 +251,18 @@ h3,
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Printing the Bharat ID card: only the page content, no site chrome. */
+@media print {
+  header,
+  footer,
+  #contact,
+  .no-print,
+  .skip-link {
+    display: none !important;
+  }
+  html,
+  body {
+    background: #fff;
+  }
+}

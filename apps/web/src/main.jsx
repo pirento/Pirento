@@ -4,6 +4,7 @@ import {BrowserRouter, Route, Routes, useLocation} from 'react-router-dom';
 import gsap from 'gsap';
 import './index.css';
 import {SessionProvider} from './lib/api';
+import {useSiteTheme} from './lib/site';
 import {lenis, reducedMotion, scrollToTop, startSmoothScroll} from './lib/motion';
 import {Navbar} from './components/Navbar';
 import {Footer} from './components/Footer';
@@ -15,7 +16,6 @@ import {NotFound} from './pages/NotFound';
 // Every other page loads on first visit, so the home page ships less JavaScript.
 const page = (load, name) => lazy(() => load().then((m) => ({default: m[name]})));
 const Products = page(() => import('./pages/Products'), 'Products');
-const Product = page(() => import('./pages/Products'), 'Product');
 const Legal = page(() => import('./pages/Legal'), 'Legal');
 const Service = page(() => import('./pages/Legal'), 'Service');
 const Login = page(() => import('./pages/Account'), 'Login');
@@ -24,14 +24,11 @@ const Checkout = page(() => import('./pages/Orders'), 'Checkout');
 const OrderPage = page(() => import('./pages/Orders'), 'OrderPage');
 const Staff = page(() => import('./pages/Orders'), 'Staff');
 const Verify = page(() => import('./pages/Orders'), 'Verify');
-const BharatId = page(() => import('./pages/BharatId'), 'BharatId');
-const Intern = page(() => import('./pages/Intern'), 'Intern');
-const Vault = page(() => import('./pages/Vault'), 'Vault');
 const Support = page(() => import('./pages/Support'), 'Support');
 const Ticket = page(() => import('./pages/Support'), 'Ticket');
-const Ai = page(() => import('./pages/Ai'), 'Ai');
-const One = page(() => import('./pages/One'), 'One');
-const Capital = page(() => import('./pages/Capital'), 'Capital');
+const ProductHome = page(() => import('./pages/ProductSite'), 'ProductHome');
+const ProductDashboard = page(() => import('./pages/ProductSite'), 'ProductDashboard');
+const ProductRedirect = page(() => import('./pages/ProductSite'), 'ProductRedirect');
 const Admin = page(() => import('./pages/Admin'), 'Admin');
 
 // Scroll to top on page change (or to #hash), and fade the new page in.
@@ -62,6 +59,7 @@ function RouteEffects() {
 
 function App() {
   useEffect(startSmoothScroll, []);
+  useSiteTheme();
   return (
     <>
       <Preloader />
@@ -73,8 +71,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
-            <Route path="/products/:slug" element={<Product />} />
-            <Route path="/legal" element={<Legal />} />
+            <Route path="/products/:slug" element={<ProductRedirect />} />
+            <Route path="/legal/services" element={<Legal />} />
             <Route path="/services/:slug" element={<Service />} />
             <Route path="/login" element={<Login />} />
             <Route path="/account" element={<Account />} />
@@ -82,17 +80,14 @@ function App() {
             <Route path="/orders/:id" element={<OrderPage />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/verify/:code" element={<Verify />} />
-            <Route path="/staff" element={<Staff />} />
-            <Route path="/bharat-id" element={<BharatId />} />
-            <Route path="/intern" element={<Intern />} />
-            <Route path="/vault" element={<Vault />} />
             <Route path="/support" element={<Support />} />
             <Route path="/support/:id" element={<Ticket />} />
-            <Route path="*" element={<NotFound />} />
-            <Route path="/ai" element={<Ai />} />
-            <Route path="/one" element={<One />} />
-            <Route path="/capital" element={<Capital />} />
+            <Route path="/staff" element={<Staff />} />
             <Route path="/admin" element={<Admin />} />
+            {/* Each product is its own site: home at /<slug>, app at /<slug>/dashboard. */}
+            <Route path="/:slug" element={<ProductHome />} />
+            <Route path="/:slug/dashboard" element={<ProductDashboard />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </main>

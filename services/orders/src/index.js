@@ -201,10 +201,22 @@ app.get(
   '/staff/stats',
   requireRole(...STAFF),
   asyncHandler(async (_req, res) => {
-    const rows = await Order.aggregate([{$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]);
+    const PAID = ['paid', 'in_progress', 'completed'];
+    const [rows, products] = await Promise.all([
+      Order.aggregate([{$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]),
+      Order.aggregate([
+        {$match: {status: {$in: PAID}}},
+        {$group: {_id: '$product', count: {$sum: 1}, amount: {$sum: '$amount'}}},
+      ]),
+    ]);
     const by = Object.fromEntries(rows.map((r) => [r._id, r]));
-    const earned = ['paid', 'in_progress', 'completed'].reduce((n, st) => n + (by[st]?.amount ?? 0), 0);
-    res.json({data: {byStatus: Object.fromEntries(rows.map((r) => [r._id, r.count])), revenue: earned}});
+    res.json({
+      data: {
+        byStatus: Object.fromEntries(rows.map((r) => [r._id, r.count])),
+        revenue: PAID.reduce((n, st) => n + (by[st]?.amount ?? 0), 0),
+        byProduct: Object.fromEntries(products.map((r) => [r._id, {count: r.count, amount: r.amount}])),
+      },
+    });
   }),
 );
 

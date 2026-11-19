@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import {z} from 'zod';
-import {bharatIdFromSeq, isBharatId} from '@pirento/shared';
-import {INDIAN_STATES} from '@pirento/shared/intake';
+import {ID_SECTIONS, bharatIdFromSeq, isBharatId, validateSection} from '@pirento/shared';
 import {
   ApiError,
   asyncHandler,
@@ -16,22 +15,24 @@ import {
   validate,
 } from '@pirento/shared/server';
 
+// draft → submitted → approved | rejected. A rejected application is edited and submitted again.
 const Identity = mongoose.model(
   'Identity',
   new mongoose.Schema(
     {
       userId: {type: String, required: true, unique: true},
       email: {type: String, required: true},
-      fullName: {type: String, required: true, maxlength: 80},
-      dob: {type: String, required: true}, // YYYY-MM-DD
-      state: {type: String, required: true},
-      pan: {type: String, required: true},
-      status: {type: String, enum: ['submitted', 'approved', 'rejected'], default: 'submitted', index: true},
+      status: {type: String, enum: ['draft', 'submitted', 'approved', 'rejected'], default: 'draft', index: true},
+      sections: {type: Object, default: {}}, // one entry per ID_SECTIONS id, already validated and reduced
+      fullName: String, // copied on submit for the public verify page
+      state: String,
+      consentAt: Date,
+      submittedAt: Date,
       reason: String,
       bharatId: {type: String, unique: true, sparse: true},
       issuedAt: Date,
     },
-    {timestamps: true},
+    {timestamps: true, minimize: false},
   ),
 );
 
@@ -57,48 +58,49 @@ app.get(
   asyncHandler(async (req, res) => res.json({data: await Identity.findOne({userId: req.user.sub})})),
 );
 
-const adult = (dob) => {
-  const d = new Date(dob);
-  const cutoff = new Date();
-  cutoff.setFullYear(cutoff.getFullYear() - 18);
-  return d > new Date('1900-01-01') && d <= cutoff;
-};
+// Save one step. Allowed while drafting or after a rejection, never once submitted.
+app.put(
+  '/draft/:section',
+  asyncHandler(async (req, res) => {
+    const {data, error} = validateSection(req.params.section, req.body);
+    if (error) throw new ApiError(400, 'INVALID_INPUT', error);
+    const doc = await Identity.findOneAndUpdate(
+      {userId: req.user.sub, status: {$in: ['draft', 'rejected']}},
+      {$set: {[`sections.${req.params.section}`]: data}, $setOnInsert: {email: req.user.email}},
+      {new: true, upsert: true},
+    ).catch((err) => {
+      // The upsert collides with an existing submitted/approved application.
+      if (err.code === 11000) throw new ApiError(409, 'LOCKED', 'Your application is already with our team');
+      throw err;
+    });
+    res.json({data: doc});
+  }),
+);
 
 app.post(
-  '/apply',
-  validate(
-    z.object({
-      fullName: z
-        .string()
-        .trim()
-        .min(2, 'Enter your full name')
-        .max(80)
-        .regex(/^[\p{L} .'-]+$/u, 'Use letters only in your name'),
-      dob: z
-        .string()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter your date of birth')
-        .refine(adult, 'You must be 18 or older'),
-      state: z.enum(INDIAN_STATES, {message: 'Choose your state'}),
-      pan: z
-        .string()
-        .trim()
-        .toUpperCase()
-        .regex(/^[A-Z]{5}\d{4}[A-Z]$/, 'Enter a valid PAN, like ABCDE1234F'),
-    }),
-  ),
+  '/submit',
+  validate(z.object({consent: z.literal(true, {message: 'Tick the box to agree'})})),
   asyncHandler(async (req, res) => {
-    // A first application, or a fresh one after a rejection; never over an approved or pending one.
-    const doc = await Identity.findOneAndUpdate(
-      {userId: req.user.sub, status: 'rejected'},
-      {$set: {...req.body, status: 'submitted'}, $unset: {reason: 1}},
+    const doc = await Identity.findOne({userId: req.user.sub, status: {$in: ['draft', 'rejected']}});
+    if (!doc) throw new ApiError(409, 'LOCKED', 'There is nothing to submit');
+    const missing = ID_SECTIONS.find((s) => !doc.sections?.[s.id]);
+    if (missing) throw new ApiError(400, 'INCOMPLETE', `Finish the "${missing.title}" step first`);
+    const updated = await Identity.findOneAndUpdate(
+      {_id: doc._id, status: doc.status},
+      {
+        $set: {
+          status: 'submitted',
+          submittedAt: new Date(),
+          consentAt: new Date(),
+          fullName: doc.sections.personal.fullName,
+          state: doc.sections.address.state,
+        },
+        $unset: {reason: 1},
+      },
       {new: true},
-    )
-      .then((d) => d ?? Identity.create({...req.body, userId: req.user.sub, email: req.user.email}))
-      .catch((err) => {
-        if (err.code === 11000) throw new ApiError(409, 'ALREADY_APPLIED', 'You have already applied');
-        throw err;
-      });
-    res.status(201).json({data: doc});
+    );
+    if (!updated) throw new ApiError(409, 'CHANGED', 'Your application changed. Reload and try again.');
+    res.json({data: updated});
   }),
 );
 
@@ -107,7 +109,7 @@ app.get(
   requireRole(...STAFF),
   asyncHandler(async (req, res) => {
     const status = ['submitted', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'submitted';
-    res.json({data: await Identity.find({status}).sort({updatedAt: 1}).limit(200)});
+    res.json({data: await Identity.find({status}).sort({submittedAt: 1}).limit(200)});
   }),
 );
 

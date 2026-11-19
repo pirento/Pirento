@@ -1,6 +1,7 @@
 // End-to-end flows (orders, Bharat ID, exam, vault, support) against a running stack (npm run dev with SUPERADMIN_EMAILS=boss@example.com).
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
+import {verhoeffCheckDigit} from '@pirento/shared';
 
 const B = process.env.API_URL ?? 'http://127.0.0.1:4000/api';
 let ok = 0,
@@ -171,22 +172,72 @@ check(
 );
 
 // ── Bharat ID ───────────────────────────────────────────────────────────
-const kyc = {fullName: 'Asha Verma', dob: '1990-05-01', state: 'Delhi', pan: 'abcde1234f'};
+const aadhaarNo = '23456789012' + verhoeffCheckDigit('23456789012');
+const steps = {
+  contact: {mobile: '9876500000'},
+  personal: {fullName: 'Asha Verma', fatherName: 'Ravi Verma', dob: '1990-05-01', gender: 'Female'},
+  documents: {pan: 'abcde1234f', aadhaar: aadhaarNo},
+  address: {line: '12 MG Road', city: 'Delhi', state: 'Delhi', pincode: '110001'},
+  work: {occupation: 'Salaried', income: '₹5–10 lakh'},
+  bank: {bankName: 'SBI', account: '123456789012', ifsc: 'SBIN0001234'},
+  nominee: {
+    nomineeName: 'Ravi Verma',
+    nomineeRelation: 'Father',
+    nomineeMobile: '9876500001',
+    emergencyName: 'Meena Verma',
+    emergencyMobile: '9876500002',
+  },
+};
+const put = (section, body, token = user) => call(`/identity/draft/${section}`, {method: 'PUT', token, body});
+check('minor rejected', (await put('personal', {...steps.personal, dob: '2015-01-01'})).status === 400);
+check('bad PAN rejected', (await put('documents', {...steps.documents, pan: 'ABC'})).status === 400);
 check(
-  'minor rejected',
-  (await call('/identity/apply', {method: 'POST', token: user, body: {...kyc, dob: '2015-01-01'}})).status === 400,
+  'bad Aadhaar checksum rejected',
+  (await put('documents', {...steps.documents, aadhaar: aadhaarNo.slice(0, 11) + ((Number(aadhaarNo[11]) + 1) % 10)}))
+    .status === 400,
+);
+for (const [k, v] of Object.entries(steps).slice(0, 6)) await put(k, v);
+check(
+  'submit blocked until every step is done',
+  (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).error?.code === 'INCOMPLETE',
+);
+const draft = (await put('nominee', steps.nominee)).data;
+check(
+  'only last 4 of Aadhaar and account stored',
+  draft?.sections.documents.aadhaar === `XXXX XXXX ${aadhaarNo.slice(-4)}` &&
+    draft.sections.bank.account === '••••9012' &&
+    !JSON.stringify(draft).includes(aadhaarNo),
+  draft,
 );
 check(
-  'bad PAN rejected',
-  (await call('/identity/apply', {method: 'POST', token: user, body: {...kyc, pan: 'ABC'}})).status === 400,
+  'consent required',
+  (await call('/identity/submit', {method: 'POST', token: user, body: {consent: false}})).status === 400,
 );
-const app1 = (await call('/identity/apply', {method: 'POST', token: user, body: kyc})).data;
-check('applied', app1?.status === 'submitted' && app1.pan === 'ABCDE1234F', app1);
-check('no double apply', (await call('/identity/apply', {method: 'POST', token: user, body: kyc})).status === 409);
+const app1 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
+check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma', app1);
+check('locked after submit', (await put('contact', steps.contact)).status === 409);
 check(
   'reject needs reason',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'reject'}})).status ===
     400,
+);
+const rej = (
+  await call(`/identity/staff/${app1._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {decision: 'reject', reason: 'Name does not match PAN'},
+  })
+).data;
+check('rejected with reason', rej?.status === 'rejected' && rej.reason === 'Name does not match PAN');
+check(
+  'editable after rejection',
+  (await put('personal', {...steps.personal, fullName: 'Asha Rani Verma'})).status === 200,
+);
+const again2 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
+check(
+  'resubmitted, reason cleared',
+  again2?.status === 'submitted' && !again2.reason && again2.fullName === 'Asha Rani Verma',
+  again2,
 );
 const appr = (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
   .data;

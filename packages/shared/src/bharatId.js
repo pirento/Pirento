@@ -33,7 +33,7 @@ export function verhoeffCheckDigit(digits) {
   return INV[c];
 }
 
-const verhoeffValid = (full) => {
+export const verhoeffValid = (full) => {
   let c = 0;
   [...full].reverse().forEach((d, i) => (c = D5[c][PERM[i % 8][Number(d)]]));
   return c === 0;

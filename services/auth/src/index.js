@@ -2,6 +2,8 @@ import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import {z} from 'zod';
+import {getProduct} from '@pirento/shared';
+import {mailer, sendOtpEmail} from './email.js';
 import {
   ApiError,
   asyncHandler,
@@ -91,13 +93,25 @@ const app = createApp('auth');
 
 app.post(
   '/otp/request',
-  validate(z.object({email})),
+  validate(z.object({email, product: z.string().max(20).optional()})),
   asyncHandler(async (req, res) => {
+    // Production without a mail server would accept emails and never deliver a code: refuse instead.
+    if (isProd && !mailer()) throw new ApiError(503, 'EMAIL_UNAVAILABLE', 'Email sign-in is not set up yet');
+    const brand = getProduct(req.body.product ?? '')?.name ?? 'Pirento Ecosystem';
     const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
     await Otp.deleteMany({email: req.body.email});
     await Otp.create({email: req.body.email, codeHash: hash(code), expiresAt: new Date(Date.now() + 10 * 60_000)});
-    // shortcut: no mail provider wired yet; the code is only returned outside production.
-    if (!isProd) console.log(`OTP for ${req.body.email}: ${code}`);
+    if (mailer()) {
+      try {
+        await sendOtpEmail(req.body.email, code, brand);
+      } catch (err) {
+        console.error('OTP email failed', err.message);
+        await Otp.deleteMany({email: req.body.email});
+        throw new ApiError(502, 'EMAIL_FAILED', 'We could not send the code. Check the email and try again.');
+      }
+    } else {
+      console.log(`OTP for ${req.body.email}: ${code} (no SMTP_URL, not emailed)`);
+    }
     res.json({data: {sent: true, ...(isProd ? {} : {devCode: code})}});
   }),
 );

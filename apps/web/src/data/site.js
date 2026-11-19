@@ -20,20 +20,6 @@ export const nav = [
   {label: 'Support', to: '/support'},
 ];
 
-// Where each product's "Open" button goes. Products without one show only their page.
-export const productApps = {
-  legal: '/legal',
-  black: '/products/black#services',
-  green: '/products/green#services',
-  intern: '/intern',
-  vault: '/vault',
-  'bharat-id': '/bharat-id',
-  ai: '/ai',
-  one: '/one',
-  capital: '/capital',
-  giftox: '/products/giftox#services',
-};
-
 export const socials = [
   {name: 'X (Twitter)', href: 'https://x.com/pirento', icon: 'twitter'},
   {name: 'LinkedIn', href: 'https://www.linkedin.com/company/pirento', icon: 'linkedin'},

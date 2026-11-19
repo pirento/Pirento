@@ -85,7 +85,7 @@ export function Ai() {
   return (
     <div>
       <PageHero
-        label="Pirento AI"
+        label="Pirento AI · Dashboard"
         title="Ask what you / need done."
         intro="The assistant knows Pirento's services and prices. It gives general information, not legal or tax advice."
       />

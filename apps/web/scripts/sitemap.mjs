@@ -6,11 +6,9 @@ const SITE = 'https://pirento.com';
 const paths = [
   '/',
   '/products',
-  '/legal',
+  '/legal/services',
   '/verify',
-  '/intern',
-  '/capital',
-  ...PRODUCTS.map((p) => `/products/${p.slug}`),
+  ...PRODUCTS.map((p) => `/${p.slug}`),
   ...SERVICES.map((s) => `/services/${s.slug}`),
 ];
 const xml = `<?xml version="1.0" encoding="UTF-8"?>

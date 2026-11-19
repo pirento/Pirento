@@ -1,4 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /account
+Disallow: /*/dashboard
+Disallow: /admin
+Disallow: /staff
 Sitemap: https://pirento.com/sitemap.xml
