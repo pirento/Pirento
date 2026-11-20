@@ -18,6 +18,10 @@ export async function forgetUser(user) {
   user.name = '';
   user.role = 'customer';
   user.products = [];
+  // No way back in: no staff door, no Google link.
+  user.staffId = undefined;
+  user.googleId = undefined;
+  user.passwordHash = undefined;
   user.suspended = true;
   await user.save();
   await endAllSessions(user._id);

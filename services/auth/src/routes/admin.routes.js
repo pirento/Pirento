@@ -6,6 +6,8 @@ import {config} from '../config.js';
 import {AuditLog} from '../models/AuditLog.js';
 import {ROLES, User} from '../models/User.js';
 import {endAllSessions} from '../lib/session.js';
+import {MIN_PASSWORD, hashPassword} from '../lib/password.js';
+import {STAFF_ID} from './door.routes.js';
 import {forgetUser} from '../lib/forget.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 
@@ -55,7 +57,10 @@ adminRoutes.get('/admin/stats', requireRole(...ACCESS.users, 'staff'), async (_r
 
 /** Everyone on the team, for assigning work. Any staff role may read it. */
 adminRoutes.get('/admin/team', requireRole(...STAFF), async (_req, res) => {
-  const team = await User.find({role: {$in: STAFF}}, {email: 1, name: 1, role: 1, products: 1, suspended: 1}).sort({
+  const team = await User.find(
+    {role: {$in: STAFF}},
+    {email: 1, name: 1, role: 1, products: 1, suspended: 1, staffId: 1},
+  ).sort({
     email: 1,
   });
   res.json({data: team});
@@ -160,3 +165,46 @@ adminRoutes.patch(
     res.json({data: done});
   },
 );
+
+const password = z.string().min(MIN_PASSWORD, `Use at least ${MIN_PASSWORD} characters`).max(200);
+
+/**
+ * A superadmin issues a staff sign-in: a staff ID and a first password, on a new
+ * account or on an existing one with that email. The person can change the password later.
+ */
+adminRoutes.post(
+  '/admin/staff',
+  superOnly,
+  validate(
+    z.object({
+      staffId: z.string().trim().toLowerCase().regex(STAFF_ID, '3 to 40 letters, digits, dots, dashes or underscores'),
+      email: z.email().trim().toLowerCase(),
+      name: z.string().trim().max(80).default(''),
+      role: z.enum(STAFF),
+      password,
+    }),
+  ),
+  async (req, res) => {
+    const {staffId, email, name, role} = req.body;
+    if (await User.exists({staffId})) throw new ApiError(409, 'TAKEN', 'That staff ID is already in use');
+    const user = (await User.findOne({email})) ?? new User({email, name});
+    if (user.staffId) throw new ApiError(409, 'HAS_STAFF_ID', `This account already signs in as ${user.staffId}`);
+    Object.assign(user, {staffId, role, passwordHash: await hashPassword(req.body.password)});
+    if (name && !user.name) user.name = name;
+    await user.save();
+    await endAllSessions(user._id); // a changed role must not ride on an old token
+    await log(req, 'staff.create', user, `${staffId} · ${role}`);
+    res.status(201).json({data: user});
+  },
+);
+
+/** A superadmin sets a new password for someone who forgot theirs. */
+adminRoutes.patch('/admin/users/:id/password', superOnly, validate(z.object({password})), async (req, res) => {
+  const user = await targetOf(req);
+  if (!user.staffId) throw new ApiError(400, 'NO_STAFF_ID', 'This account has no staff ID');
+  user.passwordHash = await hashPassword(req.body.password);
+  await user.save();
+  await endAllSessions(user._id);
+  await log(req, 'staff.password_reset', user, user.staffId);
+  res.json({data: {reset: true}});
+});

@@ -20,18 +20,18 @@ npm run db      # MongoDB in Docker (or run your own on 127.0.0.1:27017)
 npm run dev     # gateway, every service and the website
 ```
 
-Open http://localhost:5173. Sign in with any email: outside production the 6-digit code is shown on screen (and emailed too if `SMTP_URL` is set). To get a superadmin, start with `SUPERADMIN_EMAILS=you@example.com npm run dev` and sign in with that email.
+Open http://localhost:5173. Sign in with any email: outside production the 6-digit code is shown on screen (and emailed too if `SMTP_URL` is set). To get a superadmin, start with `SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=<10+ characters> npm run dev` and sign in at `/admin/login` (or set `SUPERADMIN_EMAILS=you@example.com` and use the email code).
 
 ```bash
 npm test         # unit tests, next to the code they check
 npm run build    # website → apps/web/dist
-npm run e2e      # every flow against a running stack (start it with SUPERADMIN_EMAILS=boss@example.com OTP_RESEND_SECONDS=0)
+npm run e2e      # every flow against a running stack (start it with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0)
 npm run format   # prettier
 ```
 
 ## What it does
 
-- **Sign-in** by emailed code on a full-screen page in the site's own colours (`/login`, staff at `/admin/login`). First sign-in asks your name. Sessions: 15-minute access token in memory, rotating refresh cookie.
+- **Sign-in** on a full-screen page in the site's own colours (`/login`): choose Bharat ID (a code goes to the email on your issued ID), email code, or Google (shown when `GOOGLE_CLIENT_ID` is set); mobile is listed as Expected until an SMS provider is connected. **Staff** sign in at `/admin/login` with a staff ID and password issued by a superadmin (wrong tries slow down 1s, 2s, 4s…, every failure is audited). The first superadmin comes from `SUPERADMIN_STAFF_ID` + `SUPERADMIN_PASSWORD`. First sign-in asks your name. Sessions: 15-minute access token in memory, rotating refresh cookie.
 - **Pirento Ecosystem home** (`/`): pick any product in the hero to preview its site, what one account gives you, the ten products grouped by need, Legal search.
 - **Pirento Ecosystem dashboard** (`/dashboard`): a greeting with one plain line of what needs you, the wallet card with its balance history, open orders, spend this month, Bharat ID and certificates, "pick up where you left off" (pay, read a reply, finish your ID), one activity timeline across products, spend by product, a get-started checklist and every product as an app. Wallet (`/wallet`) and Account (`/account`) have their own pages. Press Ctrl/Cmd+K anywhere in the app to jump to any product, page or service.
 - **Product sites** at `/<product>` with dashboards at `/<product>/dashboard`, each in the product's dark and accent colours from the brand guidelines, with its own home layout and a working widget in the hero (search Legal services, Black rate card, Green tree calculator, Capital EMI calculator and more).

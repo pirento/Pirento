@@ -71,7 +71,7 @@ services/<name>/src
 - Three layouts (`app/App.jsx`): marketing pages get the navbar and footer; dashboards and admin get the app shell (`components/layout/AppLayout.jsx`, a sidebar, no footer); sign-in pages stand alone. Routes pick one with `layout` in `app/routes.jsx`.
 - The app shell has a Ctrl/Cmd+K command palette (`components/layout/CommandPalette.jsx`) over pages, products and services.
 - Admin is `/admin/<section>`; `features/admin/adminNav.js` lists the sections and the roles that see them.
-- Sign-in is `/login` (customers) and `/admin/login` (staff). Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
+- Sign-in is `/login` (customers: Bharat ID, email code, Google) and `/admin/login` (staff ID + password). The auth service asks identity's `/internal/owner` who holds an issued Bharat ID and sends the code to that account's email; staff passwords are scrypt hashes; the first superadmin is seeded from the environment. Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
 
 ## Colours and type
 

@@ -11,6 +11,7 @@ import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {useSignedIn} from '../auth/useSignedIn';
 import {DeleteAccount} from './DeleteAccount';
+import {PasswordCard} from './PasswordCard';
 
 function ProfileCard({n}) {
   const {user, setUser, signOut} = useSession();
@@ -70,6 +71,7 @@ export function Account() {
         intro="One account for every Pirento product."
       />
       <ProfileCard n={1} />
+      {user.staffId && <PasswordCard n={2} staffId={user.staffId} />}
     </div>
   );
 }

@@ -49,6 +49,7 @@ export function UserDetail({id, me}) {
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="min-w-0">
             <p className="eyebrow">
+              {u.staffId && `${u.staffId} · `}
               {roleLabel(u.role)}
               {u.suspended ? ' · Suspended' : ''}
             </p>
@@ -80,6 +81,19 @@ export function UserDetail({id, me}) {
                   </option>
                 ))}
               </select>
+              {u.staffId && (
+                <Button
+                  variant="outline"
+                  icon={null}
+                  onClick={() => {
+                    const password = prompt(`New password for ${u.staffId} (10+ characters). Share it privately.`);
+                    if (password)
+                      change('password', {password}, `Set a new password for ${u.staffId}? They are signed out.`);
+                  }}
+                >
+                  Reset password
+                </Button>
+              )}
               <Button
                 variant="outline"
                 icon={null}

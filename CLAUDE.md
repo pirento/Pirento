@@ -31,7 +31,8 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - Shortcuts are marked `// shortcut: <limit>, <when to upgrade>`. Grep for them before launch.
 
 - **Comments:** each file starts with one line saying what it is for; comment the why, not the what.
-- **Tests:** run the e2e stack with `OTP_RESEND_SECONDS=0` so repeated sign-ins are not throttled.
+- **Tests:** run the e2e stack with `SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0`.
+- **Sign-in:** codes go through `lib/otp.js` in the auth service; the staff door answers every failure with the same message. Never return `passwordHash` (it is `select: false` and stripped in `toJSON`).
 
 ## Check before pushing
 

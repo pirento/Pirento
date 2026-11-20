@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {conflict, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {ApiError, conflict, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {MIN_PASSWORD, hashPassword, verifyPassword} from '../lib/password.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 import {User} from '../models/User.js';
 
@@ -44,3 +45,24 @@ meRoutes.delete('/me/deletion', async (req, res) => {
   await DeletionRequest.deleteOne({userId: req.user.sub, status: 'requested'});
   res.json({data: {withdrawn: true}});
 });
+
+/** Staff change their own staff-door password; the current one proves it is them. */
+meRoutes.patch(
+  '/me/password',
+  validate(
+    z.object({
+      current: z.string().max(200),
+      next: z.string().min(MIN_PASSWORD, `Use at least ${MIN_PASSWORD} characters`).max(200),
+    }),
+  ),
+  async (req, res) => {
+    const user = await User.findById(req.user.sub).select('+passwordHash');
+    if (!user?.staffId) throw new ApiError(400, 'NO_STAFF_ID', 'Only staff accounts have a password');
+    if (!(await verifyPassword(req.body.current, user.passwordHash))) {
+      throw new ApiError(400, 'WRONG_PASSWORD', 'Your current password is not right');
+    }
+    user.passwordHash = await hashPassword(req.body.next);
+    await user.save();
+    res.json({data: {changed: true}});
+  },
+);

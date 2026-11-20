@@ -24,7 +24,10 @@ jobs:
       - name: End-to-end against the running stack
         env:
           SUPERADMIN_EMAILS: boss@example.com
+          SUPERADMIN_STAFF_ID: root.admin
+          SUPERADMIN_PASSWORD: change-me-now-123
           RATE_LIMIT_OTP: '500'
+          RATE_LIMIT_PER_MIN: '5000'
           OTP_RESEND_SECONDS: '0'
         run: |
           npm run dev > dev.log 2>&1 &

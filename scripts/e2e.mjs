@@ -1,4 +1,4 @@
-// End-to-end flows (orders, Bharat ID, exam, vault, support) against a running stack (npm run dev with SUPERADMIN_EMAILS=boss@example.com).
+// End-to-end flows against a running stack: npm run dev with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0.
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
 import {verhoeffCheckDigit} from '@pirento/shared';
@@ -853,6 +853,121 @@ await call(`/orders/${o2._id}/cancel`, {method: 'POST', token: user});
 check(
   'unpaid cancel gives the code back',
   (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp2._id)?.uses === 0,
+);
+
+// ── Sign-in methods: Bharat ID, staff door, providers ───────────────────
+const providers = (await call('/auth/providers')).data;
+check('providers', providers?.email && providers.bharatId && providers.mobile === false, providers);
+check(
+  'Google off without a client id',
+  (await call('/auth/google', {method: 'POST', body: {idToken: 'x'.repeat(30)}})).status === 404,
+);
+const userMe2 = (await call('/auth/me', {token: user})).data;
+// One digit off: the check digit catches it before any lookup.
+const typo = appr.bharatId.slice(0, 9) + ((Number(appr.bharatId[9]) + 1) % 10);
+check(
+  'Bharat ID with a typo is refused',
+  (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: typo}})).status === 400,
+);
+const bidReq = (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: appr.bharatId}})).data;
+check(
+  'Bharat ID code goes to a masked email',
+  bidReq?.sent && /•••@/.test(bidReq.sentTo) && !bidReq.sentTo.includes(userMe2.email),
+  bidReq,
+);
+const bidLogin = (
+  await call('/auth/otp/bharat-id/verify', {method: 'POST', body: {bharatId: appr.bharatId, code: bidReq.devCode}})
+).data;
+check('Bharat ID signs in the holder', bidLogin?.user?._id === userMe2._id, bidLogin);
+check(
+  'an unissued Bharat ID is refused',
+  (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: '1000000001'}})).error?.code !==
+    undefined,
+);
+
+const root = (
+  await call('/auth/staff/login', {method: 'POST', body: {staffId: 'root.admin', password: 'change-me-now-123'}})
+).data;
+check('seeded superadmin signs in with staff ID', root?.user?.role === 'superadmin', root);
+const sid = `ops${Date.now().toString().slice(-6)}`;
+const made = await call('/auth/admin/staff', {
+  method: 'POST',
+  token: root.token,
+  body: {staffId: sid, email: `${sid}@example.com`, role: 'staff', password: 'first-pass-123'},
+});
+check(
+  'superadmin issues a staff ID',
+  made.status === 201 && made.data.staffId === sid && !('passwordHash' in made.data),
+  made,
+);
+check(
+  'staff cannot issue staff IDs',
+  (
+    await call('/auth/admin/staff', {
+      method: 'POST',
+      token: staffToken,
+      body: {staffId: 'x1y2z3', email: 'x@example.com', role: 'staff', password: 'abcdefghijk'},
+    })
+  ).status === 403,
+);
+const wrong = await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'not-the-password'}});
+check('wrong password', wrong.status === 401 && wrong.error.message === 'Wrong staff ID or password');
+const unknown = await call('/auth/staff/login', {
+  method: 'POST',
+  body: {staffId: 'nobody.here', password: 'whatever-123'},
+});
+check('unknown staff ID answers the same', unknown.status === 401 && unknown.error.message === wrong.error.message);
+check(
+  'a wrong try slows the next',
+  (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'first-pass-123'}})).status === 429,
+);
+await new Promise((r) => setTimeout(r, 1100));
+const opsLogin = (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'first-pass-123'}}))
+  .data;
+check('new staff signs in', opsLogin?.user?.role === 'staff');
+check(
+  'change own password needs the current one',
+  (
+    await call('/auth/me/password', {
+      method: 'PATCH',
+      token: opsLogin.token,
+      body: {current: 'nope', next: 'second-pass-123'},
+    })
+  ).status === 400,
+);
+await call('/auth/me/password', {
+  method: 'PATCH',
+  token: opsLogin.token,
+  body: {current: 'first-pass-123', next: 'second-pass-123'},
+});
+check(
+  'changed password works',
+  Boolean(
+    (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'second-pass-123'}})).data?.token,
+  ),
+);
+await call(`/auth/admin/users/${made.data._id}/password`, {
+  method: 'PATCH',
+  token: root.token,
+  body: {password: 'reset-pass-123'},
+});
+check(
+  'superadmin reset works',
+  Boolean(
+    (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'reset-pass-123'}})).data?.token,
+  ),
+);
+await call(`/auth/admin/users/${made.data._id}/role`, {method: 'PATCH', token: root.token, body: {role: 'customer'}});
+check(
+  'a right password without a staff role is refused like a wrong one',
+  (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'reset-pass-123'}})).error
+    ?.message === 'Wrong staff ID or password',
+);
+check(
+  'failed staff sign-ins are audited',
+  ((await call('/auth/admin/audit?action=auth.staff_login_failed', {token: boss})).data ?? []).some(
+    (r) => r.target === sid,
+  ),
 );
 
 // ── Account deletion ────────────────────────────────────────────────────

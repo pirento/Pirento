@@ -15,7 +15,21 @@ export const User = mongoose.model(
       suspended: {type: Boolean, default: false},
       // Operations staff limited to these product slugs; empty means all products.
       products: {type: [String], default: []},
+      // Staff sign in at /admin/login with an issued staff ID and a password (scrypt hash, never sent out).
+      staffId: {type: String, unique: true, sparse: true, lowercase: true, trim: true},
+      passwordHash: {type: String, select: false},
+      // Set the first time someone signs in with Google, so a later email change does not lose the link.
+      googleId: {type: String, unique: true, sparse: true},
     },
-    {timestamps: true},
+    {
+      timestamps: true,
+      // Belt and braces: even a document loaded with +passwordHash never serialises it.
+      toJSON: {
+        transform: (_doc, ret) => {
+          delete ret.passwordHash;
+          return ret;
+        },
+      },
+    },
   ),
 );

@@ -8,7 +8,7 @@ import {formatDate} from '../../lib/format';
 import {DataTable} from './DataTable';
 
 const EMPTY = {code: '', kind: 'percent', value: '10', product: '', minAmount: '0', maxUses: '0', expiresAt: ''};
-const input = 'rounded-full border border-rule bg-paper px-4 py-2 text-sm outline-none focus:border-ink';
+const input = 'w-full min-w-0 rounded-full border border-rule bg-paper px-4 py-2 text-sm outline-none focus:border-ink';
 
 function NewCoupon({onDone}) {
   const [f, setF] = useState(EMPTY);
