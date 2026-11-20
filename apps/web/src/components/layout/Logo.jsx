@@ -24,10 +24,7 @@ export function Logo() {
           </span>
         </>
       ) : (
-        <>
-          <PirentoLogo alt="" className="h-6 w-auto" />
-          <span className="hidden text-xs font-medium text-muted sm:inline">Ecosystem</span>
-        </>
+        <PirentoLogo alt="" className="h-6 w-auto" />
       )}
     </Link>
   );

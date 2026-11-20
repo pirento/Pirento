@@ -7,10 +7,12 @@ import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {AuthShell} from './AuthShell';
 import {CodeBoxes} from './CodeBoxes';
+import {MobileInput} from './CustomerSignIn';
 import {PasswordField} from './PasswordField';
 import {useAuthDoor} from './useAuthDoor';
 
-const STEPS = ['Your details', 'Verify', 'User ID and password'];
+// Short, so the three labels stay on one line on a phone.
+const STEPS = ['Details', 'Verify', 'Password'];
 
 /** "Free" / "Taken" for a user ID, asked of the server a moment after typing stops. */
 function useUsernameCheck(name, skip) {
@@ -107,9 +109,9 @@ export function Register() {
 
   return (
     <AuthShell side={door.side} home={door.home} homeLabel={door.homeLabel} innerRef={door.ref}>
-      <ol className="mb-8 flex gap-2" aria-label="Steps">
+      <ol className="mb-8 grid grid-cols-3 gap-2" aria-label="Steps">
         {STEPS.map((s, i) => (
-          <li key={s} className="flex-1" aria-current={i === step ? 'step' : undefined}>
+          <li key={s} className="min-w-0" aria-current={i === step ? 'step' : undefined}>
             <span className={`block h-1 rounded-full ${i <= step ? 'bg-accent' : 'bg-rule'}`} />
             <span className={`mt-2 block text-xs ${i === step ? 'text-ink' : 'text-muted'}`}>{s}</span>
           </li>
@@ -140,17 +142,7 @@ export function Register() {
               onChange={set('name')}
             />
             <Field label="Email" type="email" required autoComplete="email" value={f.email} onChange={set('email')} />
-            <Field
-              label="Mobile number"
-              type="tel"
-              inputMode="tel"
-              required
-              autoComplete="tel"
-              placeholder="98765 43210"
-              maxLength={16}
-              value={f.phone}
-              onChange={set('phone')}
-            />
+            <MobileInput value={f.phone} onChange={set('phone')} />
           </>
         )}
 

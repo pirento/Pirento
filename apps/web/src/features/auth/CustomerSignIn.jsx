@@ -69,11 +69,11 @@ const Problem = ({error, query}) =>
   );
 
 /** The mobile number field, with +91 in its own box in front. */
-function MobileInput({value, onChange}) {
+export function MobileInput({value, onChange}) {
   return (
     <label className="block">
       <span className="text-sm font-medium">Mobile number</span>
-      <span className="mt-2 flex overflow-hidden rounded-[8px] border border-rule bg-paper focus-within:border-ink">
+      <span className="joined-field mt-2 flex overflow-hidden rounded-[8px] border border-rule bg-paper focus-within:border-ink">
         <span className="flex items-center border-r border-rule bg-stone px-4 text-muted">+91</span>
         <input
           type="tel"
@@ -219,7 +219,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
             <div
               role="tablist"
               aria-label="Get a code by"
-              className="grid grid-cols-3 gap-1 rounded-[10px] border border-rule bg-stone p-1"
+              className="grid grid-cols-3 gap-1 rounded-full border border-rule bg-stone p-1"
             >
               {Object.entries(METHODS).map(([id, x]) => {
                 const off = id === 'mobile' && !mobileOn;
@@ -237,7 +237,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
                       setValue('');
                       setError(null);
                     }}
-                    className={`flex h-[38px] items-center justify-center gap-2 rounded-[6px] px-2 text-sm transition-colors ${
+                    className={`flex h-[38px] items-center justify-center gap-2 rounded-full px-2 text-sm transition-colors ${
                       active === id
                         ? 'border border-rule bg-paper font-medium text-ink'
                         : off

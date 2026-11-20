@@ -78,7 +78,12 @@ export function Footer() {
         {/* Product sites: their name as the wordmark (the viewBox grows with it so letters keep their shape).
             The ecosystem: the Pirento logo itself. */}
         {product && hasLogo(product.slug) ? (
-          <SiteLogo brand={product.slug} tone="light" alt={product.name} className="mt-16 h-auto w-full max-w-3xl" />
+          <SiteLogo
+            brand={product.slug}
+            tone="light"
+            alt={product.name}
+            className="mt-16 h-20 w-auto max-w-full object-contain object-left sm:h-28 lg:h-36"
+          />
         ) : product ? (
           <svg viewBox={`0 0 ${name.length * 140} 210`} className="mt-16 w-full" role="img" aria-label={name}>
             <text
@@ -93,7 +98,11 @@ export function Footer() {
             </text>
           </svg>
         ) : (
-          <PirentoLogo tone="light" alt="Pirento" className="mt-16 h-auto w-full max-w-5xl" />
+          <PirentoLogo
+            tone="light"
+            alt="Pirento"
+            className="mt-16 h-20 w-auto max-w-full object-contain object-left sm:h-28 lg:h-36"
+          />
         )}
         <p className="mt-8 flex flex-wrap gap-x-6 gap-y-1 border-t border-rule pt-6 text-xs text-muted">
           <span>

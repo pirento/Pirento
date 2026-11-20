@@ -1,4 +1,4 @@
-// The sign-in pages' own buttons: squarer and full width, so a form reads as one column of actions.
+// The sign-in pages' own buttons: round and full width, so a form reads as one column of actions.
 //   primary: the main action, in this site's dark (Send code, Sign in, Verify)
 //   create:  "Create an account", in this site's accent
 //   outline / soft: the paired secondary choices (Use password · Google)
@@ -6,10 +6,11 @@ import {Link} from 'react-router-dom';
 import {ArrowRight} from 'lucide-react';
 
 const BASE =
-  'inline-flex w-full items-center justify-center gap-2 rounded-[8px] text-[0.95rem] font-medium transition-[background-color,border-color,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50';
+  'inline-flex w-full items-center justify-center gap-2 rounded-full text-[0.95rem] font-medium transition-[background-color,border-color,opacity] duration-300 disabled:cursor-not-allowed disabled:opacity-50';
 
 const VARIANTS = {
-  primary: 'h-[50px] bg-inverse text-on-inverse hover:opacity-90',
+  // In dark mode the site's dark would vanish into the page, so the main action turns light.
+  primary: 'h-[50px] bg-inverse text-on-inverse hover:opacity-90 dark:bg-ink dark:text-paper',
   create: 'h-[50px] bg-accent text-on-accent hover:opacity-90',
   outline: 'h-11 border border-rule bg-paper text-ink hover:border-ink',
   soft: 'h-11 border border-rule bg-stone text-ink hover:border-ink',
