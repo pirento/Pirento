@@ -36,7 +36,7 @@ export const ADMIN_SECTIONS = [
     label: 'Overview',
     icon: LayoutDashboard,
     roles: ALL_STAFF,
-    intro: "Today's numbers across the ecosystem and the last 30 days.",
+    intro: 'What needs doing now. Finance and superadmins also see the numbers for the whole ecosystem.',
   },
   {
     id: 'orders',
@@ -169,6 +169,8 @@ export const ADMIN_SECTIONS = [
 ];
 
 export const isStaffRole = (role) => ALL_STAFF.includes(role);
+/** Where someone's own area is: staff work in the admin, customers in their dashboard. */
+export const homeFor = (user) => (isStaffRole(user?.role) ? '/admin' : '/dashboard');
 export const sectionsFor = (role) => ADMIN_SECTIONS.filter((s) => s.roles.includes(role));
 
 export const ROLES = ['customer', 'support', 'finance', 'staff', 'superadmin'];

@@ -6,7 +6,7 @@ import {ApiError, badInput, callService, conflict, requireAuth, validate} from '
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {findAccessible, nextOrderNo} from '../lib/orders.js';
+import {findAccessible, findOwn, nextOrderNo} from '../lib/orders.js';
 import {redeem, releaseCoupon} from '../lib/coupons.js';
 
 // Placing, listing, reading and cancelling your own orders.
@@ -74,7 +74,7 @@ customerRoutes.get('/:id', async (req, res) => res.json({data: await findAccessi
 
 /** Customers may cancel only before paying; after that it is the team's call. */
 customerRoutes.post('/:id/cancel', async (req, res) => {
-  const order = await findAccessible(req);
+  const order = await findOwn(req);
   const cancelled = await Order.findOneAndUpdate(
     {_id: order._id, status: 'pending_payment'},
     {$set: {status: 'cancelled'}, $push: {timeline: {status: 'cancelled', note: 'Cancelled by you'}}},

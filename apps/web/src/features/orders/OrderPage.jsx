@@ -18,7 +18,7 @@ import {usePageMeta} from '../../lib/page';
 
 export function OrderPage() {
   const {id} = useParams();
-  const {redirect, user} = useSignedIn();
+  const {redirect, user} = useSignedIn({area: 'any'});
   const {data: fetched, error, setData} = useOrder(user ? id : null);
   const ref = useRef(null);
   usePageMotion(ref, [Boolean(fetched)]);

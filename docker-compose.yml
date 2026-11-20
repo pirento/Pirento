@@ -34,6 +34,8 @@ services:
       VAULT_URL: http://vault:4007
       AI_URL: http://ai:4009
       LEARNING_URL: http://learning:4006
+      ORDERS_URL: http://orders:4004
+      SUPPORT_URL: http://support:4008
     depends_on: [mongo]
 
   wallet:

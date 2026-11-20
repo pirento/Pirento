@@ -18,7 +18,7 @@ import {usePageMeta} from '../../lib/page';
 
 export function Ticket() {
   const {id} = useParams();
-  const {redirect, user} = useSignedIn();
+  const {redirect, user} = useSignedIn({area: 'any'});
   const {user: me} = useSession();
   const ticket = useApi(user ? `/support/${id}` : null);
   const [reply, setReply] = useState('');

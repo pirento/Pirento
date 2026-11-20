@@ -8,10 +8,15 @@ export const ticketRoutes = Router();
 
 const messageBody = z.string().trim().min(2, 'Write a message').max(4000);
 
-/** The ticket in the URL, if it is the caller's or the caller is staff. */
+/** The team opens tickets that are theirs or nobody's yet; a superadmin opens any. */
+const teamCanOpen = (req, ticket) =>
+  canUse(req, 'support') &&
+  (req.user.role === 'superadmin' || !ticket.assignee?.id || ticket.assignee.id === req.user.sub);
+
+/** The ticket in the URL, if it is the caller's or the caller's team may open it. */
 async function findTicket(req) {
   const ticket = isId(req.params.id) && (await Ticket.findById(req.params.id));
-  if (!ticket || (ticket.userId !== req.user.sub && !canUse(req, 'support'))) throw notFound('Ticket not found');
+  if (!ticket || (ticket.userId !== req.user.sub && !teamCanOpen(req, ticket))) throw notFound('Ticket not found');
   return ticket;
 }
 

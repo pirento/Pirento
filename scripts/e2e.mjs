@@ -907,6 +907,25 @@ check(
   made.status === 201 && made.data.staffId === sid && !('passwordHash' in made.data),
   made,
 );
+// Operations staff see their own work and unassigned work, never someone else's.
+const other = (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'first-pass-123'}})).data
+  .token;
+check(
+  "staff cannot pay or cancel a customer's order",
+  (await call(`/orders/${disc._id}/pay/wallet`, {method: 'POST', token: root.token})).status === 404 &&
+    (await call(`/orders/${disc._id}/cancel`, {method: 'POST', token: root.token})).status === 404,
+);
+check(
+  'other staff cannot open an order taken by someone else',
+  (await call(`/orders/${disc._id}`, {token: other})).status === 404,
+);
+check(
+  "other staff's queue leaves it out",
+  !(await call('/orders/staff/queue?status=pending_payment', {token: other})).data?.some((o) => o._id === disc._id),
+);
+check('a superadmin still sees it', (await call(`/orders/${disc._id}`, {token: root.token})).status === 200);
+check('operations staff see no money totals', (await call('/orders/staff/stats', {token: other})).status === 403);
+check('operations staff see no workload', (await call('/orders/staff/workload', {token: other})).status === 403);
 check(
   'staff cannot issue staff IDs',
   (
@@ -1138,6 +1157,9 @@ await call('/vault/credentials', {
   token: leaver.token,
   body: {label: 'Bank', username: 'me', password: 'secret'},
 });
+const leaverTicket = (
+  await call('/support', {method: 'POST', token: leaver.token, body: {subject: 'My PAN', message: 'PAN ABCDE1234F'}})
+).data;
 check(
   'ask to delete',
   (await call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {reason: 'Done'}})).status === 201,
@@ -1166,6 +1188,12 @@ const gone = (
 check('deletion approved', gone?.status === 'approved', gone);
 const anon = (await call(`/auth/admin/users/${leaverMe._id}`, {token: boss})).data;
 check('account anonymised', anon?.email.endsWith('@deleted.invalid') && anon.suspended && !anon.name);
+const keptTicket = (await call(`/support/${leaverTicket._id}`, {token: boss})).data;
+check(
+  'their ticket keeps no email or words',
+  keptTicket?.email.endsWith('@deleted.invalid') && !JSON.stringify(keptTicket.messages).includes('ABCDE1234F'),
+  keptTicket,
+);
 check(
   'sessions ended',
   (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: leaver.cookie}})).status === 401,

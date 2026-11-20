@@ -9,6 +9,7 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {SOCIAL_ICONS} from './SocialIcons';
+import {homeFor, isStaffRole} from '../../features/admin/adminNav';
 
 const Column = ({title, children}) => (
   <div className="min-w-0">
@@ -99,7 +100,9 @@ export function Footer() {
                 {c.account &&
                   (user ? (
                     <>
-                      <FooterLink to="/dashboard">Pirento dashboard</FooterLink>
+                      <FooterLink to={homeFor(user)}>
+                        {isStaffRole(user.role) ? 'Pirento Admin' : 'Pirento dashboard'}
+                      </FooterLink>
                       <li>
                         <button onClick={signOut} className="text-left text-muted transition-colors hover:text-ink">
                           Sign out

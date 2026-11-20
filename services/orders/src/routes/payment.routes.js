@@ -2,7 +2,7 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, conflict, requireAuth, validate} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
-import {findAccessible, markPaid} from '../lib/orders.js';
+import {findOwn, markPaid} from '../lib/orders.js';
 import {debitForOrder, voidOrderDebit} from '../lib/wallet.js';
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig} from '../lib/razorpay.js';
 
@@ -13,7 +13,7 @@ paymentRoutes.use('/:id/pay', requireAuth);
 const notPayable = () => conflict('NOT_PAYABLE', 'This order is already settled');
 
 paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
-  const order = await findAccessible(req);
+  const order = await findOwn(req);
   if (order.status !== 'pending_payment') throw notPayable();
 
   await debitForOrder(order);
@@ -34,7 +34,7 @@ paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
 paymentRoutes.post('/:id/pay/razorpay', async (req, res) => {
   const cfg = razorpayConfig();
   if (!cfg) throw new ApiError(503, 'PAYMENTS_UNAVAILABLE', 'Card and UPI payments are not switched on yet');
-  let order = await findAccessible(req);
+  let order = await findOwn(req);
   if (order.status !== 'pending_payment') throw notPayable();
 
   if (!order.payment?.razorpayOrderId) {
@@ -58,7 +58,7 @@ paymentRoutes.post(
   ),
   async (req, res) => {
     const cfg = razorpayConfig();
-    const order = await findAccessible(req);
+    const order = await findOwn(req);
     const genuine =
       cfg &&
       order.payment?.razorpayOrderId === req.body.razorpay_order_id &&

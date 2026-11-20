@@ -1,9 +1,8 @@
 // The Pirento Ecosystem dashboard: what needs you, your money, your activity, and every product.
 import {useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Search, ShieldCheck} from 'lucide-react';
+import {Search} from 'lucide-react';
 import {Heading} from '../../components/ui/Heading';
-import {isStaffRole} from '../admin/adminNav';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {openCommandPalette} from '../../components/layout/CommandPalette';
@@ -28,7 +27,8 @@ export function Dashboard() {
   usePageMeta({title: 'Dashboard — Pirento Ecosystem'});
   if (redirect) return redirect;
   if (!user) return <div className="min-h-dvh" />;
-  const name = user.name || user.email.split('@')[0];
+  // First name only; without a name we just say hello rather than print an email address.
+  const name = user.name?.trim().split(/\s+/)[0];
   const ready = data.loaded.orders && data.loaded.tickets;
 
   return (
@@ -38,7 +38,7 @@ export function Dashboard() {
           <p className="eyebrow">Pirento Ecosystem · Dashboard</p>
           <Heading
             as="h1"
-            text={`${greeting(hour)}, / ${name}.`}
+            text={name ? `${greeting(hour)}, / ${name}.` : `${greeting(hour)}.`}
             className="mt-4 text-[clamp(2rem,3.6vw,3rem)] leading-[1.05] break-words"
           />
           <p className="body mt-3 text-base" aria-live="polite">
@@ -53,14 +53,6 @@ export function Dashboard() {
             <Search aria-hidden className="size-4" /> Search Pirento
             <kbd className="hidden rounded-md border border-rule px-1.5 text-xs sm:inline">Ctrl K</kbd>
           </button>
-          {isStaffRole(user.role) && (
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper"
-            >
-              <ShieldCheck aria-hidden className="size-4" /> Admin
-            </Link>
-          )}
         </div>
       </header>
 

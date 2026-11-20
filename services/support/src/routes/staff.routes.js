@@ -8,6 +8,9 @@ export const staffRoutes = Router();
 staffRoutes.get('/staff/queue', requireRole(...ACCESS.support), async (req, res) => {
   const filter = {status: TICKET_STATUSES.includes(req.query.status) ? req.query.status : 'open'};
   if (req.query.mine === '1') filter['assignee.id'] = req.user.sub;
+  // Everyone but a superadmin sees their own tickets and the ones nobody has taken yet.
+  else if (req.user.role !== 'superadmin')
+    filter.$or = [{'assignee.id': req.user.sub}, {'assignee.id': {$exists: false}}];
   res.json({data: await Ticket.find(filter, {messages: 0, notes: 0}).sort({updatedAt: 1}).limit(200)});
 });
 

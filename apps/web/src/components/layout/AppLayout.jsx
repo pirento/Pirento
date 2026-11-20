@@ -79,6 +79,8 @@ function useAppNav() {
 
 function Sidebar({onNavigate}) {
   const {user, signOut} = useSession();
+  const staff = isStaffRole(user?.role);
+  const inAdmin = useLocation().pathname.startsWith('/admin');
   const {title, groups} = useAppNav();
   const product = useProductSite();
   const {pathname} = useLocation();
@@ -158,9 +160,10 @@ function Sidebar({onNavigate}) {
 
       <div className="mt-6 space-y-1 border-t border-rule pt-4 text-sm">
         {[
-          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: true},
-          {label: 'Admin', to: '/admin', icon: ShieldCheck, show: isStaffRole(user?.role)},
-          {label: 'Support', to: '/support', icon: LifeBuoy, show: true},
+          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: !staff},
+          {label: 'Admin', to: '/admin', icon: ShieldCheck, show: staff && !inAdmin},
+          {label: 'Support', to: '/support', icon: LifeBuoy, show: !staff},
+          {label: 'Pirento website', to: '/', icon: Home, show: staff},
           {label: 'Verify a code', to: '/verify', icon: Search, show: true},
         ]
           .filter((l) => l.show)

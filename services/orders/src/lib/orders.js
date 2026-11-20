@@ -6,14 +6,30 @@ import {Order} from '../models/Order.js';
 /** Six-digit order numbers, starting at 100001. */
 export const nextOrderNo = async () => (await nextSeq('order')) + 100000;
 
-/** Staff who may read any order (support reads them to answer tickets), within their product scope. */
-const staffCanSee = (req, order) =>
-  (canUse(req, 'orders') || canUse(req, 'support')) && (productScope(req)?.includes(order.product) ?? true);
+/** Finance and superadmins see every order; operations staff see theirs and the unassigned ones. */
+export const seesAllWork = (req) => ['finance', 'superadmin'].includes(req.user?.role);
+
+const inScope = (req, order) => productScope(req)?.includes(order.product) ?? true;
+
+/** Support reads orders to answer tickets; operations staff only open work that is theirs or nobody's yet. */
+const staffCanSee = (req, order) => {
+  if (!inScope(req, order)) return false;
+  if (req.user?.role === 'support') return true;
+  if (!canUse(req, 'orders')) return false;
+  return seesAllWork(req) || !order.assignee?.id || order.assignee.id === req.user.sub;
+};
 
 /** The order in the URL, if the caller owns it or may see it as staff. Anyone else gets a 404, not a 403. */
 export async function findAccessible(req) {
   const order = isId(req.params.id) && (await Order.findById(req.params.id));
   if (!order || (order.userId !== req.user.sub && !staffCanSee(req, order))) throw notFound('Order not found');
+  return order;
+}
+
+/** The order in the URL, only if it is the caller's own: paying and cancelling are the customer's acts. */
+export async function findOwn(req) {
+  const order = isId(req.params.id) && (await Order.findById(req.params.id));
+  if (!order || order.userId !== req.user.sub) throw notFound('Order not found');
   return order;
 }
 

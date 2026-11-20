@@ -5,7 +5,7 @@ import {ACCESS, audit, conflict, productScope, requireAuth, requireRole, validat
 import {PAID_STATUSES} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {completionCode, findAccessible} from '../lib/orders.js';
+import {completionCode, findAccessible, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 import {releaseCoupon} from '../lib/coupons.js';
 
@@ -20,7 +20,10 @@ const scoped = (req, filter = {}) => {
   return products ? {...filter, product: {$in: products}} : filter;
 };
 
-staffRoutes.get('/staff/stats', async (req, res) => {
+// Money totals are for finance and superadmins; operations staff see their own work instead.
+const money = requireRole(...ACCESS.payments);
+
+staffRoutes.get('/staff/stats', money, async (req, res) => {
   const [byStatus, byProduct] = await Promise.all([
     Order.aggregate([{$match: scoped(req)}, {$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]),
     Order.aggregate([
@@ -39,7 +42,7 @@ staffRoutes.get('/staff/stats', async (req, res) => {
 });
 
 /** Orders placed and paid value per day for the last 30 days, for the overview charts. */
-staffRoutes.get('/staff/daily', async (req, res) => {
+staffRoutes.get('/staff/daily', money, async (req, res) => {
   const rows = await Order.aggregate([
     {$match: scoped(req, {createdAt: {$gte: new Date(Date.now() - 30 * DAY)}})},
     {
@@ -90,17 +93,21 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
   });
 });
 
-/** Default view is the work to do: paid and in-progress orders, oldest first. */
+/**
+ * Default view is the work to do: paid and in-progress orders, oldest first.
+ * Operations staff get their own orders and the unassigned ones they can take.
+ */
 staffRoutes.get('/staff/queue', async (req, res) => {
   const status =
     typeof req.query.status === 'string' && req.query.status in STAFF_TRANSITIONS ? req.query.status : null;
   const filter = scoped(req, status ? {status} : {status: {$in: ['paid', 'in_progress']}});
   if (req.query.mine === '1') filter['assignee.id'] = req.user.sub;
+  else if (!seesAllWork(req)) filter.$or = [{'assignee.id': req.user.sub}, {'assignee.id': {$exists: false}}];
   res.json({data: await Order.find(filter).sort({createdAt: 1}).limit(200)});
 });
 
 /** Open work per staffer, for the team page. */
-staffRoutes.get('/staff/workload', async (_req, res) => {
+staffRoutes.get('/staff/workload', requireRole('superadmin'), async (_req, res) => {
   const rows = await Order.aggregate([
     {$match: {status: {$in: ['paid', 'in_progress']}, 'assignee.id': {$exists: true}}},
     {$group: {_id: '$assignee.id', open: {$sum: 1}}},

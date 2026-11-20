@@ -42,7 +42,7 @@ adminRoutes.get('/admin/users/:id', requireRole(...ACCESS.users), async (req, re
 });
 
 /** Sign-ups per day for the last 30 days, for the overview chart. */
-adminRoutes.get('/admin/stats', requireRole(...ACCESS.users, 'staff'), async (_req, res) => {
+adminRoutes.get('/admin/stats', requireRole(...ACCESS.users), async (_req, res) => {
   const since = new Date(Date.now() - 30 * DAY);
   const [total, perDay] = await Promise.all([
     User.estimatedDocumentCount(),
