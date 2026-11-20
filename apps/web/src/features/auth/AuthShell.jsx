@@ -1,7 +1,7 @@
 // The sign-in page frame: a side panel that says whose door this is, and the form, which comes first on phones.
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
-import {PirentoLogo, PirentoMark, SiteLogo, SiteMark} from '../../components/layout/PirentoLogo';
+import {PirentoLogo, PirentoMark, SiteLogo, SiteMark, hasMark} from '../../components/layout/PirentoLogo';
 
 /**
  * `side` = {eyebrow, quote, line, Icon} for a product, or {pirento, label, quote, line} for Pirento's own doors
@@ -35,7 +35,7 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         </Link>
 
         <div className="relative">
-          {side.brand ? (
+          {side.brand && hasMark(side.brand) ? (
             <SiteMark brand={side.brand} tone="light" alt="" className="h-20 w-auto" />
           ) : side.pirento ? (
             <PirentoMark tone="light" alt="" className="h-20 w-auto" />

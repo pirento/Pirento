@@ -6,10 +6,11 @@
 // mark.png and mark-light.png in public/brand/<slug>/, then add one line to ART. favicon-32.png,
 // icon-192.png and apple-touch-icon.png in the same folder become that site's browser icons.
 
+// A product without a mark yet passes no markRatio: its pages keep their icon tile and Pirento's tab icon.
 const art = (dir, logoRatio, markRatio) => ({
   logo: {dark: `${dir}/logo.png`, light: `${dir}/logo-light.png`, ratio: logoRatio},
-  mark: {dark: `${dir}/mark.png`, light: `${dir}/mark-light.png`, ratio: markRatio},
-  icons: dir,
+  mark: markRatio ? {dark: `${dir}/mark.png`, light: `${dir}/mark-light.png`, ratio: markRatio} : null,
+  icons: markRatio ? dir : null,
 });
 
 const ART = {
@@ -24,13 +25,17 @@ const ART = {
   intern: art('/brand/intern', 785 / 330, 207 / 597),
   black: art('/brand/black', 791 / 354, 498 / 553),
   one: art('/brand/one', 777 / 308, 508 / 521),
+  vault: art('/brand/vault', 776 / 336, 447 / 527),
+  giftox: art('/brand/giftox', 759 / 350, 537 / 586),
+  'bharat-id': art('/brand/bharat-id', 831 / 308),
 };
 
 /** True when this product has its own logo files (others show their name and colour square). */
 export const hasLogo = (slug) => Boolean(ART[slug]);
+export const hasMark = (slug) => Boolean(ART[slug]?.mark);
 
 /** The folder holding a site's favicons: the product's own, or Pirento's. */
-export const iconDir = (slug) => (ART[slug] ?? ART.pirento).icons;
+export const iconDir = (slug) => ART[slug]?.icons ?? ART.pirento.icons;
 
 function Art({brand = 'pirento', kind, tone = 'auto', className = '', alt = 'Pirento'}) {
   const f = (ART[brand] ?? ART.pirento)[kind];
