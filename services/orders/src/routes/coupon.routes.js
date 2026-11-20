@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {PRODUCTS, getService} from '@pirento/shared';
+import {PRODUCTS} from '@pirento/shared';
+import {liveService} from '../lib/catalog.js';
 import {ACCESS, audit, conflict, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
 import {Coupon} from '../models/Coupon.js';
 import {Order} from '../models/Order.js';
@@ -10,7 +11,7 @@ import {discountFor} from '../lib/coupons.js';
 export const couponRoutes = Router();
 
 couponRoutes.get('/coupons/:code', requireAuth, async (req, res) => {
-  const service = getService(String(req.query.service ?? ''));
+  const service = await liveService(String(req.query.service ?? '').slice(0, 80));
   if (!service?.price) throw notFound('Service not found');
   const quantity = Math.max(1, Math.min(Number(req.query.quantity) || 1, service.maxQty ?? 1));
   const amount = service.price * 100 * quantity;

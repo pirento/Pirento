@@ -1,89 +1,109 @@
-import crypto from 'node:crypto';
+// Sign-in by code: with your mobile (texted), your email, or your Bharat ID (the code goes to that ID's email).
 import {Router} from 'express';
 import {z} from 'zod';
-import {getProduct} from '@pirento/shared';
-import {ApiError, validate} from '@pirento/shared/server';
+import {TERMS_VERSION, getProduct, isBharatId, maskPhone, toPhone} from '@pirento/shared';
+import {ApiError, callService, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
-import {Otp} from '../models/Otp.js';
 import {User} from '../models/User.js';
-import {mailer, sendOtpEmail} from '../lib/email.js';
-import {issueSession, sha256} from '../lib/session.js';
+import {checkCode, maskEmail, phoneKey, sendCode, sendPhoneCode} from '../lib/otp.js';
+import {issueSession} from '../lib/session.js';
 
-// Sign-in by email code: ask for a code, then trade it for a session.
 export const otpRoutes = Router();
 
 const email = z.string().trim().toLowerCase().email('Enter a valid email');
+const code = z.string().regex(/^\d{6}$/, 'Enter the 6-digit code');
+const bharatId = z
+  .string()
+  .transform((v) => v.replace(/\D/g, ''))
+  .refine(isBharatId, 'Enter the 10-digit Bharat ID on your card');
+
+// The email names the site the person came from: "your Pirento Legal sign-in code".
+const brandOf = (product) => getProduct(product ?? '')?.name ?? 'Pirento Ecosystem';
 
 otpRoutes.post(
   '/otp/request',
   validate(z.object({email, product: z.string().max(20).optional()})),
   async (req, res) => {
-    // Without a mail server, production would accept emails and never deliver a code.
-    if (config.isProduction && !mailer()) {
-      throw new ApiError(503, 'EMAIL_UNAVAILABLE', 'Email sign-in is not set up yet');
-    }
-
-    // One code per 30 seconds per email keeps the inbox (and the SMTP bill) sane.
-    const last = await Otp.findOne({email: req.body.email}).sort({createdAt: -1});
-    const waitMs = last ? last.createdAt.getTime() + config.otpResendAfterMs - Date.now() : 0;
-    if (waitMs > 0) {
-      throw new ApiError(
-        429,
-        'RESEND_TOO_SOON',
-        `Wait ${Math.ceil(waitMs / 1000)} seconds before asking for a new code`,
-      );
-    }
-
-    const code = String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
-    await Otp.deleteMany({email: req.body.email});
-    await Otp.create({
-      email: req.body.email,
-      codeHash: sha256(code),
-      expiresAt: new Date(Date.now() + config.otpLifetimeMs),
-    });
-
-    // The email names the site the person came from: "your Pirento Legal sign-in code".
-    const brand = getProduct(req.body.product ?? '')?.name ?? 'Pirento Ecosystem';
-    if (mailer()) {
-      try {
-        await sendOtpEmail(req.body.email, code, brand);
-      } catch (err) {
-        console.error('OTP email failed:', err.message);
-        await Otp.deleteMany({email: req.body.email});
-        throw new ApiError(502, 'EMAIL_FAILED', 'We could not send the code. Check the email and try again.');
-      }
-    } else {
-      console.log(`OTP for ${req.body.email}: ${code} (no SMTP_URL, so not emailed)`);
-    }
-
-    // Outside production the code comes back in the response, so local testing needs no inbox.
-    res.json({
-      data: {sent: true, resendAfter: config.otpResendAfterMs / 1000, ...(config.isProduction ? {} : {devCode: code})},
-    });
+    res.json({data: await sendCode(req.body.email, brandOf(req.body.product))});
   },
 );
 
+const noAccount = () =>
+  new ApiError(404, 'NO_ACCOUNT', 'No Pirento account uses this yet. Create an account to continue.');
+
 otpRoutes.post(
   '/otp/verify',
-  validate(z.object({email, code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code')})),
+  validate(z.object({email, code, acceptTerms: z.literal(true).optional()})),
   async (req, res) => {
-    const otp = await Otp.findOneAndUpdate({email: req.body.email}, {$inc: {attempts: 1}}, {new: true});
-    if (!otp || otp.expiresAt < new Date() || otp.attempts > config.otpMaxAttempts) {
-      throw new ApiError(400, 'OTP_EXPIRED', 'This code has expired. Ask for a new one.');
-    }
-    const given = Buffer.from(sha256(req.body.code));
-    if (!crypto.timingSafeEqual(Buffer.from(otp.codeHash), given)) {
-      throw new ApiError(400, 'OTP_WRONG', 'That code is not right');
-    }
-    await Otp.deleteOne({_id: otp._id});
-
-    // First sign-in creates the account. Bootstrap emails are always superadmin.
+    // Check the account first, so a stranger's email does not burn a good code on a refusal.
     const isBootstrap = config.superadminEmails().includes(req.body.email);
+    const existing = await User.exists({email: req.body.email});
+    // A new account needs the terms accepted; bootstrap superadmins are set up by the operator.
+    if (!existing && !isBootstrap && !req.body.acceptTerms) throw noAccount();
+    await checkCode(req.body.email, req.body.code);
     const user = await User.findOneAndUpdate(
       {email: req.body.email},
-      isBootstrap ? {$set: {role: 'superadmin'}} : {$setOnInsert: {role: 'customer'}},
+      {
+        ...(isBootstrap ? {$set: {role: 'superadmin'}} : {}),
+        $setOnInsert: {
+          ...(isBootstrap ? {} : {role: 'customer'}),
+          termsAcceptedAt: new Date(),
+          termsVersion: TERMS_VERSION,
+        },
+      },
       {upsert: true, new: true},
     );
     await issueSession(res, user);
   },
 );
+
+const phone = z
+  .string()
+  .max(20)
+  .transform(
+    (v, ctx) =>
+      toPhone(v) ?? (ctx.addIssue({code: 'custom', message: 'Enter a 10-digit Indian mobile number'}), z.NEVER),
+  );
+
+/** Mobile sign-in is for accounts that already have this number, verified at sign-up. */
+otpRoutes.post(
+  '/otp/phone/request',
+  validate(z.object({phone, product: z.string().max(20).optional()})),
+  async (req, res) => {
+    if (!(await User.exists({phone: req.body.phone}))) throw noAccount();
+    const sent = await sendPhoneCode(req.body.phone, brandOf(req.body.product));
+    res.json({data: {...sent, sentTo: maskPhone(req.body.phone)}});
+  },
+);
+
+otpRoutes.post('/otp/phone/verify', validate(z.object({phone, code})), async (req, res) => {
+  const user = await User.findOne({phone: req.body.phone});
+  if (!user) throw noAccount();
+  await checkCode(phoneKey(req.body.phone), req.body.code);
+  await issueSession(res, user);
+});
+
+/** The account behind an issued Bharat ID, asked of the identity service. */
+async function holderOf(id) {
+  const owner = await callService(config.identityUrl, '/internal/owner', {bharatId: id}).catch(() => null);
+  const user = owner && (await User.findById(owner.userId));
+  // One answer for "no such ID" and "not issued yet", so the form cannot be used to probe IDs.
+  if (!user) throw new ApiError(404, 'BHARAT_ID_UNKNOWN', 'No issued Bharat ID has that number');
+  return user;
+}
+
+otpRoutes.post(
+  '/otp/bharat-id/request',
+  validate(z.object({bharatId, product: z.string().max(20).optional()})),
+  async (req, res) => {
+    const user = await holderOf(req.body.bharatId);
+    const sent = await sendCode(user.email, brandOf(req.body.product));
+    res.json({data: {...sent, sentTo: maskEmail(user.email)}});
+  },
+);
+
+otpRoutes.post('/otp/bharat-id/verify', validate(z.object({bharatId, code})), async (req, res) => {
+  const user = await holderOf(req.body.bharatId);
+  await checkCode(user.email, req.body.code);
+  await issueSession(res, user);
+});

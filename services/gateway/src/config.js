@@ -30,9 +30,10 @@ export const config = {
  * a Bharat ID video recording and people can preview their own.
  */
 export const CSP = {
-  scriptSrc: ["'self'", 'https://checkout.razorpay.com'],
-  frameSrc: ['https://api.razorpay.com', 'https://checkout.razorpay.com'],
-  connectSrc: ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com'],
+  // accounts.google.com: Google sign-in (its script, button frame and token check).
+  scriptSrc: ["'self'", 'https://checkout.razorpay.com', 'https://accounts.google.com'],
+  frameSrc: ['https://api.razorpay.com', 'https://checkout.razorpay.com', 'https://accounts.google.com'],
+  connectSrc: ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com', 'https://accounts.google.com'],
   imgSrc: ["'self'", 'data:', 'https:'],
   mediaSrc: ["'self'", 'blob:'],
 };

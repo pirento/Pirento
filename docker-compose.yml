@@ -23,6 +23,11 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_auth
       SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
       EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SMS_WEBHOOK_URL: ${SMS_WEBHOOK_URL:-}
+      SMS_WEBHOOK_TOKEN: ${SMS_WEBHOOK_TOKEN:-}
+      SUPERADMIN_STAFF_ID: ${SUPERADMIN_STAFF_ID:-}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-}
       # Account deletion asks these services to forget the person, and checks the wallet first.
       WALLET_URL: http://wallet:4002
       IDENTITY_URL: http://identity:4005

@@ -5,6 +5,7 @@ Notes for AI-assisted work on this repo. Read README.md first.
 ## Rules
 
 - **Where things live:** read `docs/ARCHITECTURE.md` first, and `docs/HOW-TO.md` for the usual changes. One idea per file: pages and their parts in `apps/web/src/features/<area>/`, each service as `config.js`, `models/`, `routes/`, `lib/`.
+- **Logo:** the Pirento wordmark and mark are the files in `apps/web/public/brand/`; render them with `PirentoLogo` / `PirentoMark` (`components/layout/PirentoLogo.jsx`, `tone="light"` on dark panels). Never redraw the logo in CSS or text. Product sites keep their own name and colour.
 - **Colours:** from the brand guidelines (`docs/BRAND_GUIDELINES.md`, Appendix A): register in `packages/shared/src/data/brand.js`, tokens in `apps/web/src/styles/index.css`. Product sites get their accent and dark via `useSiteTheme` (`apps/web/src/lib/site.js`). Keep `brand.test.js` passing.
 - **Design is fixed.** Layout, type and motion follow `docs/DESIGN_SYSTEM.md`. Colours come only from the CSS tokens (`bg-paper`, `text-ink`, `bg-accent` …); never put a hex value in a component. Accent stays under ~5% of a screen. Never two dark (`inverse`) sections in a row, except contact → footer.
 - **No invented facts.** Numbers, names, quotes and claims come from data files only. Stats are counted from the catalog (`apps/web/src/data/site.js`). Unbuilt products are labelled "Expected".
@@ -23,6 +24,7 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Claude calls** live only in `services/ai`. Model `claude-opus-5-5`; keep `SYSTEM` in `services/ai/src/lib/prompt.js` byte-stable (no dates or ids) so the prompt cache keeps hitting.
 - **Effects:** wrap `useEffect` bodies in braces. An arrow that returns a value (e.g. `scrollIntoView`, which returns a Promise in new browsers) crashes React on unmount.
 - **Layout check:** `html` has `overflow-x: clip`, so `scrollWidth` never shows overflow. Check element edges against the viewport instead.
+- **Prices on screen:** read through `useService` / `useServicesFor` (`apps/web/src/lib/prices.jsx`) so admin price changes show; the orders service reads the live price from the catalog service.
 - **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser.
 - **Motion:** pages call `usePageMotion(ref)`. Mark elements with `data-reveal`, hero extras with `data-hero-fade`, heading lines with `<Heading data-lines>`. All of it is skipped under reduced motion.
 - **New page:** add one line to `apps/web/src/app/routes.jsx` above the `/:slug` product routes, call `usePageMeta`, keep one `<h1>`.
@@ -30,7 +32,9 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - Shortcuts are marked `// shortcut: <limit>, <when to upgrade>`. Grep for them before launch.
 
 - **Comments:** each file starts with one line saying what it is for; comment the why, not the what.
-- **Tests:** run the e2e stack with `OTP_RESEND_SECONDS=0` so repeated sign-ins are not throttled.
+- **Tests:** run the e2e stack with `SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0`.
+- **Accounts:** mobile, user ID and password rules live once in `packages/shared/src/account/rules.js` (browser and auth service both use them). A new account always records `termsAcceptedAt` and `TERMS_VERSION`; change `TERMS_VERSION` when `/terms` changes.
+- **Sign-in:** codes (email and SMS) go through `lib/otp.js` in the auth service; the staff door answers every failure with the same message. Never return `passwordHash` (it is `select: false` and stripped in `toJSON`).
 
 ## Check before pushing
 

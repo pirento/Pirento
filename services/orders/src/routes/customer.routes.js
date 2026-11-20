@@ -1,12 +1,13 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {getService, validateIntake} from '@pirento/shared';
+import {validateIntake} from '@pirento/shared';
+import {liveService} from '../lib/catalog.js';
 import {ApiError, badInput, callService, conflict, requireAuth, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 import {findAccessible, nextOrderNo} from '../lib/orders.js';
-import {redeem} from '../lib/coupons.js';
+import {redeem, releaseCoupon} from '../lib/coupons.js';
 
 // Placing, listing, reading and cancelling your own orders.
 export const customerRoutes = Router();
@@ -24,7 +25,7 @@ customerRoutes.post(
     }),
   ),
   async (req, res) => {
-    const service = getService(req.body.serviceSlug);
+    const service = await liveService(req.body.serviceSlug);
     if (!service?.price) throw new ApiError(400, 'NOT_FOR_SALE', 'This service cannot be bought online yet');
 
     // A paused product takes no new orders. If settings cannot be read, sales go on: a pause is never worth an outage.
@@ -80,5 +81,6 @@ customerRoutes.post('/:id/cancel', async (req, res) => {
     {new: true},
   );
   if (!cancelled) throw conflict('NOT_CANCELLABLE', 'Paid orders can only be cancelled by our team');
+  await releaseCoupon(cancelled);
   res.json({data: cancelled});
 });

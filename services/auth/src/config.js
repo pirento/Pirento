@@ -16,6 +16,12 @@ export const config = {
   refreshCookie: 'pirento_rt',
 
   walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
+  identityUrl: env('IDENTITY_URL', 'http://127.0.0.1:4005'),
+  /** Google sign-in shows only when this is set (a Google Identity Services web client id). */
+  googleClientId: env('GOOGLE_CLIENT_ID', ''),
+  /** The first staff sign-in: a superadmin seeded at boot when both are set. */
+  superadminStaffId: env('SUPERADMIN_STAFF_ID', ''),
+  superadminPassword: env('SUPERADMIN_PASSWORD', ''),
   /** Services that keep personal data and forget it when an account is deleted. */
   forgetUrls: () => [
     env('IDENTITY_URL', 'http://127.0.0.1:4005'),

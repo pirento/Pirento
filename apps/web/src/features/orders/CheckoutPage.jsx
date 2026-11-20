@@ -2,7 +2,7 @@
 import {useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {ShieldCheck} from 'lucide-react';
-import {checkoutQuestions, getService} from '@pirento/shared';
+import {checkoutQuestions} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
@@ -16,10 +16,11 @@ import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {useApi} from '../../lib/api/useApi';
 import {usePageMeta} from '../../lib/page';
+import {useService} from '../../lib/prices';
 
 export function Checkout() {
   const {slug} = useParams();
-  const service = getService(slug);
+  const service = useService(slug);
   const navigate = useNavigate();
   const {redirect} = useSignedIn();
   const [answers, setAnswers] = useState({});

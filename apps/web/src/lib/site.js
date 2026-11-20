@@ -1,6 +1,7 @@
 import {useLayoutEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {getProduct, getService} from '@pirento/shared';
+import {iconDir} from '../components/layout/PirentoLogo';
 
 /**
  * Which product site a path belongs to, or null for the Pirento Ecosystem site.
@@ -10,7 +11,10 @@ import {getProduct, getService} from '@pirento/shared';
 export function productFromPath(pathname, search = '') {
   const [a, b] = pathname.split('/').filter(Boolean);
   if (a === 'services' || a === 'checkout') return getProduct(getService(b ?? '')?.product ?? '');
-  if (a === 'login') return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
+  // Sign-in, sign-up and recovery pages wear the colours of the site you came from (?next=/legal/…).
+  if (['login', 'register', 'forgot-password', 'forgot-user-id'].includes(a)) {
+    return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
+  }
   if (a === 'products' && b) return getProduct(b);
   return getProduct(a ?? '');
 }
@@ -36,6 +40,13 @@ export function useSiteTheme() {
       root.style.removeProperty('--product-dark');
       delete root.dataset.product;
     }
+    // The tab icon follows the site: a product's own icons when it has them, Pirento's otherwise.
+    const dir = iconDir(product?.slug);
+    const icons = {'32x32': 'favicon-32.png', '192x192': 'icon-192.png'};
+    for (const link of document.querySelectorAll('link[rel="icon"]'))
+      link.href = `${dir}/${icons[link.sizes.value] ?? 'favicon-32.png'}`;
+    const touch = document.querySelector('link[rel="apple-touch-icon"]');
+    if (touch) touch.href = `${dir}/apple-touch-icon.png`;
   }, [product]);
   return product;
 }

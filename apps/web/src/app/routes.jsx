@@ -1,5 +1,5 @@
+// The route table: every page, its layout (site, app or sign-in), loaded lazily.
 import {lazy} from 'react';
-import {Navigate} from 'react-router-dom';
 import {Home} from '../features/ecosystem/HomePage';
 import {NotFound} from '../features/ecosystem/NotFoundPage';
 
@@ -20,8 +20,24 @@ export const ROUTES = [
   // Signing in and the shared account
   {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
   {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/register', layout: 'auth', Page: page(() => import('../features/auth/RegisterPage'), 'Register')},
+  {
+    path: '/forgot-password',
+    layout: 'auth',
+    Page: page(() => import('../features/auth/ForgotPasswordPage'), 'ForgotPassword'),
+  },
+  {
+    path: '/forgot-user-id',
+    layout: 'auth',
+    Page: page(() => import('../features/auth/ForgotUserIdPage'), 'ForgotUserId'),
+  },
+  {path: '/about', Page: page(() => import('../features/about/AboutPage'), 'About')},
+  {path: '/terms', Page: page(() => import('../features/ecosystem/LegalPage'), 'Terms')},
+  {path: '/privacy', Page: page(() => import('../features/ecosystem/LegalPage'), 'Privacy')},
+  {path: '/refunds', Page: page(() => import('../features/ecosystem/LegalPage'), 'Refunds')},
   {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
-  {path: '/account', element: <Navigate to="/dashboard" replace />},
+  {path: '/account', layout: 'app', Page: page(() => import('../features/account/AccountPage'), 'Account')},
+  {path: '/wallet', layout: 'app', Page: page(() => import('../features/account/WalletPage'), 'Wallet')},
 
   // Buying: catalogue, service pages, checkout, orders
   {path: '/legal/services', Page: page(() => import('../features/legal/CataloguePage'), 'Legal')},

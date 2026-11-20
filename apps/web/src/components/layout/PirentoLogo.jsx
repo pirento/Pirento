@@ -1,0 +1,58 @@
+// Brand artwork from public/brand: the Pirento wordmark and "t" mark, and each product's own logo
+// once it has one. On paper the dark artwork shows (the light one in dark mode); on dark panels pass
+// tone="light". Size with classes, e.g. "h-6 w-auto".
+//
+// To add a product's logo: put logo.png (for light backgrounds), logo-light.png (for its dark panels),
+// mark.png and mark-light.png in public/brand/<slug>/, then add one line to ART. favicon-32.png,
+// icon-192.png and apple-touch-icon.png in the same folder become that site's browser icons.
+
+// A product without a mark yet passes no markRatio: its pages keep their icon tile and Pirento's tab icon.
+const art = (dir, logoRatio, markRatio) => ({
+  logo: {dark: `${dir}/logo.png`, light: `${dir}/logo-light.png`, ratio: logoRatio},
+  mark: markRatio ? {dark: `${dir}/mark.png`, light: `${dir}/mark-light.png`, ratio: markRatio} : null,
+  icons: markRatio ? dir : null,
+});
+
+const ART = {
+  pirento: {
+    logo: {dark: '/brand/pirento-logo.png', light: '/brand/pirento-logo-light.png', ratio: 686 / 216},
+    mark: {dark: '/brand/pirento-mark.png', light: '/brand/pirento-mark-light.png', ratio: 365 / 636},
+    icons: '/brand',
+  },
+  legal: art('/brand/legal', 771 / 368, 408 / 617),
+  green: art('/brand/green', 769 / 356, 513 / 594),
+  capital: art('/brand/capital', 767 / 366, 478 / 617),
+  intern: art('/brand/intern', 785 / 330, 207 / 597),
+  black: art('/brand/black', 791 / 354, 498 / 553),
+  one: art('/brand/one', 777 / 308, 508 / 521),
+  vault: art('/brand/vault', 776 / 336, 447 / 527),
+  giftox: art('/brand/giftox', 759 / 350, 537 / 586),
+  ai: art('/brand/ai', 1200 / 295, 700 / 650),
+  'bharat-id': art('/brand/bharat-id', 832 / 308, 646 / 820),
+};
+
+/** True when this product has its own logo files (others show their name and colour square). */
+export const hasLogo = (slug) => Boolean(ART[slug]);
+export const hasMark = (slug) => Boolean(ART[slug]?.mark);
+
+/** The folder holding a site's favicons: the product's own, or Pirento's. */
+export const iconDir = (slug) => ART[slug]?.icons ?? ART.pirento.icons;
+
+function Art({brand = 'pirento', kind, tone = 'auto', className = '', alt = 'Pirento'}) {
+  const f = (ART[brand] ?? ART.pirento)[kind];
+  // width/height give the browser the shape up front, so nothing jumps while the image loads.
+  const size = {width: Math.round(f.ratio * 100), height: 100};
+  if (tone === 'light') return <img src={f.light} alt={alt} {...size} className={className} />;
+  return (
+    <>
+      <img src={f.dark} alt={alt} {...size} className={`dark:hidden ${className}`} />
+      <img src={f.light} alt={alt} {...size} className={`hidden dark:block ${className}`} />
+    </>
+  );
+}
+
+export const PirentoLogo = (props) => <Art kind="logo" {...props} />;
+export const PirentoMark = (props) => <Art kind="mark" {...props} />;
+/** A product's logo or mark: <SiteLogo brand="legal" />. Check hasLogo(slug) first. */
+export const SiteLogo = (props) => <Art kind="logo" {...props} />;
+export const SiteMark = (props) => <Art kind="mark" {...props} />;

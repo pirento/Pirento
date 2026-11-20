@@ -9,7 +9,7 @@ import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {Withdraw} from './Withdraw';
 
-export function WalletPanel({n}) {
+export function WalletPanel({n, full = false}) {
   const wallet = useApi('/wallet');
   const [amount, setAmount] = useState('500');
   const [error, setError] = useState('');
@@ -32,7 +32,7 @@ export function WalletPanel({n}) {
       <p className="num mt-6 text-[clamp(2.5rem,5vw,4rem)]!" aria-live="polite">
         {wallet.data ? inr(wallet.data.balance / 100) : '—'}
       </p>
-      <form onSubmit={topUp} className="mt-6 flex items-end gap-3">
+      <form id="add" onSubmit={topUp} className="mt-6 flex scroll-mt-24 items-end gap-3">
         <div className="flex-1">
           <Field
             label="Test top-up (₹)"
@@ -50,10 +50,12 @@ export function WalletPanel({n}) {
       </form>
       <p className="mt-3 text-xs text-muted">Test money only, until card and UPI top-ups go live.</p>
 
-      <Withdraw balance={wallet.data?.balance ?? 0} onDone={wallet.reload} />
+      <div id="withdraw" className="scroll-mt-24">
+        <Withdraw balance={wallet.data?.balance ?? 0} onDone={wallet.reload} />
+      </div>
 
       <ul className="mt-8">
-        {transactions.slice(0, 6).map((t) => (
+        {transactions.slice(0, full ? 50 : 6).map((t) => (
           <li key={t._id} className="flex items-center justify-between gap-4 border-b border-rule py-3">
             <span className="flex min-w-0 items-center gap-3">
               {t.type === 'credit' ? (

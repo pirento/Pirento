@@ -1,23 +1,25 @@
 import {Router} from 'express';
-import {LEGAL_CATALOGUE, PRODUCTS, getProduct, getService, servicesFor} from '@pirento/shared';
+import {LEGAL_CATALOGUE, PRODUCTS, getProduct, servicesFor} from '@pirento/shared';
 import {notFound} from '@pirento/shared/server';
+import {overrideMap} from '../models/PriceOverride.js';
+import {pricedService, withOverride} from '../lib/priced.js';
 
-// Read-only: products and prices come from packages/shared, so the website,
-// the order service and this API always agree on what costs what.
+// Products and prices from packages/shared, with admin price changes applied to single services.
 export const catalogRoutes = Router();
 
 catalogRoutes.get('/products', (_req, res) => res.json({data: PRODUCTS}));
 
-catalogRoutes.get('/products/:slug', (req, res) => {
+catalogRoutes.get('/products/:slug', async (req, res) => {
   const product = getProduct(req.params.slug);
   if (!product) throw notFound('No such product');
-  res.json({data: {...product, services: servicesFor(product.slug)}});
+  const overrides = await overrideMap();
+  res.json({data: {...product, services: servicesFor(product.slug).map((s) => withOverride(s, overrides[s.slug]))}});
 });
 
 catalogRoutes.get('/legal/catalogue', (_req, res) => res.json({data: LEGAL_CATALOGUE}));
 
-catalogRoutes.get('/services/:slug', (req, res) => {
-  const service = getService(req.params.slug);
+catalogRoutes.get('/services/:slug', async (req, res) => {
+  const service = pricedService(req.params.slug, await overrideMap());
   if (!service) throw notFound('No such service');
   res.json({data: service});
 });

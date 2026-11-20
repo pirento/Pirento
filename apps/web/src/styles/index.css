@@ -44,6 +44,13 @@
 [data-product]:not([data-mode='dark']) {
   --ink: var(--product-dark);
 }
+/* Pirento AI's accent is its logo's gradient (brand.js support colours around the AI magenta). */
+[data-product='ai'] {
+  --accent-gradient: linear-gradient(120deg, #ffb822 0%, #ff75be 35%, #e71aff 65%, #2a96df 100%);
+}
+[data-product='ai'] .bg-accent {
+  background-image: var(--accent-gradient);
+}
 
 @theme inline {
   --color-paper: var(--paper);
@@ -279,4 +286,17 @@ h3,
   body {
     background: #fff;
   }
+}
+
+/* Sign-in pages: squarer fields under their round buttons (features/auth/AuthButtons.jsx). */
+.auth-form input:not([type='checkbox']):not([type='radio']) {
+  border-radius: 8px;
+}
+/* A field built of a box and an input (+91 | number): the focus ring goes round the whole box, not the input alone. */
+.joined-field:focus-within {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+.joined-field input:focus-visible {
+  outline: none;
 }

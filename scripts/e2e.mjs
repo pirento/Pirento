@@ -1,4 +1,4 @@
-// End-to-end flows (orders, Bharat ID, exam, vault, support) against a running stack (npm run dev with SUPERADMIN_EMAILS=boss@example.com).
+// End-to-end flows against a running stack: npm run dev with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0.
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
 import {verhoeffCheckDigit} from '@pirento/shared';
@@ -21,7 +21,9 @@ async function call(path, {method = 'GET', body, token, headers = {}} = {}) {
 }
 async function login(email) {
   const {data} = await call('/auth/otp/request', {method: 'POST', body: {email}});
-  return (await call('/auth/otp/verify', {method: 'POST', body: {email, code: data.devCode}})).data.token;
+  // acceptTerms: a first email sign-in creates the account, which needs the terms accepted.
+  return (await call('/auth/otp/verify', {method: 'POST', body: {email, code: data.devCode, acceptTerms: true}})).data
+    .token;
 }
 const intake = {
   phone: '9876500000',
@@ -402,7 +404,7 @@ async function loginWithCookie(email) {
   const r = await fetch(B + '/auth/otp/verify', {
     method: 'POST',
     headers: {'content-type': 'application/json'},
-    body: JSON.stringify({email, code: data.devCode}),
+    body: JSON.stringify({email, code: data.devCode, acceptTerms: true}),
   });
   const cookie = r.headers.get('set-cookie')?.split(';')[0];
   return {token: (await r.json()).data.token, cookie};
@@ -813,6 +815,320 @@ check(
 );
 await call(`/learning/staff/openings/${op._id}`, {method: 'PATCH', token: boss, body: {open: false}});
 check('closed opening hidden', !(await call('/learning/openings')).data?.some((o) => o._id === op._id));
+
+// ── Admin: prices, coupon given back ────────────────────────────────────
+check(
+  'staff cannot change prices',
+  (await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: staffToken, body: {price: 1}}))
+    .status === 403,
+);
+await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: boss, body: {price: 1199}});
+check('new price is public', (await call('/catalog/prices')).data?.['gst-registration']?.price === 1199);
+const repriced = (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}}))
+  .data;
+check('orders charge the new price', repriced?.amount === 119900, repriced);
+await call('/catalog/staff/prices/gst-registration', {
+  method: 'PATCH',
+  token: boss,
+  body: {price: null, offSale: true},
+});
+check(
+  'off-sale service takes no orders',
+  (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}})).error
+    ?.code === 'NOT_FOR_SALE',
+);
+await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: boss, body: {price: null}});
+check('reset removes the override', !(await call('/catalog/prices')).data?.['gst-registration']);
+check('service page shows the live price', (await call('/catalog/services/gst-registration')).data?.price === 999);
+const code2 = `BACK${Date.now().toString().slice(-6)}`;
+const cp2 = (
+  await call('/orders/staff/coupons', {
+    method: 'POST',
+    token: boss,
+    body: {code: code2, kind: 'flat', value: 100, maxUses: 1},
+  })
+).data;
+const o2 = (
+  await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}})
+).data;
+await call(`/orders/${o2._id}/cancel`, {method: 'POST', token: user});
+check(
+  'unpaid cancel gives the code back',
+  (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp2._id)?.uses === 0,
+);
+
+// ── Sign-in methods: Bharat ID, staff door, providers ───────────────────
+const providers = (await call('/auth/providers')).data;
+// Mobile is on outside production (codes show on screen) and in production only with SMS_WEBHOOK_URL.
+check(
+  'providers',
+  providers?.email && providers.bharatId && providers.password && typeof providers.mobile === 'boolean',
+  providers,
+);
+check(
+  'Google off without a client id',
+  (await call('/auth/google', {method: 'POST', body: {idToken: 'x'.repeat(30)}})).status === 404,
+);
+const userMe2 = (await call('/auth/me', {token: user})).data;
+// One digit off: the check digit catches it before any lookup.
+const typo = appr.bharatId.slice(0, 9) + ((Number(appr.bharatId[9]) + 1) % 10);
+check(
+  'Bharat ID with a typo is refused',
+  (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: typo}})).status === 400,
+);
+const bidReq = (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: appr.bharatId}})).data;
+check(
+  'Bharat ID code goes to a masked email',
+  bidReq?.sent && /•••@/.test(bidReq.sentTo) && !bidReq.sentTo.includes(userMe2.email),
+  bidReq,
+);
+const bidLogin = (
+  await call('/auth/otp/bharat-id/verify', {method: 'POST', body: {bharatId: appr.bharatId, code: bidReq.devCode}})
+).data;
+check('Bharat ID signs in the holder', bidLogin?.user?._id === userMe2._id, bidLogin);
+check(
+  'an unissued Bharat ID is refused',
+  (await call('/auth/otp/bharat-id/request', {method: 'POST', body: {bharatId: '1000000001'}})).error?.code !==
+    undefined,
+);
+
+const root = (
+  await call('/auth/staff/login', {method: 'POST', body: {staffId: 'root.admin', password: 'change-me-now-123'}})
+).data;
+check('seeded superadmin signs in with staff ID', root?.user?.role === 'superadmin', root);
+const sid = `ops${Date.now().toString().slice(-6)}`;
+const made = await call('/auth/admin/staff', {
+  method: 'POST',
+  token: root.token,
+  body: {staffId: sid, email: `${sid}@example.com`, role: 'staff', password: 'first-pass-123'},
+});
+check(
+  'superadmin issues a staff ID',
+  made.status === 201 && made.data.staffId === sid && !('passwordHash' in made.data),
+  made,
+);
+check(
+  'staff cannot issue staff IDs',
+  (
+    await call('/auth/admin/staff', {
+      method: 'POST',
+      token: staffToken,
+      body: {staffId: 'x1y2z3', email: 'x@example.com', role: 'staff', password: 'abcdefghijk'},
+    })
+  ).status === 403,
+);
+const wrong = await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'not-the-password'}});
+check('wrong password', wrong.status === 401 && wrong.error.message === 'Wrong staff ID or password');
+const unknown = await call('/auth/staff/login', {
+  method: 'POST',
+  body: {staffId: 'nobody.here', password: 'whatever-123'},
+});
+check('unknown staff ID answers the same', unknown.status === 401 && unknown.error.message === wrong.error.message);
+check(
+  'a wrong try slows the next',
+  (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'first-pass-123'}})).status === 429,
+);
+await new Promise((r) => setTimeout(r, 1100));
+const opsLogin = (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'first-pass-123'}}))
+  .data;
+check('new staff signs in', opsLogin?.user?.role === 'staff');
+check(
+  'change own password needs the current one',
+  (
+    await call('/auth/me/password', {
+      method: 'PATCH',
+      token: opsLogin.token,
+      body: {current: 'nope', next: 'second-pass-123'},
+    })
+  ).status === 400,
+);
+await call('/auth/me/password', {
+  method: 'PATCH',
+  token: opsLogin.token,
+  body: {current: 'first-pass-123', next: 'second-pass-123'},
+});
+check(
+  'changed password works',
+  Boolean(
+    (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'second-pass-123'}})).data?.token,
+  ),
+);
+await call(`/auth/admin/users/${made.data._id}/password`, {
+  method: 'PATCH',
+  token: root.token,
+  body: {password: 'reset-pass-123'},
+});
+check(
+  'superadmin reset works',
+  Boolean(
+    (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'reset-pass-123'}})).data?.token,
+  ),
+);
+await call(`/auth/admin/users/${made.data._id}/role`, {method: 'PATCH', token: root.token, body: {role: 'customer'}});
+check(
+  'a right password without a staff role is refused like a wrong one',
+  (await call('/auth/staff/login', {method: 'POST', body: {staffId: sid, password: 'reset-pass-123'}})).error
+    ?.message === 'Wrong staff ID or password',
+);
+check(
+  'failed staff sign-ins are audited',
+  ((await call('/auth/admin/audit?action=auth.staff_login_failed', {token: boss})).data ?? []).some(
+    (r) => r.target === sid,
+  ),
+);
+
+// ── Accounts: sign-up, user ID + password, mobile, forgot password / user ID ──
+{
+  const stranger = `nobody${Date.now()}@example.com`;
+  const sc = (await call('/auth/otp/request', {method: 'POST', body: {email: stranger}})).data;
+  const no = await call('/auth/otp/verify', {method: 'POST', body: {email: stranger, code: sc.devCode}});
+  check(
+    'email code does not create an account without the terms',
+    no.status === 404 && no.error.code === 'NO_ACCOUNT',
+    no,
+  );
+
+  const n = Date.now().toString().slice(-8);
+  const mobile = `9${n.padStart(9, '0')}`;
+  const regEmail = `reg${n}@example.com`;
+  check(
+    'sign-up refuses a bad mobile',
+    (await call('/auth/register/start', {method: 'POST', body: {name: 'Asha', email: regEmail, phone: '12345'}}))
+      .status === 400,
+  );
+  const start = (
+    await call('/auth/register/start', {method: 'POST', body: {name: 'Asha Verma', email: regEmail, phone: mobile}})
+  ).data;
+  check(
+    'sign-up sends both codes',
+    start?.devCodes?.email && start.devCodes.phone && /•••/.test(start.sentTo.phone),
+    start,
+  );
+  const badCodes = await call('/auth/register/verify', {
+    method: 'POST',
+    body: {name: 'Asha Verma', email: regEmail, phone: mobile, emailCode: start.devCodes.email, phoneCode: '000000'},
+  });
+  check('sign-up needs the right mobile code', badCodes.status === 400);
+  const again = (
+    await call('/auth/register/start', {method: 'POST', body: {name: 'Asha Verma', email: regEmail, phone: mobile}})
+  ).data;
+  const {ticket} =
+    (
+      await call('/auth/register/verify', {
+        method: 'POST',
+        body: {
+          name: 'Asha Verma',
+          email: regEmail,
+          phone: mobile,
+          emailCode: again.devCodes.email,
+          phoneCode: again.devCodes.phone,
+        },
+      })
+    ).data ?? {};
+  check('both codes give a ticket', Boolean(ticket));
+  const uname = `asha${n}`;
+  check('user ID is free', (await call(`/auth/register/username/${uname}`)).data?.free === true);
+  check(
+    'terms must be accepted',
+    (await call('/auth/register', {method: 'POST', body: {ticket, username: uname, password: 'goodpass123'}}))
+      .status === 400,
+  );
+  check(
+    'weak password refused',
+    (
+      await call('/auth/register', {
+        method: 'POST',
+        body: {ticket, username: uname, password: 'short', acceptTerms: true},
+      })
+    ).status === 400,
+  );
+  const made = (
+    await call('/auth/register', {
+      method: 'POST',
+      body: {ticket, username: uname, password: 'goodpass123', acceptTerms: true},
+    })
+  ).data;
+  check(
+    'account created and signed in',
+    made?.user?.username === uname && made.user.phone === `+91${mobile}` && made.user.termsVersion,
+    made,
+  );
+  check('no password hash goes out', !JSON.stringify(made).includes('scrypt'));
+  check(
+    'email taken now',
+    (await call('/auth/register/start', {method: 'POST', body: {name: 'X Y', email: regEmail, phone: '9123456789'}}))
+      .error?.code === 'EMAIL_TAKEN',
+  );
+
+  const byId = (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'goodpass123'}}))
+    .data;
+  check('sign in with user ID + password', byId?.user?.email === regEmail);
+  const byMail = (
+    await call('/auth/password/login', {method: 'POST', body: {login: regEmail.toUpperCase(), password: 'goodpass123'}})
+  ).data;
+  check('sign in with email + password', byMail?.user?.username === uname);
+  const wrongPw = await call('/auth/password/login', {
+    method: 'POST',
+    body: {login: `ghost${n}`, password: 'whatever123'},
+  });
+  check(
+    'unknown user ID answers like a wrong password',
+    wrongPw.status === 401 && wrongPw.error.message === 'Wrong user ID or password',
+  );
+
+  const pr = (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: `+91 ${mobile}`}})).data;
+  check('mobile code to a masked number', pr?.sent && pr.sentTo.endsWith(mobile.slice(-4)), pr);
+  const byPhone = (await call('/auth/otp/phone/verify', {method: 'POST', body: {phone: mobile, code: pr.devCode}}))
+    .data;
+  check('sign in with mobile code', byPhone?.user?.username === uname);
+  check(
+    'unknown mobile has no account',
+    (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: '9000000001'}})).error?.code === 'NO_ACCOUNT',
+  );
+
+  const fp = (await call('/auth/password/forgot', {method: 'POST', body: {login: uname}})).data;
+  check('forgot password sends a code to the email', fp?.sent && fp.sentTo.includes('•••'), fp);
+  const reset = (
+    await call('/auth/password/reset', {
+      method: 'POST',
+      body: {login: uname, code: fp.devCode, password: 'newpass4567'},
+    })
+  ).data;
+  check('reset password signs in', reset?.user?.username === uname);
+  check(
+    'old password stops working',
+    (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'goodpass123'}})).status ===
+      401,
+  );
+  await new Promise((r) => setTimeout(r, 1100)); // the wrong try above slowed this account for a second
+  check(
+    'new password works',
+    Boolean(
+      (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'newpass4567'}})).data?.token,
+    ),
+  );
+  check(
+    'forgot user ID answers the same for anyone',
+    (await call('/auth/username/forgot', {method: 'POST', body: {contact: `+91${mobile}`}})).data?.sent &&
+      (await call('/auth/username/forgot', {method: 'POST', body: {contact: 'nobody@example.com'}})).data?.sent,
+  );
+
+  // An account made by email code can set its first password and pick a user ID.
+  const codeOnly = await login(`codeonly${n}@example.com`);
+  check(
+    'first password needs no current one',
+    (await call('/auth/me/password', {method: 'PATCH', token: codeOnly, body: {next: 'firstpass123'}})).data?.changed,
+  );
+  check(
+    'pick a user ID once',
+    (await call('/auth/me/username', {method: 'PATCH', token: codeOnly, body: {username: `co${n}`}})).data?.username ===
+      `co${n}`,
+  );
+  check(
+    'user ID set only once',
+    (await call('/auth/me/username', {method: 'PATCH', token: codeOnly, body: {username: `co2${n}`}})).status === 409,
+  );
+}
 
 // ── Account deletion ────────────────────────────────────────────────────
 const leaver = await loginWithCookie(`leaver${Date.now()}@example.com`);

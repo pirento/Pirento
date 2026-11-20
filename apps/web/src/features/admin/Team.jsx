@@ -4,12 +4,14 @@ import {getProduct} from '@pirento/shared';
 import {useApi} from '../../lib/api/useApi';
 import {DataTable} from './DataTable';
 import {roleLabel} from './adminNav';
+import {NewStaff} from './NewStaff';
 
 export function Team() {
   const team = useApi('/auth/admin/team');
   const work = useApi('/orders/staff/workload');
   return (
     <div className="space-y-6">
+      <NewStaff onDone={team.reload} />
       <p className="body">
         {work.data ? `${work.data.unassigned} open orders have nobody on them.` : ''} Change a role or product scope
         from the person's page.
@@ -28,6 +30,7 @@ export function Team() {
               </Link>
             ),
           },
+          {label: 'Staff ID', cell: (m) => m.staffId ?? <span className="text-muted">email sign-in</span>},
           {label: 'Role', cell: (m) => roleLabel(m.role) + (m.suspended ? ' · suspended' : '')},
           {
             label: 'Products',

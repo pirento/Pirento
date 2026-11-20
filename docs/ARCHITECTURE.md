@@ -33,6 +33,7 @@ apps/web/src
     api/                   client (token + silent refresh), session, useApi
     format.js  motion.js  page.js  site.js (which product site you are on)
   data/site.js             site copy for the ecosystem pages
+apps/web/public/brand      the Pirento logo and "t" mark (dark and light), square artwork, favicons and app icons
   styles/index.css         colour and type tokens
 
 packages/shared/src
@@ -67,10 +68,11 @@ services/<name>/src
 ## The website
 
 - `/` is the **Pirento Ecosystem** site; `/dashboard` is the shared dashboard (products, wallet, orders, profile).
-- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
+- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. Every home has its own layout and a working widget (service search, rate card, tree calculator, exam facts, chat sample, spec sheet, referral path, EMI calculator, sample ID card, box strip), set in `features/products/designs.js`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
 - Three layouts (`app/App.jsx`): marketing pages get the navbar and footer; dashboards and admin get the app shell (`components/layout/AppLayout.jsx`, a sidebar, no footer); sign-in pages stand alone. Routes pick one with `layout` in `app/routes.jsx`.
+- The app shell has a Ctrl/Cmd+K command palette (`components/layout/CommandPalette.jsx`) over pages, products and services.
 - Admin is `/admin/<section>`; `features/admin/adminNav.js` lists the sections and the roles that see them.
-- Sign-in is `/login` (customers) and `/admin/login` (staff). Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
+- Accounts: `/register` (email + mobile codes → a sign-up ticket → user ID, password, terms). Sign-in at `/login` (codes by mobile, email or Bharat ID; user ID or email + password; Google) and `/admin/login` (staff ID + password); recovery at `/forgot-password` and `/forgot-user-id`. Codes for both channels go through the auth service's `lib/otp.js`; texts go out through `lib/sms.js` (`SMS_WEBHOOK_URL`). Email or Google sign-in never creates an account unless the terms are accepted. The auth service asks identity's `/internal/owner` who holds an issued Bharat ID and sends the code to that account's email; staff passwords are scrypt hashes; the first superadmin is seeded from the environment. Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
 
 ## Colours and type
 

@@ -1,19 +1,20 @@
 // The section that differs per product site (prices, tracks, steps…).
 import {Link} from 'react-router-dom';
-import {ID_SECTIONS, LEGAL_CATALOGUE, servicesFor} from '@pirento/shared';
+import {ID_SECTIONS, LEGAL_CATALOGUE} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {inr} from '../../lib/format';
 import {Openings} from '../learning/Openings';
+import {useServicesFor} from '../../lib/prices';
 
-export function Extra({product}) {
-  const services = servicesFor(product.slug).filter((s) => s.price);
+export function Extra({product, n}) {
+  const services = useServicesFor(product.slug).filter((s) => s.price);
   if (services.length) {
     const list = product.slug === 'legal' ? services.slice(0, 9) : services;
     return (
       <Section id="services" className="pt-0! md:pt-0!">
         <SectionHeader
-          n={2}
+          n={n}
           label="Services"
           title="Prices you / see first."
           intro={
@@ -102,7 +103,7 @@ export function Extra({product}) {
   if (!b) return null;
   return (
     <Section className="pt-0! md:pt-0!">
-      <SectionHeader n={2} label={product.short} title={b.title} />
+      <SectionHeader n={n} label={product.short} title={b.title} />
       <ol className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {b.items.map((item, i) => (
           <li key={item} className="flex items-start gap-4 rounded-[22px] border border-rule bg-stone p-8" data-reveal>

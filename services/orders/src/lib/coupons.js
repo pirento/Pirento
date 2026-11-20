@@ -20,7 +20,7 @@ export function discountFor(coupon, product, amount, now = new Date()) {
 /**
  * Checks a code and counts one use in a single update, so the last use of a
  * limited code cannot be taken by two orders at once.
- * shortcut: a use is counted when the order is placed, not paid; give it back on unpaid cancellation if codes get scarce.
+ * A use is counted when the order is placed; `releaseCoupon` gives it back if the order is cancelled unpaid.
  */
 export async function redeem(code, product, amount) {
   const coupon = await Coupon.findOne({code});
@@ -32,3 +32,7 @@ export async function redeem(code, product, amount) {
   if (!taken) throw refuse('This code has been used up');
   return discount;
 }
+
+/** Gives back the use an unpaid, now cancelled order took. Never below zero. */
+export const releaseCoupon = (order) =>
+  order.coupon ? Coupon.updateOne({code: order.coupon, uses: {$gt: 0}}, {$inc: {uses: -1}}) : null;

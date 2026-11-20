@@ -2,7 +2,6 @@
 import {useRef} from 'react';
 import {useParams} from 'react-router-dom';
 import {Clock, Mail} from 'lucide-react';
-import {getService} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {CheckList} from '../../components/ui/Blocks';
@@ -14,10 +13,11 @@ import {NotFound} from '../ecosystem/NotFoundPage';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {useService} from '../../lib/prices';
 
 export function Service() {
   const {slug} = useParams();
-  const service = getService(slug);
+  const service = useService(slug);
   const ref = useRef(null);
   usePageMotion(ref, [slug]);
   usePageMeta({

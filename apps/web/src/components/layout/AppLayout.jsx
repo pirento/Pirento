@@ -2,7 +2,20 @@
 // marketing navbar and footer, so the page is about the work, not the pitch.
 import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
-import {Home, LayoutDashboard, LifeBuoy, LogOut, Menu, Search, ShieldCheck, X} from 'lucide-react';
+import {
+  Home,
+  LayoutDashboard,
+  LifeBuoy,
+  LogOut,
+  Menu,
+  Search,
+  ShieldCheck,
+  UserRound,
+  Wallet as WalletIcon,
+  X,
+} from 'lucide-react';
+import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
+import {CommandPalette, openCommandPalette} from './CommandPalette';
 import {PRODUCTS} from '@pirento/shared';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
@@ -50,7 +63,17 @@ function useAppNav() {
   }
   return {
     title: 'Pirento Ecosystem',
-    groups: [{label: 'Account', items: [{label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard}]}, products],
+    groups: [
+      {
+        label: 'Account',
+        items: [
+          {label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard},
+          {label: 'Wallet', to: '/wallet', icon: WalletIcon},
+          {label: 'Account', to: '/account', icon: UserRound},
+        ],
+      },
+      products,
+    ],
   };
 }
 
@@ -72,11 +95,36 @@ function Sidebar({onNavigate}) {
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-3 font-display text-[0.95rem] font-semibold tracking-[0.04em] uppercase"
       >
-        <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
-        {title}
+        {product && hasLogo(product.slug) ? (
+          <SiteLogo brand={product.slug} alt={product.name} className="h-9 w-auto" />
+        ) : product ? (
+          <>
+            <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
+            {title}
+          </>
+        ) : (
+          // Pirento's own shells (ecosystem, admin): the logo, then which one this is.
+          <>
+            <PirentoLogo alt="Pirento" className="h-6 w-auto" />
+            <span className="text-xs font-medium normal-case tracking-normal text-muted">
+              {title.replace('Pirento ', '')}
+            </span>
+          </>
+        )}
       </Link>
 
-      <nav ref={navRef} aria-label="Dashboard" className="mt-8 min-h-0 flex-1 space-y-6 overflow-y-auto">
+      <button
+        onClick={() => {
+          onNavigate?.();
+          openCommandPalette();
+        }}
+        className="mt-6 flex w-full items-center gap-3 rounded-full border border-rule bg-paper px-3 py-2 text-sm text-muted hover:border-ink hover:text-ink"
+      >
+        <Search aria-hidden className="size-4" /> Search
+        <kbd className="ml-auto rounded-md border border-rule px-1.5 text-[0.7rem]">Ctrl K</kbd>
+      </button>
+
+      <nav ref={navRef} aria-label="Dashboard" className="mt-6 min-h-0 flex-1 space-y-6 overflow-y-auto">
         {groups.map((g) => (
           <div key={g.label}>
             <p className="eyebrow px-3">{g.label}</p>
@@ -155,7 +203,13 @@ export function AppLayout({children}) {
           <Sidebar />
         </aside>
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule bg-paper/90 px-5 backdrop-blur lg:hidden">
-          <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
+          {product && hasLogo(product.slug) ? (
+            <SiteLogo brand={product.slug} alt={product.name} className="h-8 w-auto" />
+          ) : product ? (
+            <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
+          ) : (
+            <PirentoLogo alt="Pirento" className="h-6 w-auto" />
+          )}
           <button
             onClick={() => setOpen(true)}
             aria-label="Open menu"
@@ -183,6 +237,7 @@ export function AppLayout({children}) {
         <main id="main" className="min-w-0 px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
           {children}
         </main>
+        <CommandPalette />
       </div>
     </InApp.Provider>
   );

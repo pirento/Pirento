@@ -4,8 +4,10 @@ import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
 
 export const brand = {
   name: 'Pirento',
-  legalName: 'Pirento Ecosystem Pvt. Ltd.',
+  // Pirento Ecosystem is a brand; the company behind it is Venturecore.
+  legalName: 'Venturecore Solutions Private Limited',
   cin: 'U63121UP2023PTC188021',
+  gstin: '09AAJCV6240P1ZL',
   email: 'hello@pirento.com',
   supportEmail: 'support@pirento.com',
   status: 'Legal services open',
@@ -15,10 +17,27 @@ export const brand = {
 export const nav = [
   {label: 'Home', to: '/'},
   {label: 'Products', to: '/products'},
+  {label: 'About', to: '/about'},
   {label: 'Legal', to: '/legal'},
   {label: 'Verify', to: '/verify'},
   {label: 'Support', to: '/support'},
 ];
+
+// The footer's link columns. Product sites swap the first column for their own links.
+export const footer = {
+  company: [
+    {label: 'About us', to: '/about'},
+    {label: 'The Pirento family', to: '/about#family'},
+    {label: 'Support', to: '/support'},
+    {label: 'Verify a record', to: '/verify'},
+  ],
+  legal: [
+    {label: 'Terms and Conditions', to: '/terms'},
+    {label: 'Privacy Policy', to: '/privacy'},
+    {label: 'Refunds and cancellations', to: '/refunds'},
+  ],
+  note: 'Pirento Ecosystem is our brand. Business partner of Vakilsearch.',
+};
 
 export const socials = [
   {name: 'X (Twitter)', href: 'https://x.com/pirento', icon: 'twitter'},
@@ -41,10 +60,46 @@ export const home = {
   highlight: 'One account.',
   intro:
     'Pirento brings <strong>legal work, tax filing, identity, storage and learning</strong> under one sign-in and one wallet. You see what we do for you, step by step.',
+  pillars: {
+    label: 'One account',
+    title: 'Sign in once. / It all comes along.',
+    items: [
+      {
+        title: 'One sign-in',
+        body: 'An emailed 6-digit code opens every Pirento site. No password to forget.',
+        to: '/login',
+        cta: 'Sign in',
+      },
+      {
+        title: 'One wallet',
+        body: 'Pay for Legal, Black, Green and Giftox from the same balance, in paise, with every move on record.',
+        to: '/dashboard',
+        cta: 'Open the wallet',
+      },
+      {
+        title: 'One identity',
+        body: 'Bharat ID: reviewed once by our team, with a public page anyone can check.',
+        to: '/bharat-id',
+        cta: 'About Bharat ID',
+      },
+    ],
+  },
   ecosystem: {
     label: 'Ecosystem',
-    title: 'Ten products. / One sign-in.',
+    title: 'Ten products, / grouped by need.',
     intro: 'Each product does one job well. Your account, wallet and identity carry across all of them.',
+    // How the products are grouped on the home page. Every product appears once.
+    groups: [
+      {title: 'Paperwork and compliance', body: 'Registrations, filings and legal help.', products: ['legal', 'black']},
+      {title: 'Identity and safekeeping', body: 'Who you are, and what you keep.', products: ['bharat-id', 'vault']},
+      {
+        title: 'Learn, refer, plan',
+        body: 'Certificates, referrals and loan planning.',
+        products: ['intern', 'one', 'capital'],
+      },
+      {title: 'Give', body: 'Trees on a drive, boxes at a door.', products: ['green', 'giftox']},
+      {title: 'Ask', body: 'Not sure where to start? Ask in your words.', products: ['ai']},
+    ],
   },
   how: {
     label: 'How it works',
@@ -93,6 +148,107 @@ export const home = {
     label: 'Contact',
     title: 'Have a matter? / Let’s talk.',
   },
+};
+
+// The sign-in pages. Product sites use their own quote and overview from packages/shared instead.
+export const login = {
+  ecosystem: {
+    eyebrow: 'Pirento Ecosystem',
+    quote: 'One account. Every record in one place.',
+    line: 'Sign in once to use your orders, wallet and ID.',
+  },
+  staff: {
+    eyebrow: 'Pirento Admin',
+    quote: 'The console for the Pirento team.',
+    line: 'Staff ID and password only. Every sign-in attempt is logged.',
+  },
+};
+
+// The Terms and Conditions at /terms. Sections 1–5 come from the earlier Pirento site; 6 and 7 describe how
+// accounts here actually work. Bump TERMS_VERSION (packages/shared/src/account/rules.js) whenever this changes.
+export const terms = {
+  updated: '20 November 2026',
+  sections: [
+    {
+      title: 'Agreement to terms',
+      body: [
+        'These Terms and Conditions are a legally binding agreement between you, whether personally or on behalf of an entity ("you"), and Venturecore Solutions Private Limited, which runs the Pirento Ecosystem brand ("Pirento", "we", "us" or "our"), about your access to and use of our websites and any related media, mobile website or app (together, the "Site").',
+      ],
+    },
+    {
+      title: 'Intellectual property',
+      body: [
+        'Unless stated otherwise, the Site is our property. Its source code, databases, functions, software, designs, audio, video, text, photographs and graphics (the "Content") and the trademarks, service marks and logos on it (the "Marks") are owned or controlled by us or licensed to us, and are protected by copyright and trademark laws.',
+      ],
+    },
+    {
+      title: 'What you confirm',
+      list: [
+        'All the information you give when you create an account is true, accurate, current and complete.',
+        'You will keep that information accurate and update it when it changes.',
+        'You have the legal capacity to agree to these terms, and you will follow them.',
+        'You will not use the Site through automated or non-human means such as bots or scripts.',
+      ],
+    },
+    {
+      title: 'Prohibited activities',
+      body: [
+        'You may not use the Site for any purpose other than the one we make it available for. The Site may not be used for commercial work except where we specifically endorse or approve it.',
+      ],
+    },
+    {
+      title: 'Your account and its security',
+      list: [
+        'You sign in with a one-time code sent to your mobile or email, through your Bharat ID, or with your user ID and password.',
+        'Keep your password and codes to yourself. Pirento staff will never ask you for them.',
+        'You are responsible for what happens under your account until you tell us it has been misused.',
+      ],
+    },
+    {
+      title: 'Closing your account',
+      body: [
+        'You can ask us to delete your account from your dashboard. Once approved, we remove your profile and the personal data each product keeps; orders and payments stay on record without your name, for accounts and tax records. An account holding wallet money is closed only after the money is withdrawn.',
+      ],
+    },
+    {
+      title: 'Governing law',
+      body: [
+        'These terms are governed by the laws of India. You and Pirento agree that the courts of India have exclusive jurisdiction over any dispute arising from them.',
+      ],
+    },
+  ],
+};
+
+// The ecosystem dashboard: quick actions and the first things worth doing.
+export const dashboard = {
+  actions: [
+    {label: 'Browse legal services', to: '/legal/services'},
+    {label: 'Apply for Bharat ID', to: '/bharat-id/dashboard'},
+    {label: 'Ask Pirento AI', to: '/ai/dashboard'},
+    {label: 'Get help', to: '/support'},
+  ],
+  // Done-or-not is worked out from your own records in DashboardPage.
+  steps: [
+    {id: 'name', title: 'Add your name', body: 'So our team knows what to call you.', to: '/account'},
+    {
+      id: 'order',
+      title: 'Place your first order',
+      body: 'Every price is shown before you start.',
+      to: '/legal/services',
+    },
+    {
+      id: 'identity',
+      title: 'Apply for Bharat ID',
+      body: 'Seven short steps and a 20-second video.',
+      to: '/bharat-id/dashboard',
+    },
+    {
+      id: 'certificate',
+      title: 'Earn an Intern certificate',
+      body: 'A free exam with a public verify page.',
+      to: '/intern/dashboard',
+    },
+  ],
 };
 
 export const productIllustration = {
