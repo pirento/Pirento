@@ -5,8 +5,9 @@ import {otpRoutes} from './routes/otp.routes.js';
 import {sessionRoutes} from './routes/session.routes.js';
 import {meRoutes} from './routes/me.routes.js';
 import {adminRoutes} from './routes/admin.routes.js';
+import {internalRoutes} from './routes/internal.routes.js';
 
 const app = createApp('auth');
-app.use(otpRoutes, sessionRoutes, meRoutes, adminRoutes);
+app.use(otpRoutes, sessionRoutes, meRoutes, adminRoutes, internalRoutes);
 
 start(finish(app), {name: 'auth', port: config.port, mongoUri: config.mongoUri});

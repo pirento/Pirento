@@ -444,6 +444,57 @@ check('new staff sees the queue', (await call('/orders/staff/queue', {token: sta
 const stats = (await call('/orders/staff/stats', {token: boss})).data;
 check('order stats', stats?.revenue > 0 && stats.byStatus.completed >= 1, stats);
 
+// ── Admin: staff roles, panels, suspension, audit trail ─────────────────
+const sup = await loginWithCookie(`support${Date.now()}@example.com`);
+const supUser = (await call(`/auth/admin/users?q=${encodeURIComponent('support')}`, {token: boss})).data.users[0];
+await call(`/auth/admin/users/${supUser._id}/role`, {method: 'PATCH', token: boss, body: {role: 'support'}});
+const supToken = (await loginWithCookie(supUser.email)).token;
+check('support sees tickets', (await call('/support/staff/queue', {token: supToken})).status === 200);
+check('support cannot see orders', (await call('/orders/staff/queue', {token: supToken})).status === 403);
+check('support cannot see the ledger', (await call('/wallet/staff/transactions', {token: supToken})).status === 403);
+check('support can look up users', (await call('/auth/admin/users', {token: supToken})).status === 200);
+check(
+  'support cannot change roles',
+  (await call(`/auth/admin/users/${target._id}/role`, {method: 'PATCH', token: supToken, body: {role: 'customer'}}))
+    .status === 403,
+);
+check('staff cannot read the audit trail', (await call('/auth/admin/audit', {token: staffToken})).status === 403);
+const signups = (await call('/auth/admin/stats', {token: boss})).data;
+check('signups per day', signups?.total > 0 && signups.signups.at(-1)?.count > 0, signups);
+const daily = (await call('/orders/staff/daily', {token: boss})).data;
+check('orders per day', daily?.at(-1)?.count > 0, daily);
+const ledger = (await call('/wallet/staff/transactions', {token: boss})).data;
+check('ledger across accounts', ledger?.transactions.length > 0 && ledger.held >= 0, ledger);
+const someone = ledger.transactions[0].userId;
+check('one wallet', typeof (await call(`/wallet/staff/user/${someone}`, {token: supToken})).data?.balance === 'number');
+check('one person orders', Array.isArray((await call(`/orders/staff/user/${someone}`, {token: boss})).data));
+check('certificates list', Array.isArray((await call('/learning/staff/certificates', {token: boss})).data));
+check('identity per user', (await call(`/identity/staff/user/${someone}`, {token: boss})).status === 200);
+const susp = (
+  await call(`/auth/admin/users/${supUser._id}/suspend`, {method: 'PATCH', token: boss, body: {suspended: true}})
+).data;
+check('suspend', susp?.suspended === true);
+check(
+  'suspended cannot refresh',
+  (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: sup.cookie}})).status === 401,
+);
+{
+  const {data} = await call('/auth/otp/request', {method: 'POST', body: {email: supUser.email}});
+  const r = await call('/auth/otp/verify', {method: 'POST', body: {email: supUser.email, code: data.devCode}});
+  check('suspended cannot sign in', r.status === 403 && r.error?.code === 'SUSPENDED', r);
+}
+await call(`/auth/admin/users/${supUser._id}/suspend`, {method: 'PATCH', token: boss, body: {suspended: false}});
+check('restored can sign in', Boolean((await loginWithCookie(supUser.email)).token));
+const trail = (await call('/auth/admin/audit', {token: boss})).data ?? [];
+const actions = new Set(trail.map((r) => r.action));
+check(
+  'audit trail records staff actions',
+  ['role.change', 'account.suspend', 'account.restore', 'order.completed', 'bharat-id.approve', 'ticket.reply'].every(
+    (a) => actions.has(a),
+  ),
+  [...actions],
+);
+
 // ── Pirento One + Giftox ────────────────────────────────────────────────
 const partner = (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data;
 check('partner code', /^P[0-9A-F]{6}$/.test(partner?.code ?? ''), partner);

@@ -6,10 +6,29 @@ import {Navbar} from '../components/layout/Navbar';
 import {Footer} from '../components/layout/Footer';
 import {Preloader} from '../components/layout/Preloader';
 import {Cursor} from '../components/layout/Cursor';
+import {AppLayout} from '../components/layout/AppLayout';
 import {RouteEffects} from './RouteEffects';
 import {ROUTES} from './routes';
 
-/** The shell every page shares: preloader, cursor, navbar, the page, footer. */
+/** Marketing pages: navbar on top, footer below. */
+function SiteLayout({children}) {
+  return (
+    <>
+      <Navbar />
+      <main id="main">{children}</main>
+      <Footer />
+    </>
+  );
+}
+
+// Each route names its frame: the marketing site, the working app, or a bare sign-in page.
+const LAYOUTS = {
+  site: SiteLayout,
+  app: AppLayout,
+  auth: ({children}) => <main id="main">{children}</main>,
+};
+
+/** What every page shares: preloader, cursor, page-change effects, and its layout. */
 export function App() {
   useEffect(() => {
     startSmoothScroll();
@@ -20,18 +39,15 @@ export function App() {
     <>
       <Preloader />
       <Cursor />
-      <Navbar />
       <RouteEffects />
-      <main id="main">
-        <Suspense fallback={<div className="min-h-dvh" />}>
-          <Routes>
-            {ROUTES.map(({path, element, Page}) => (
-              <Route key={path} path={path} element={element ?? <Page />} />
-            ))}
-          </Routes>
-        </Suspense>
-      </main>
-      <Footer />
+      <Suspense fallback={<div className="min-h-dvh" />}>
+        <Routes>
+          {ROUTES.map(({path, element, Page, layout = 'site'}) => {
+            const Frame = LAYOUTS[layout];
+            return <Route key={path} path={path} element={<Frame>{element ?? <Page />}</Frame>} />;
+          })}
+        </Routes>
+      </Suspense>
     </>
   );
 }

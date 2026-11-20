@@ -18,6 +18,17 @@ export function requireInternal(req, _res, next) {
   next(new ApiError(403, 'FORBIDDEN', 'Internal route'));
 }
 
+/**
+ * Records a staff action in the audit trail kept by the auth service.
+ * Never fails the request it describes: a lost audit row is logged, not thrown.
+ */
+export function audit(req, action, target, detail = '') {
+  const row = {actorId: req.user.sub, actorEmail: req.user.email, action, target: String(target), detail};
+  return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/audit', row).catch((err) =>
+    console.error('audit lost', action, err.message),
+  );
+}
+
 /** POST to another service's /internal route. Throws that service's error if it refuses. */
 export async function callService(baseUrl, path, body) {
   const res = await fetch(baseUrl + path, {

@@ -18,9 +18,9 @@ export const ROUTES = [
   {path: '/products/:slug', Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductRedirect')},
 
   // Signing in and the shared account
-  {path: '/login', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
-  {path: '/admin/login', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
-  {path: '/dashboard', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
+  {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
+  {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
   {path: '/account', element: <Navigate to="/dashboard" replace />},
 
   // Buying: catalogue, service pages, checkout, orders
@@ -36,12 +36,18 @@ export const ROUTES = [
   {path: '/support/:id', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
 
   // Staff
-  {path: '/admin', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
+  {path: '/admin', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
+  {path: '/admin/:section', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
+  {path: '/admin/:section/:id', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
 
   // The ten product sites: home at /<slug>, app at /<slug>/dashboard
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
-  {path: '/:slug/dashboard', Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard')},
+  {
+    path: '/:slug/dashboard',
+    layout: 'app',
+    Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
+  },
 
   {path: '*', element: <NotFound />},
 ];

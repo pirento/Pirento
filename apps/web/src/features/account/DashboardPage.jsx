@@ -4,7 +4,9 @@ import {useRef, useState} from 'react';
 import {LogOut, ShieldCheck} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
-import {Heading, Label, Section} from '../../components/ui/Heading';
+import {Label, Section} from '../../components/ui/Heading';
+import {PageHero} from '../../components/PageHero';
+import {isStaffRole} from '../admin/adminNav';
 import {api} from '../../lib/api/client';
 import {useSession} from '../../lib/api/session';
 import {usePageMotion} from '../../lib/motion';
@@ -62,21 +64,13 @@ export function Dashboard() {
 
   return (
     <div ref={ref}>
-      <section className="hero pt-36 pb-12 md:pt-44">
-        <div className="container-x flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <p className="eyebrow" data-hero-fade>
-              Pirento Ecosystem · Dashboard
-            </p>
-            <Heading as="h1" text={`Hello, / ${user.name || user.email.split('@')[0]}.`} className="h-hero mt-6" />
-          </div>
-          {['staff', 'superadmin'].includes(user.role) && (
-            <Button to="/admin" icon={ShieldCheck} data-hero-fade>
-              Admin
-            </Button>
-          )}
-        </div>
-      </section>
+      <PageHero label="Pirento Ecosystem · Dashboard" title={`Hello, ${user.name || user.email.split('@')[0]}.`}>
+        {isStaffRole(user.role) && (
+          <Button to="/admin" icon={ShieldCheck} className="mt-6">
+            Admin
+          </Button>
+        )}
+      </PageHero>
 
       <Section className="pt-0! md:pt-0!">
         <Label n={1}>Your products</Label>

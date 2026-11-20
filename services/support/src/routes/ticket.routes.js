@@ -1,6 +1,6 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {isId, isStaff, nextSeq, notFound, validate} from '@pirento/shared/server';
+import {audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
 import {Ticket} from '../models/Ticket.js';
 
 // Opening a ticket, reading it, replying and closing.
@@ -11,7 +11,7 @@ const messageBody = z.string().trim().min(2, 'Write a message').max(4000);
 /** The ticket in the URL, if it is the caller's or the caller is staff. */
 async function findTicket(req) {
   const ticket = isId(req.params.id) && (await Ticket.findById(req.params.id));
-  if (!ticket || (ticket.userId !== req.user.sub && !isStaff(req))) throw notFound('Ticket not found');
+  if (!ticket || (ticket.userId !== req.user.sub && !canUse(req, 'support'))) throw notFound('Ticket not found');
   return ticket;
 }
 
@@ -46,12 +46,13 @@ ticketRoutes.get('/:id', async (req, res) => res.json({data: await findTicket(re
 ticketRoutes.post('/:id/messages', validate(z.object({body: messageBody})), async (req, res) => {
   const ticket = await findTicket(req);
   // A staff member replying to someone else's ticket speaks for Pirento; on their own ticket they are a customer.
-  const from = isStaff(req) && ticket.userId !== req.user.sub ? 'staff' : 'customer';
+  const from = canUse(req, 'support') && ticket.userId !== req.user.sub ? 'staff' : 'customer';
   const updated = await Ticket.findByIdAndUpdate(
     ticket._id,
     {$push: {messages: {from, body: req.body.body}}, $set: {status: from === 'staff' ? 'answered' : 'open'}},
     {new: true},
   );
+  if (from === 'staff') audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
   res.json({data: updated});
 });
 

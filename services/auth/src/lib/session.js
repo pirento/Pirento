@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
-import {jwtSecret} from '@pirento/shared/server';
+import {ApiError, jwtSecret} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {RefreshToken} from '../models/RefreshToken.js';
 
@@ -27,6 +27,7 @@ export function setRefreshCookie(res, value, maxAgeSec) {
  * refresh token in an httpOnly cookie the page itself cannot read.
  */
 export async function issueSession(res, user) {
+  if (user.suspended) throw new ApiError(403, 'SUSPENDED', 'This account is suspended. Contact support.');
   const refresh = crypto.randomBytes(32).toString('base64url');
   await RefreshToken.create({
     userId: String(user._id),

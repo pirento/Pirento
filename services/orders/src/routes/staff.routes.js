@@ -1,15 +1,17 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {STAFF_TRANSITIONS} from '@pirento/shared';
-import {STAFF, conflict, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {ACCESS, audit, conflict, requireAuth, requireRole, validate} from '@pirento/shared/server';
 import {PAID_STATUSES} from '../config.js';
 import {Order} from '../models/Order.js';
+import {Partner} from '../models/Partner.js';
 import {completionCode, findAccessible} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
 // The team's side: numbers, the work queue, and moving orders along.
 export const staffRoutes = Router();
-staffRoutes.use('/staff', requireAuth, requireRole(...STAFF));
+staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.orders));
+const DAY = 86_400_000;
 
 staffRoutes.get('/staff/stats', async (_req, res) => {
   const [byStatus, byProduct] = await Promise.all([
@@ -26,6 +28,54 @@ staffRoutes.get('/staff/stats', async (_req, res) => {
       revenue: PAID_STATUSES.reduce((sum, s) => sum + (amountOf[s] ?? 0), 0),
       byProduct: Object.fromEntries(byProduct.map((r) => [r._id, {count: r.count, amount: r.amount}])),
     },
+  });
+});
+
+/** Orders placed and paid value per day for the last 30 days, for the overview charts. */
+staffRoutes.get('/staff/daily', async (_req, res) => {
+  const rows = await Order.aggregate([
+    {$match: {createdAt: {$gte: new Date(Date.now() - 30 * DAY)}}},
+    {
+      $group: {
+        _id: {$dateToString: {format: '%Y-%m-%d', date: '$createdAt'}},
+        count: {$sum: 1},
+        paid: {$sum: {$cond: [{$in: ['$status', PAID_STATUSES]}, '$amount', 0]}},
+      },
+    },
+    {$sort: {_id: 1}},
+  ]);
+  res.json({data: rows.map((r) => ({day: r._id, count: r.count, paid: r.paid}))});
+});
+
+/** One customer's orders, for the admin user page. */
+staffRoutes.get('/staff/user/:userId', async (req, res) => {
+  res.json({data: await Order.find({userId: req.params.userId}, {intake: 0}).sort({createdAt: -1}).limit(100)});
+});
+
+/** Pirento One partners with the orders and paid value their code brought in. */
+staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req, res) => {
+  const [partners, brought] = await Promise.all([
+    Partner.find().sort({createdAt: -1}).limit(300),
+    Order.aggregate([
+      {$match: {ref: {$exists: true, $ne: null}}},
+      {
+        $group: {
+          _id: '$ref',
+          orders: {$sum: 1},
+          paid: {$sum: {$cond: [{$in: ['$status', PAID_STATUSES]}, '$amount', 0]}},
+        },
+      },
+    ]),
+  ]);
+  const byCode = Object.fromEntries(brought.map((b) => [b._id, b]));
+  res.json({
+    data: partners.map((p) => ({
+      userId: p.userId,
+      code: p.code,
+      joinedAt: p.createdAt,
+      orders: byCode[p.code]?.orders ?? 0,
+      paid: byCode[p.code]?.paid ?? 0,
+    })),
   });
 });
 
@@ -72,6 +122,7 @@ staffRoutes.patch(
         {new: true},
       );
     }
+    audit(req, `order.${status}`, `#${order.orderNo}`, note);
     // shortcut: a Razorpay-paid cancellation is refunded by hand in the Razorpay dashboard; automate with its refunds API.
     res.json({data: updated});
   },

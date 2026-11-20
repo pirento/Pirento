@@ -2,7 +2,8 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {bharatIdFromSeq} from '@pirento/shared';
 import {
-  STAFF,
+  ACCESS,
+  audit,
   badInput,
   conflict,
   decrypt,
@@ -19,13 +20,22 @@ import {KycVideo} from '../models/KycVideo.js';
 
 // The team's side: review applications, watch the video, decide.
 export const staffRoutes = Router();
-staffRoutes.use('/staff', requireAuth, requireRole(...STAFF));
+staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.identity));
 
 const QUEUES = ['submitted', 'approved', 'rejected'];
 
 staffRoutes.get('/staff/queue', async (req, res) => {
   const status = QUEUES.includes(req.query.status) ? req.query.status : 'submitted';
   res.json({data: await Identity.find({status}).sort({submittedAt: 1}).limit(200)});
+});
+
+/** One person's application status, for the admin user page (no form answers). */
+staffRoutes.get('/staff/user/:userId', async (req, res) => {
+  const doc = await Identity.findOne(
+    {userId: req.params.userId},
+    {status: 1, bharatId: 1, submittedAt: 1, issuedAt: 1, reason: 1},
+  );
+  res.json({data: doc});
 });
 
 /** Streams the decrypted KYC video for playback. Never cached. */
@@ -59,6 +69,7 @@ staffRoutes.patch(
       doc.set('kyc.deletedAt', new Date());
       await doc.save();
     }
+    audit(req, `bharat-id.${decision}`, doc.bharatId ?? String(doc._id), reason);
     res.json({data: doc});
   },
 );

@@ -1,0 +1,179 @@
+// The working shell for dashboards and admin: a sidebar instead of the
+// marketing navbar and footer, so the page is about the work, not the pitch.
+import {createContext, useContext, useEffect, useState} from 'react';
+import {Link, NavLink, useLocation} from 'react-router-dom';
+import {Home, LayoutDashboard, LifeBuoy, LogOut, Menu, Search, ShieldCheck, X} from 'lucide-react';
+import {PRODUCTS} from '@pirento/shared';
+import {useSession} from '../../lib/api/session';
+import {siteName, useProductSite} from '../../lib/site';
+import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
+import {ThemeToggle} from './ThemeToggle';
+
+const InApp = createContext(false);
+/** True inside the app shell; PageHero uses it to render a compact header. */
+export const useInApp = () => useContext(InApp);
+
+/** The sidebar groups for where you are: admin, a product's dashboard, or the ecosystem dashboard. */
+function useAppNav() {
+  const {pathname} = useLocation();
+  const {user} = useSession();
+  const product = useProductSite();
+
+  if (pathname.startsWith('/admin')) {
+    return {
+      title: 'Pirento Admin',
+      groups: [{label: 'Admin', items: sectionsFor(user?.role).map((s) => ({...s, to: `/admin/${s.id}`}))}],
+    };
+  }
+  const products = {
+    label: 'Products',
+    items: PRODUCTS.map((p) => ({label: p.name, to: `/${p.slug}/dashboard`, dot: p.color})),
+  };
+  if (product) {
+    return {
+      title: product.name,
+      groups: [
+        {
+          label: product.short,
+          items: [
+            {label: 'Dashboard', to: `/${product.slug}/dashboard`, icon: LayoutDashboard},
+            {label: `${product.short} home`, to: `/${product.slug}`, icon: Home},
+          ],
+        },
+        products,
+      ],
+    };
+  }
+  return {
+    title: 'Pirento Ecosystem',
+    groups: [{label: 'Account', items: [{label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard}]}, products],
+  };
+}
+
+function Sidebar({onNavigate}) {
+  const {user, signOut} = useSession();
+  const {title, groups} = useAppNav();
+  const product = useProductSite();
+
+  return (
+    <div className="flex h-full flex-col">
+      <Link
+        to={product ? `/${product.slug}` : '/'}
+        onClick={onNavigate}
+        className="flex items-center gap-2.5 px-3 font-display text-[0.95rem] font-semibold tracking-[0.04em] uppercase"
+      >
+        <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
+        {title}
+      </Link>
+
+      <nav aria-label="Dashboard" className="mt-8 flex-1 space-y-8 overflow-y-auto">
+        {groups.map((g) => (
+          <div key={g.label}>
+            <p className="eyebrow px-3">{g.label}</p>
+            <ul className="mt-2 space-y-0.5">
+              {g.items.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    end={!item.to.startsWith('/admin/')}
+                    onClick={onNavigate}
+                    className={({isActive}) =>
+                      `flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors ${
+                        isActive ? 'bg-ink text-paper' : 'text-muted hover:bg-stone hover:text-ink'
+                      }`
+                    }
+                  >
+                    {item.icon ? (
+                      <item.icon aria-hidden className="size-4 shrink-0" />
+                    ) : (
+                      // Product rows show the product's own colour.
+                      <span aria-hidden className="ml-1 size-2 shrink-0 rounded-[2px]" style={{background: item.dot}} />
+                    )}
+                    <span className="truncate">{item.label}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+
+      <div className="mt-6 space-y-1 border-t border-rule pt-4 text-sm">
+        {[
+          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: true},
+          {label: 'Admin', to: '/admin', icon: ShieldCheck, show: isStaffRole(user?.role)},
+          {label: 'Support', to: '/support', icon: LifeBuoy, show: true},
+          {label: 'Verify a code', to: '/verify', icon: Search, show: true},
+        ]
+          .filter((l) => l.show)
+          .map((l) => (
+            <Link
+              key={l.to}
+              to={l.to}
+              onClick={onNavigate}
+              className="flex items-center gap-3 rounded-full px-3 py-2 text-muted hover:bg-stone hover:text-ink"
+            >
+              <l.icon aria-hidden className="size-4" /> {l.label}
+            </Link>
+          ))}
+        <div className="flex items-center justify-between gap-2 px-3 pt-3">
+          <span className="min-w-0 truncate text-xs text-muted">{user?.email}</span>
+          <ThemeToggle />
+        </div>
+        <button
+          onClick={signOut}
+          className="flex w-full items-center gap-3 rounded-full px-3 py-2 text-muted hover:bg-stone hover:text-ink"
+        >
+          <LogOut aria-hidden className="size-4" /> Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function AppLayout({children}) {
+  const [open, setOpen] = useState(false);
+  const {pathname} = useLocation();
+  const product = useProductSite();
+  useEffect(() => setOpen(false), [pathname]);
+
+  return (
+    <InApp.Provider value={true}>
+      <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
+        {/* Desktop: a fixed sidebar. Phones: a top bar that opens it as a drawer. */}
+        <aside className="sticky top-0 hidden h-dvh border-r border-rule bg-stone px-4 py-6 lg:block">
+          <Sidebar />
+        </aside>
+        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule bg-paper/90 px-5 backdrop-blur lg:hidden">
+          <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={open}
+            className="flex size-10 items-center justify-center rounded-full border border-rule"
+          >
+            <Menu aria-hidden className="size-4" />
+          </button>
+        </header>
+        {open && (
+          <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+            <button aria-label="Close menu" className="absolute inset-0 bg-inverse/60" onClick={() => setOpen(false)} />
+            <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-stone px-4 py-6">
+              <button
+                onClick={() => setOpen(false)}
+                aria-label="Close menu"
+                className="absolute top-5 right-4 flex size-9 items-center justify-center rounded-full border border-rule"
+              >
+                <X aria-hidden className="size-4" />
+              </button>
+              <Sidebar onNavigate={() => setOpen(false)} />
+            </div>
+          </div>
+        )}
+        <main id="main" className="min-w-0 px-5 py-8 sm:px-8 lg:px-12 lg:py-12">
+          {children}
+        </main>
+      </div>
+    </InApp.Provider>
+  );
+}

@@ -1,4 +1,5 @@
 // Headings and section scaffolding: masked heading lines, numbered labels, sections.
+import {useInApp} from '../layout/AppLayout';
 import {lines} from '../../lib/motion';
 
 export function Heading({as: As = 'h2', text, hl, className = 'h-section', ...rest}) {
@@ -36,8 +37,18 @@ export function SectionHeader({n, label, title, intro, hl}) {
   );
 }
 
-export const Section = ({id, inverse, className = '', children}) => (
-  <section id={id} className={`py-28 md:py-40 ${inverse ? 'inverse' : ''} ${className}`}>
-    <div className="container-x">{children}</div>
-  </section>
-);
+export function Section({id, inverse, className = '', children}) {
+  // In a dashboard, sections are just spaced blocks: the app shell already sets the width.
+  if (useInApp()) {
+    return (
+      <section id={id} className="pb-10">
+        {children}
+      </section>
+    );
+  }
+  return (
+    <section id={id} className={`py-28 md:py-40 ${inverse ? 'inverse' : ''} ${className}`}>
+      <div className="container-x">{children}</div>
+    </section>
+  );
+}

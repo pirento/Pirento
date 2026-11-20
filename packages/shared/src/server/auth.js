@@ -2,8 +2,23 @@ import jwt from 'jsonwebtoken';
 import {env} from './env.js';
 import {ApiError} from './errors.js';
 
-/** Roles that may work the staff queues. */
-export const STAFF = ['staff', 'superadmin'];
+/** Every staff role. `customer` is the only other role. */
+export const STAFF = ['support', 'finance', 'staff', 'superadmin'];
+
+/**
+ * Which staff roles may use each area. Services guard their staff routes with
+ * `requireRole(...ACCESS.orders)`; the admin sidebar (apps/web adminNav.js) mirrors this.
+ */
+export const ACCESS = {
+  orders: ['staff', 'finance', 'superadmin'],
+  identity: ['staff', 'superadmin'],
+  support: ['support', 'staff', 'superadmin'],
+  users: ['support', 'finance', 'superadmin'],
+  payments: ['finance', 'superadmin'],
+  learning: ['staff', 'superadmin'],
+  partners: ['finance', 'superadmin'],
+  audit: ['superadmin'],
+};
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');
 
@@ -29,3 +44,5 @@ export const requireRole =
     roles.includes(req.user?.role) ? next() : next(new ApiError(403, 'FORBIDDEN', 'You do not have access to this'));
 
 export const isStaff = (req) => STAFF.includes(req.user?.role);
+/** Staff who may work `area` (a key of ACCESS). */
+export const canUse = (req, area) => ACCESS[area].includes(req.user?.role);

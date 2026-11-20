@@ -1,11 +1,19 @@
-// The work queues shown as admin sections.
+// What each admin section renders. Which roles see which section lives in adminNav.js.
 import {StaffQueue} from './StaffQueue';
+import {Overview} from './Overview';
+import {Users} from './Users';
+import {Payments} from './Payments';
+import {Certificates} from './Certificates';
+import {Partners} from './Partners';
+import {Services} from './Services';
+import {Audit} from './Audit';
 import {IdentityQueue} from '../identity/IdentityQueue';
 import {FILTERS, StaffOrder} from '../orders/StaffOrder';
 import {TicketQueue} from '../support/TicketQueue';
 
-export const STAFF_SECTIONS = {
-  Orders: () => (
+export const SECTIONS = {
+  overview: Overview,
+  orders: () => (
     <StaffQueue
       path="/orders/staff/queue"
       filters={FILTERS}
@@ -13,8 +21,12 @@ export const STAFF_SECTIONS = {
     />
   ),
   // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
-  'Bharat ID': () => <IdentityQueue />,
-  Tickets: () => <TicketQueue />,
+  'bharat-id': () => <IdentityQueue />,
+  tickets: () => <TicketQueue />,
+  users: Users,
+  payments: Payments,
+  certificates: Certificates,
+  partners: Partners,
+  services: Services,
+  audit: Audit,
 };
-
-/** Old address of the work queue; it now lives inside the admin dashboard. */

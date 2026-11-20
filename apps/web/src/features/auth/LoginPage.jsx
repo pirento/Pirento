@@ -3,7 +3,8 @@
 // Steps: email → 6-digit code → (first sign-in only) your name → back to where you were.
 // The same page serves staff at /admin/login, where it insists on a staff account.
 import {useEffect, useRef, useState} from 'react';
-import {Navigate, useNavigate, useSearchParams} from 'react-router-dom';
+import {Link, Navigate, useNavigate, useSearchParams} from 'react-router-dom';
+import {ArrowLeft} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {Heading} from '../../components/ui/Heading';
@@ -12,8 +13,7 @@ import {useSession} from '../../lib/api/session';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {siteName, useProductSite} from '../../lib/site';
-
-const isStaffRole = (role) => role === 'staff' || role === 'superadmin';
+import {isStaffRole} from '../admin/adminNav';
 
 /** A same-site path to return to; anything else (another origin, //evil) is ignored. */
 const safeNext = (value, fallback) => (/^\/(?!\/)/.test(value ?? '') ? value : fallback);
@@ -99,35 +99,54 @@ export function Login({staff = false}) {
 
   const title = staff ? 'Staff / sign in.' : product ? `Sign in to / ${product.name}.` : 'One code. / Every product.';
 
-  return (
-    <div ref={ref} className="hero relative min-h-dvh overflow-hidden pt-36 pb-28">
-      <div aria-hidden className="grid-bg absolute inset-0" />
-      <div className="container-x relative grid gap-14 lg:grid-cols-12">
-        <div className="lg:col-span-6">
-          <p className="eyebrow" data-hero-fade>
-            {staff ? 'Pirento team' : `Sign in · ${siteName(product)}`}
-          </p>
-          <Heading as="h1" text={title} hl={title.split(' / ')[1]} className="h-hero mt-6" />
-          <p className="body mt-8" data-hero-fade>
-            {staff ? (
-              <>Use your work email. Only accounts given a staff role can open the admin dashboard.</>
-            ) : (
-              <>
-                Enter your email and we send a 6-digit code. <strong>No password to remember</strong>, and the same
-                account works on every Pirento site.
-              </>
-            )}
-          </p>
-        </div>
+  const home = staff ? '/' : product ? `/${product.slug}` : '/';
+  const perks = staff
+    ? ['Order, Bharat ID and ticket queues', 'Users, payments and partners', 'Every staff action is logged']
+    : [
+        'One account for all ten Pirento products',
+        'No password: a code by email each time',
+        'Your orders, wallet and ID in one dashboard',
+      ];
 
-        <form
-          onSubmit={submit}
-          noValidate
-          className="rounded-[22px] border border-rule bg-paper p-8 lg:col-span-5 lg:col-start-8"
-          data-hero-fade
+  return (
+    <div ref={ref} className="grid min-h-dvh lg:grid-cols-2">
+      {/* Left: the site's own dark field, so you always know where you are signing in. */}
+      <aside className="inverse relative flex flex-col justify-between overflow-hidden p-8 sm:p-12">
+        <div aria-hidden className="grid-bg absolute inset-0 opacity-30" />
+        <Link
+          to={home}
+          className="relative flex items-center gap-2.5 font-display font-semibold tracking-[0.04em] uppercase"
         >
-          <p className="eyebrow mb-6">
-            Step {{email: 1, code: 2, name: 3}[step]} of {step === 'name' ? 3 : 2}
+          <span aria-hidden className="size-2.5 rounded-[3px] bg-accent" />
+          {staff ? 'Pirento Admin' : siteName(product)}
+        </Link>
+        <div className="relative mt-16 lg:mt-0">
+          <Heading as="h1" text={title} hl={title.split(' / ')[1]} className="h-section" />
+          <ul className="mt-10 space-y-3">
+            {perks.map((p) => (
+              <li key={p} className="flex items-center gap-3 text-[0.95rem] text-muted">
+                <span aria-hidden className="size-1.5 rounded-full bg-accent" /> {p}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="relative mt-16 text-xs text-muted">© {new Date().getFullYear()} Pirento Ecosystem Pvt. Ltd.</p>
+      </aside>
+
+      {/* Right: the form. */}
+      <div className="flex flex-col justify-center px-6 py-12 sm:px-12">
+        <Link to={home} className="mb-10 inline-flex items-center gap-2 self-start text-sm text-muted hover:text-ink">
+          <ArrowLeft aria-hidden className="size-4" /> Back to {staff ? 'Pirento Ecosystem' : siteName(product)}
+        </Link>
+        <form onSubmit={submit} noValidate className="w-full max-w-md">
+          <p className="eyebrow">
+            {staff ? 'Staff sign in' : 'Sign in'} · Step {{email: 1, code: 2, name: 3}[step]} of{' '}
+            {step === 'name' ? 3 : 2}
+          </p>
+          <p className="body mt-3 mb-8 text-base">
+            {staff
+              ? 'Use your work email. Only accounts with a staff role can open the admin dashboard.'
+              : 'Enter your email and we send a 6-digit code. No password to remember.'}
           </p>
 
           {step === 'email' && (
@@ -198,6 +217,14 @@ export function Login({staff = false}) {
             <button type="button" onClick={() => navigate(next)} className="mt-4 w-full text-sm text-muted underline">
               Skip for now
             </button>
+          )}
+          {!staff && (
+            <p className="mt-10 text-sm text-muted">
+              Pirento team?{' '}
+              <Link to="/admin/login" className="text-ink underline underline-offset-4">
+                Staff sign in
+              </Link>
+            </p>
           )}
         </form>
       </div>
