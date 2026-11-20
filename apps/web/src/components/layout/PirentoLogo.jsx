@@ -21,6 +21,9 @@ const ART = {
   legal: art('/brand/legal', 771 / 368, 408 / 617),
   green: art('/brand/green', 769 / 356, 513 / 594),
   capital: art('/brand/capital', 767 / 366, 478 / 617),
+  intern: art('/brand/intern', 785 / 330, 207 / 597),
+  black: art('/brand/black', 791 / 354, 498 / 553),
+  one: art('/brand/one', 777 / 308, 508 / 521),
 };
 
 /** True when this product has its own logo files (others show their name and colour square). */
