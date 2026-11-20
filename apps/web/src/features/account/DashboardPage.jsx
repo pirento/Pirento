@@ -14,7 +14,7 @@ import {dashboard} from '../../data/site';
 import {ActivityFeed} from './ActivityFeed';
 import {AppsLauncher} from './AppsLauncher';
 import {ContinueList, waitingItems} from './ContinueList';
-import {DashSection} from './DashSection';
+import {DashSection} from '../../components/ui/DashSection';
 import {NextSteps, stepsDone} from './NextSteps';
 import {SpendByProduct} from './SpendByProduct';
 import {overviewStats} from './overviewStats';

@@ -218,6 +218,25 @@ export const terms = {
   ],
 };
 
+// Dashboards of the order-based products (Legal, Black, Green, Giftox): section names and headings.
+export const orderDashboard = {
+  glance: {label: 'At a glance', title: 'Your work with us.'},
+  waiting: {label: 'Needs you', title: 'Waiting / on you.', empty: 'Nothing is waiting on you.'},
+  orders: {label: 'Your orders', title: 'Every order, / step by step.', empty: 'No orders yet.'},
+  start: {
+    label: 'Start something',
+    // Legal shows its areas of law; the other products show their services and prices.
+    legalTitle: 'Pick an area / of law.',
+    title: 'Order / something new.',
+  },
+  help: {label: 'Help', title: 'Stuck? / Ask us.'},
+  helpItems: [
+    {title: 'Ask support', body: 'Write to the team about an order or a question.', to: '/support', icon: 'support'},
+    {title: 'Ask Pirento AI', body: 'Not sure which service fits? Ask in your words.', to: '/ai/dashboard', icon: 'ai'},
+    {title: 'Verify a record', body: 'Check a completion code or certificate.', to: '/verify', icon: 'verify'},
+  ],
+};
+
 // The ecosystem dashboard: quick actions and the first things worth doing.
 export const dashboard = {
   actions: [

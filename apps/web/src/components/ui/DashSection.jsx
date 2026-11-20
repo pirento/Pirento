@@ -1,5 +1,5 @@
 // One numbered dashboard section: "01 / Label", a short heading, an optional link on the right, a hairline above.
-import {Label} from '../../components/ui/Heading';
+import {Label} from './Heading';
 
 export function DashSection({n, id, label, title, action, children}) {
   return (
