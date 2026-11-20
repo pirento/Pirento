@@ -1,6 +1,6 @@
 // One order: timeline, payment panel and the customer's answers.
 import {useRef, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Link, Navigate, useParams} from 'react-router-dom';
 import {BadgeCheck} from 'lucide-react';
 import {checkoutQuestions, statusLabel} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
@@ -26,6 +26,9 @@ export function OrderPage() {
   if (redirect) return redirect;
   if (error) return <NotFound />;
   if (!fetched) return <div className="min-h-dvh" />;
+  // A customer's own order lives in their product dashboard; this page stays for staff.
+  if (fetched.userId === user._id)
+    return <Navigate to={`/${fetched.product}/dashboard/orders/${fetched._id}`} replace />;
   const order = fetched;
   const questions = checkoutQuestions(order.product, order.serviceSlug);
 

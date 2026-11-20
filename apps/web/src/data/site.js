@@ -220,16 +220,21 @@ export const terms = {
 
 // Each product's own dashboard: the sections in its sidebar, in order (the first is /<slug>/dashboard).
 // Products not listed here have a single dashboard page for now.
-const ORDER_SECTIONS = (orders, services) => [
+const ORDER_SECTIONS = (orders, services, extra = []) => [
   {id: 'overview', label: 'Overview', icon: 'overview'},
   {id: 'orders', label: orders, icon: 'orders'},
+  ...extra,
   {id: 'receipts', label: 'Receipts', icon: 'receipts'},
   {id: 'services', label: services, icon: 'services'},
   {id: 'help', label: 'Help', icon: 'help'},
 ];
+const DOCUMENTS = {id: 'documents', label: 'Documents', icon: 'documents'};
 export const productDashboards = {
-  legal: ORDER_SECTIONS('My requests', 'Areas of law'),
-  black: ORDER_SECTIONS('My filings', 'Services'),
+  legal: ORDER_SECTIONS('My requests', 'Areas of law', [
+    DOCUMENTS,
+    {id: 'consultations', label: 'Consultations', icon: 'consultations'},
+  ]),
+  black: ORDER_SECTIONS('My filings', 'Services', [DOCUMENTS]),
   green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
 };
@@ -253,6 +258,20 @@ export const orderDashboard = {
     title: 'Order / something new.',
   },
   help: {label: 'Help', title: 'Stuck? / Ask us.'},
+  documents: {
+    label: 'Documents',
+    title: 'Every paper, / both ways.',
+    intro: 'What you sent us and what our team sent back, across all your orders. Add a document from inside an order.',
+    empty: 'No documents yet. Open an order to add the papers it needs.',
+  },
+  consultations: {
+    label: 'Consultations',
+    title: 'Talk to / an expert.',
+    intro: 'Book a paid consultation with a lawyer, CA or CS, then agree a time with the team in its messages.',
+    mine: 'Your consultations',
+    // The catalogue's consultation area; the first four are the quick calls.
+    area: 'Consultation & Support',
+  },
   helpItems: [
     {title: 'Ask support', body: 'Write to the team about an order or a question.', to: '/support', icon: 'support'},
     {title: 'Ask Pirento AI', body: 'Not sure which service fits? Ask in your words.', to: '/ai/dashboard', icon: 'ai'},

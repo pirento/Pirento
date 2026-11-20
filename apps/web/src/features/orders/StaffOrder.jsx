@@ -5,6 +5,8 @@ import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {Tag} from '../../components/ui/Tag';
 import {qty} from './helpers';
+import {OrderConversation} from './OrderConversation';
+import {OrderDocuments} from './OrderDocuments';
 import {api} from '../../lib/api/client';
 import {formatDate, inr} from '../../lib/format';
 import {useSession} from '../../lib/api/session';
@@ -25,6 +27,9 @@ export function StaffOrder({order, onChange}) {
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // The conversation and documents load only once the row is opened, not for every row in the queue.
+  const [open, setOpen] = useState(false);
+  const {user} = useSession();
   const questions = checkoutQuestions(order.product, order.serviceSlug);
   const act = async (status) => {
     if (status === 'cancelled' && !confirm(`Cancel order #${order.orderNo}? A wallet payment is refunded.`)) return;
@@ -57,7 +62,7 @@ export function StaffOrder({order, onChange}) {
   const actions = refundPending ? ['cancelled'] : STAFF_TRANSITIONS[order.status];
 
   return (
-    <details className="group border-b border-rule">
+    <details className="group border-b border-rule" onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="block font-medium">
@@ -101,7 +106,7 @@ export function StaffOrder({order, onChange}) {
           {actions.length > 0 && (
             <div>
               <Field
-                label="Note for the customer (optional)"
+                label="Note on this step for the customer (optional)"
                 value={note}
                 maxLength={300}
                 onChange={(e) => setNote(e.target.value)}
@@ -119,19 +124,35 @@ export function StaffOrder({order, onChange}) {
                     {refundPending ? 'Retry refund' : ACTION[s]}
                   </Button>
                 ))}
-                <Button
-                  variant="outline"
-                  icon={null}
-                  disabled={busy || note.trim().length < 2}
-                  onClick={() => send('message', {note}, () => setNote(''))}
-                >
-                  Send note only
-                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
+      {open && (
+        <div className="grid gap-8 border-t border-rule py-8 md:grid-cols-2">
+          <div>
+            <p className="eyebrow">Messages</p>
+            <div className="mt-4">
+              <OrderConversation
+                order={order}
+                side="team"
+                send={async (note) => {
+                  await api(`/orders/staff/${order._id}/message`, {method: 'POST', body: {note}});
+                  onChange();
+                }}
+              />
+            </div>
+          </div>
+          <div>
+            <p className="eyebrow">Documents</p>
+            <div className="mt-4">
+              {/* Support reads documents; operations, finance and superadmins can also send them. */}
+              <OrderDocuments order={order} side="team" canAdd={user?.role !== 'support'} />
+            </div>
+          </div>
+        </div>
+      )}
     </details>
   );
 }

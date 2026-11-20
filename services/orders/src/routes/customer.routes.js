@@ -72,6 +72,21 @@ customerRoutes.get('/', async (req, res) => {
 
 customerRoutes.get('/:id', async (req, res) => res.json({data: await findAccessible(req)}));
 
+/** The customer writes to the team on one of their orders. */
+customerRoutes.post(
+  '/:id/messages',
+  validate(z.object({body: z.string().trim().min(2, 'Write a message').max(1000)})),
+  async (req, res) => {
+    const order = await findOwn(req);
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      {$push: {messages: {from: 'customer', body: req.body.body}}},
+      {new: true},
+    );
+    res.json({data: updated});
+  },
+);
+
 /** Customers may cancel only before paying; after that it is the team's call. */
 customerRoutes.post('/:id/cancel', async (req, res) => {
   const order = await findOwn(req);

@@ -137,15 +137,15 @@ staffRoutes.patch(
   },
 );
 
-/** A note to the customer on the order timeline, without changing its status. */
+/** A message to the customer in the order's conversation, without changing its status. */
 staffRoutes.post(
   '/staff/:id/message',
-  validate(z.object({note: z.string().trim().min(2).max(300)})),
+  validate(z.object({note: z.string().trim().min(2).max(1000)})),
   async (req, res) => {
     const order = await findAccessible(req);
     const updated = await Order.findByIdAndUpdate(
       order._id,
-      {$push: {timeline: {status: order.status, note: req.body.note}}},
+      {$push: {messages: {from: 'team', body: req.body.note, by: req.user.email}}},
       {new: true},
     );
     audit(req, 'order.message', `#${order.orderNo}`, req.body.note);

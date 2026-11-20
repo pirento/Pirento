@@ -67,6 +67,11 @@ export const ROUTES = [
     Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
   },
   {
+    path: '/:slug/dashboard/orders/:id',
+    layout: 'app',
+    Page: page(() => import('../features/orders/OrderDetail'), 'OrderDetail'),
+  },
+  {
     path: '/:slug/dashboard/receipts/:id',
     layout: 'app',
     Page: page(() => import('../features/orders/ReceiptPage'), 'Receipt'),

@@ -615,11 +615,62 @@ check('take an order', took?.assignee?.id === me2._id);
 const noted = (
   await call(`/orders/staff/${disc._id}/message`, {method: 'POST', token: staffToken, body: {note: 'Box packed'}})
 ).data;
-check('note without status change', noted?.status === 'pending_payment' && noted.timeline.at(-1).note === 'Box packed');
 check(
-  'customer sees the note',
-  (await call(`/orders/${disc._id}`, {token: user})).data?.timeline.at(-1).note === 'Box packed',
+  'team message without status change',
+  noted?.status === 'pending_payment' &&
+    noted.messages.at(-1).from === 'team' &&
+    noted.messages.at(-1).body === 'Box packed',
 );
+check(
+  'customer sees the message',
+  (await call(`/orders/${disc._id}`, {token: user})).data?.messages.at(-1).body === 'Box packed',
+);
+const replied = (
+  await call(`/orders/${disc._id}/messages`, {method: 'POST', token: user, body: {body: 'Thank you, please gift wrap'}})
+).data;
+check('customer writes back', replied?.messages.at(-1).from === 'customer');
+check(
+  'only the owner writes as the customer',
+  (await call(`/orders/${disc._id}/messages`, {method: 'POST', token: staffToken, body: {body: 'Hello'}})).status ===
+    404,
+);
+
+// ── Documents on an order ───────────────────────────────────────────────
+const uploadDoc = (token, name, text) =>
+  fetch(`${B}/orders/${disc._id}/files`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${token}`,
+      'content-type': 'application/octet-stream',
+      'x-file-name': encodeURIComponent(name),
+      'x-file-type': 'text/plain',
+    },
+    body: text,
+  }).then(async (r) => ({status: r.status, ...(await r.json())}));
+const mineFile = await uploadDoc(user, 'PAN card.txt', 'my pan');
+check('customer adds a document', mineFile.status === 201 && mineFile.data.from === 'customer', mineFile);
+const teamFile = await uploadDoc(staffToken, 'Filed form.txt', 'done');
+check('team sends a document', teamFile.status === 201 && teamFile.data.from === 'team', teamFile);
+const listed = (await call(`/orders/${disc._id}/files`, {token: user})).data;
+check('both sides see both documents', listed?.length === 2 && !('data' in listed[0]));
+const got = await fetch(`${B}/orders/${disc._id}/files/${teamFile.data._id}`, {
+  headers: {authorization: `Bearer ${user}`},
+});
+check(
+  'download comes back decrypted, as an attachment',
+  (await got.text()) === 'done' && got.headers.get('content-disposition')?.startsWith('attachment'),
+);
+check(
+  "a customer cannot remove the team's document",
+  (await call(`/orders/${disc._id}/files/${teamFile.data._id}`, {method: 'DELETE', token: user})).status === 403,
+);
+const otherUser = await login(`docs${Date.now()}@example.com`);
+check(
+  "nobody else sees an order's documents",
+  (await call(`/orders/${disc._id}/files`, {token: otherUser})).status === 404 &&
+    (await uploadDoc(otherUser, 'x.txt', 'x')).status === 404,
+);
+check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 2);
 check(
   'team list',
   (await call('/auth/admin/team', {token: staffToken})).data?.some((m) => m._id === me2._id),

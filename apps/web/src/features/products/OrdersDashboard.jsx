@@ -8,6 +8,7 @@ import {
   Calculator,
   CircleCheck,
   Copyright,
+  Download,
   CreditCard,
   FileText,
   Gavel,
@@ -23,7 +24,7 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import {LEGAL_CATALOGUE} from '@pirento/shared';
+import {LEGAL_CATALOGUE, legalServiceSlug} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
@@ -32,6 +33,8 @@ import {orderDashboard as copy, productDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
 import {OrderRow} from '../orders/OrderRow';
 import {ReceiptList} from '../orders/ReceiptList';
+import {mb, saveFile} from '../../lib/api/binary';
+import {formatDate} from '../../lib/format';
 import {useApi} from '../../lib/api/useApi';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
@@ -114,12 +117,114 @@ function StartGrid({product, browse, limit}) {
   );
 }
 
-function OrderList({orders, mine, browse, product}) {
+/** Every document on this product's orders, newest first; each names its order and downloads on click. */
+function Documents({product, mine}) {
+  const files = useApi(`/orders/files/mine?product=${product.slug}`);
+  const orderOf = (f) => mine.find((o) => o._id === f.orderId);
+  const [error, setError] = useState('');
+  if (files.data?.length === 0) return <p className="text-muted">{copy.documents.empty}</p>;
+  return (
+    <>
+      <ul className="border-t border-rule">
+        {files.data?.map((f) => {
+          const o = orderOf(f);
+          return (
+            <li key={f._id} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-rule">
+                <FileText aria-hidden className="size-4" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{f.name}</span>
+                <span className="block text-sm text-muted">
+                  {f.from === 'team' ? 'From the Pirento team' : 'From you'} · {mb(f.size)} · {formatDate(f.createdAt)}
+                  {o && (
+                    <>
+                      {' · '}
+                      <Link to={`/${product.slug}/dashboard/orders/${o._id}`} className="underline underline-offset-4">
+                        {o.serviceName} #{o.orderNo}
+                      </Link>
+                    </>
+                  )}
+                </span>
+              </span>
+              <button
+                onClick={() =>
+                  saveFile(`/orders/${f.orderId}/files/${f._id}`, f.name).catch((e) => setError(e.message))
+                }
+                aria-label={`Download ${f.name}`}
+                className="flex size-10 shrink-0 items-center justify-center rounded-full border border-rule hover:border-ink"
+              >
+                <Download aria-hidden className="size-4" />
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      {error && (
+        <p role="alert" className="mt-3 text-sm">
+          ⚠ {error}
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Legal's consultations: the calls you can book (live prices), and the ones you have booked. */
+function Consultations({mine, orders, browse, product}) {
+  const services = useServicesFor('legal');
+  const area = LEGAL_CATALOGUE.find((c) => c.title === copy.consultations.area);
+  const slugs = (area?.services ?? []).map((name) => legalServiceSlug(name));
+  const bookable = slugs.map((slug) => services.find((s) => s.slug === slug)).filter((s) => s?.price);
+  const booked = mine.filter((o) => slugs.includes(o.serviceSlug));
+  return (
+    <div className="space-y-12">
+      <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        {bookable.slice(0, 4).map((s) => (
+          <li key={s.slug}>
+            <Card to={`/services/${s.slug}`} icon={MessagesSquare} title={s.name} meta={`${inr(s.price)} · book`} />
+          </li>
+        ))}
+      </ul>
+      {bookable.length > 4 && (
+        <div>
+          <p className="eyebrow">More in {copy.consultations.area}</p>
+          <ul className="mt-4 border-t border-rule">
+            {bookable.slice(4).map((s) => (
+              <li key={s.slug}>
+                <Link
+                  to={`/services/${s.slug}`}
+                  className="flex items-center justify-between gap-4 border-b border-rule py-3.5 hover:underline"
+                >
+                  <span>{s.name}</span>
+                  <span className="text-sm tabular-nums text-muted">{inr(s.price)}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div>
+        <p className="eyebrow">{copy.consultations.mine}</p>
+        <div className="mt-4">
+          <OrderList
+            orders={orders}
+            mine={booked}
+            browse={browse}
+            product={product}
+            empty="No consultations booked yet."
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function OrderList({orders, mine, browse, product, empty = copy.orders.empty}) {
   if (orders.error) return <p className="text-muted">⚠ {orders.error.message}</p>;
   if (orders.data && mine.length === 0)
     return (
       <p className="text-muted">
-        {copy.orders.empty}{' '}
+        {empty}{' '}
         <Link to={browse} className="text-ink underline underline-offset-4">
           Browse {product.short} services
         </Link>
@@ -134,8 +239,28 @@ function OrderList({orders, mine, browse, product}) {
   );
 }
 
-function Waiting({toPay}) {
-  if (toPay.length === 0)
+/** What is waiting on the customer: orders to pay, and orders where the team wrote last. */
+function Waiting({toPay, replies, base}) {
+  const items = [
+    ...toPay.map((o) => ({
+      key: `pay-${o._id}`,
+      icon: CreditCard,
+      title: `Pay for ${o.serviceName}`,
+      note: `Order #${o.orderNo} · ${inr(o.amount / 100)}`,
+      cta: 'Pay now',
+      accent: true,
+      to: `${base}/orders/${o._id}`,
+    })),
+    ...replies.map((o) => ({
+      key: `reply-${o._id}`,
+      icon: MessageSquare,
+      title: `The team wrote about ${o.serviceName}`,
+      note: o.messages.at(-1).body,
+      cta: 'Read',
+      to: `${base}/orders/${o._id}#messages`,
+    })),
+  ];
+  if (items.length === 0)
     return (
       <p className="flex items-center gap-2 text-muted">
         <CircleCheck aria-hidden className="size-4" /> {copy.waiting.empty}
@@ -143,22 +268,22 @@ function Waiting({toPay}) {
     );
   return (
     <ul className="border-t border-rule">
-      {toPay.map((o) => (
-        <li key={o._id} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
+      {items.map((it) => (
+        <li key={it.key} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-rule">
-            <CreditCard aria-hidden className="size-4" />
+            <it.icon aria-hidden className="size-4" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-medium sm:truncate">Pay for {o.serviceName}</span>
-            <span className="block text-sm text-muted">
-              Order #{o.orderNo} · {inr(o.amount / 100)}
-            </span>
+            <span className="block font-medium sm:truncate">{it.title}</span>
+            <span className="line-clamp-1 block text-sm text-muted">{it.note}</span>
           </span>
           <Link
-            to={`/orders/${o._id}`}
-            className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+            to={it.to}
+            className={`shrink-0 rounded-full px-4 py-2 text-sm ${
+              it.accent ? 'bg-accent font-medium text-on-accent' : 'border border-rule hover:border-ink'
+            }`}
           >
-            Pay now
+            {it.cta}
           </Link>
         </li>
       ))}
@@ -183,6 +308,8 @@ export function OrdersDashboard({product, section = 'overview'}) {
   const toPay = mine.filter((o) => o.status === 'pending_payment');
   const working = mine.filter((o) => ['paid', 'in_progress'].includes(o.status));
   const done = mine.filter((o) => o.status === 'completed');
+  // The team wrote last and the order is still live: the customer probably owes a reply.
+  const replies = mine.filter((o) => o.status !== 'cancelled' && o.messages?.at(-1)?.from === 'team');
   const paidTotal = [...working, ...done].reduce((n, o) => n + o.amount, 0);
   const browse = product.slug === 'legal' ? '/legal/services' : `/${product.slug}#services`;
   const ordersLabel = sections.find((s) => s.id === 'orders').label;
@@ -238,7 +365,7 @@ export function OrdersDashboard({product, section = 'overview'}) {
             />
           </DashSection>
           <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
-            <Waiting toPay={toPay} />
+            <Waiting toPay={toPay} replies={replies} base={base} />
           </DashSection>
           <DashSection
             n={++n}
@@ -297,6 +424,20 @@ export function OrdersDashboard({product, section = 'overview'}) {
             browse={browse}
             product={product}
           />
+        </DashSection>
+      )}
+
+      {section === 'documents' && (
+        <DashSection n={1} id="documents" label={copy.documents.label} title={copy.documents.title}>
+          <p className="body -mt-2 mb-8">{copy.documents.intro}</p>
+          <Documents product={product} mine={mine} />
+        </DashSection>
+      )}
+
+      {section === 'consultations' && (
+        <DashSection n={1} id="consultations" label={copy.consultations.label} title={copy.consultations.title}>
+          <p className="body -mt-2 mb-8">{copy.consultations.intro}</p>
+          <Consultations mine={mine} orders={orders} browse={browse} product={product} />
         </DashSection>
       )}
 

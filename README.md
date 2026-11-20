@@ -50,7 +50,7 @@ npm run format   # prettier
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Required in production: `JWT_SECRET`, `INTERNAL_KEY`, `VAULT_ENCRYPTION_KEY`, `KYC_ENCRYPTION_KEY` (long random strings; changing the last two makes stored data unreadable), `SMTP_URL` (sign-in codes are only emailed), `DOMAIN`. Optional: Razorpay keys (card/UPI), `ANTHROPIC_API_KEY` (the AI assistant).
+Copy `.env.example` to `.env`. Required in production: `JWT_SECRET`, `INTERNAL_KEY`, `VAULT_ENCRYPTION_KEY`, `KYC_ENCRYPTION_KEY`, `ORDERS_FILE_KEY` (long random strings; changing the last three makes stored data unreadable), `SMTP_URL` (sign-in codes are only emailed), `DOMAIN`. Optional: Razorpay keys (card/UPI), `ANTHROPIC_API_KEY` (the AI assistant).
 
 ## Deploy
 

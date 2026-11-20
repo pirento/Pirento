@@ -1,9 +1,10 @@
 // Called by the auth service when an account is deleted. Orders stay for accounts and tax records,
-// but without the person: their email and their answers to the checkout questions go.
+// but without the person: their email, their checkout answers, their messages and their documents go.
 import {Router} from 'express';
 import {z} from 'zod';
 import {requireInternal, validate} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
+import {OrderFile} from '../models/OrderFile.js';
 import {Partner} from '../models/Partner.js';
 
 export const internalRoutes = Router();
@@ -13,6 +14,13 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   const {userId} = req.body;
   await Promise.all([
     Order.updateMany({userId}, {$set: {email: `deleted-${userId}@deleted.invalid`, intake: {}}}),
+    // What they wrote to the team goes too; the team's side of the conversation stays as a record of the work.
+    Order.updateMany(
+      {userId},
+      {$set: {'messages.$[mine].body': '[removed when the account was deleted]'}},
+      {arrayFilters: [{'mine.from': 'customer'}]},
+    ),
+    OrderFile.deleteMany({userId}),
     Partner.deleteMany({userId}),
   ]);
   res.json({data: {forgotten: true}});

@@ -5,6 +5,8 @@ import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
   Home,
   Briefcase,
+  FileText,
+  MessagesSquare,
   LayoutDashboard,
   Receipt,
   ShoppingBag,
@@ -32,6 +34,8 @@ const SECTION_ICONS = {
   receipts: Receipt,
   services: Briefcase,
   help: LifeBuoy,
+  documents: FileText,
+  consultations: MessagesSquare,
 };
 
 const InApp = createContext(false);

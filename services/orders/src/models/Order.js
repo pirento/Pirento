@@ -21,6 +21,16 @@ export const Order = mongoose.model(
       intake: {type: Object, default: {}}, // answers to the checkout questions
       status: {type: String, required: true, default: 'pending_payment', index: true},
       timeline: [{_id: false, status: String, note: String, at: {type: Date, default: Date.now}}],
+      // The conversation on this order between the customer and the team; status changes stay on the timeline.
+      messages: [
+        {
+          _id: false,
+          from: {type: String, enum: ['customer', 'team'], required: true},
+          body: {type: String, required: true, maxlength: 1000},
+          by: String, // the staffer's email on team messages
+          at: {type: Date, default: Date.now},
+        },
+      ],
       payment: {
         method: {type: String, enum: ['wallet', 'razorpay']},
         razorpayOrderId: {type: String, index: true, sparse: true},

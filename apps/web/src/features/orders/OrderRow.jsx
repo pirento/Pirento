@@ -1,4 +1,5 @@
-// One order as a row: name, number and date, where it has got to, its status and amount. Used by every dashboard.
+// One order as a row: name, number and date, where it has got to, its status and amount. Used by every dashboard;
+// it opens the order inside its own product's dashboard.
 import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {ORDER_STEPS, getProduct, statusLabel} from '@pirento/shared';
@@ -27,7 +28,7 @@ export function OrderRow({order, showProduct = false}) {
   return (
     <li data-reveal>
       <Link
-        to={`/orders/${order._id}`}
+        to={`/${order.product}/dashboard/orders/${order._id}`}
         className="group grid gap-x-6 gap-y-3 border-b border-rule py-5 sm:grid-cols-[1fr_auto] sm:items-center"
       >
         <span className="min-w-0">
