@@ -6,12 +6,12 @@ import {PRODUCTS} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Button} from '../../components/ui/Button';
 import {Heading, Section, SectionHeader} from '../../components/ui/Heading';
-import {ABOUT, COMPANY, FAMILY, PARTNER, PEOPLE} from '../../data/group';
+import {ABOUT, COMPANY, PARTNER, PEOPLE} from '../../data/group';
 import {brand} from '../../data/site';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {Avatar} from './Avatar';
-import {FamilyGrid} from './FamilyCard';
+import {FamilyRows} from './FamilyRows';
 import {GroupChart} from './GroupChart';
 import {StoryChart} from './StoryChart';
 
@@ -131,10 +131,10 @@ export function About() {
         <SectionHeader
           n={4}
           label="The Pirento family"
-          title="Every part, / one card each."
-          intro="Open a card to visit its website."
+          title="Beyond the / ten products."
+          intro="The Foundation, the ventures, the businesses alongside us and our tools."
         />
-        <FamilyGrid items={FAMILY} />
+        <FamilyRows />
       </Section>
 
       <Section id="people" className="pt-0! md:pt-0!">

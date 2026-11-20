@@ -49,7 +49,7 @@ People, the company story, the Foundation, the ventures and the bodies alongside
 
 ## Change a legal page
 
-The Terms live in `apps/web/src/data/site.js` (change `TERMS_VERSION` with them); the Privacy Policy and the Refund and Cancellation Policy in `apps/web/src/data/legal.js`. All three render through `features/ecosystem/LegalPage.jsx` and are linked from the footer. Keep each line true to what the code does.
+The Terms live in `apps/web/src/data/site.js` (change `TERMS_VERSION` with them); the Privacy Policy and the Refund and Cancellation Policy in `apps/web/src/data/legal.js`. All three render through `features/ecosystem/LegalPage.jsx` and are linked from the footer. Each product gets its own copies at `/<slug>/terms`, `/<slug>/privacy` and `/<slug>/refunds`, built from the main pages plus that product's entry in `PRODUCT_LEGAL` (what it keeps, what it shows publicly); a product with no priced service says it takes no payment. Keep each line true to what the code does.
 
 ## Change a price
 

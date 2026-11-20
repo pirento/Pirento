@@ -57,13 +57,17 @@ export const ROUTES = [
   {path: '/admin/:section/:id', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
 
-  // The ten product sites: home at /<slug>, app at /<slug>/dashboard
+  // The ten product sites: home at /<slug>, app at /<slug>/dashboard, legal pages at /<slug>/terms and so on
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
   {
     path: '/:slug/dashboard',
     layout: 'app',
     Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
   },
+  // Each product's own legal pages, in its colours
+  {path: '/:slug/terms', Page: page(() => import('../features/ecosystem/LegalPage'), 'Terms')},
+  {path: '/:slug/privacy', Page: page(() => import('../features/ecosystem/LegalPage'), 'Privacy')},
+  {path: '/:slug/refunds', Page: page(() => import('../features/ecosystem/LegalPage'), 'Refunds')},
 
   {path: '*', element: <NotFound />},
 ];
