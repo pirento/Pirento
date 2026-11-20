@@ -5,7 +5,8 @@ import {api} from '../../lib/api/client';
 import {ROLES, roleLabel} from './adminNav';
 
 const EMPTY = {staffId: '', email: '', name: '', role: 'staff', password: ''};
-const input = 'w-full min-w-0 rounded-full border border-rule bg-paper px-4 py-2.5 text-sm outline-none focus:border-ink';
+const input =
+  'w-full min-w-0 rounded-full border border-rule bg-paper px-4 py-2.5 text-sm outline-none focus:border-ink';
 
 export function NewStaff({onDone}) {
   const [f, setF] = useState(EMPTY);
