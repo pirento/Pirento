@@ -141,7 +141,7 @@ export const dashboard = {
   ],
   // Done-or-not is worked out from your own records in DashboardPage.
   steps: [
-    {id: 'name', title: 'Add your name', body: 'So our team knows what to call you.', to: '#account'},
+    {id: 'name', title: 'Add your name', body: 'So our team knows what to call you.', to: '/account'},
     {
       id: 'order',
       title: 'Place your first order',

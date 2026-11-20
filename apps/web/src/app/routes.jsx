@@ -1,5 +1,5 @@
+// The route table: every page, its layout (site, app or sign-in), loaded lazily.
 import {lazy} from 'react';
-import {Navigate} from 'react-router-dom';
 import {Home} from '../features/ecosystem/HomePage';
 import {NotFound} from '../features/ecosystem/NotFoundPage';
 
@@ -21,7 +21,8 @@ export const ROUTES = [
   {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
   {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
   {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
-  {path: '/account', element: <Navigate to="/dashboard" replace />},
+  {path: '/account', layout: 'app', Page: page(() => import('../features/account/AccountPage'), 'Account')},
+  {path: '/wallet', layout: 'app', Page: page(() => import('../features/account/WalletPage'), 'Wallet')},
 
   // Buying: catalogue, service pages, checkout, orders
   {path: '/legal/services', Page: page(() => import('../features/legal/CataloguePage'), 'Legal')},

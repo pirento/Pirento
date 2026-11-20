@@ -16,7 +16,7 @@ export function NextSteps({user, data}) {
   return (
     <section aria-labelledby="next" className="rounded-[22px] border border-rule p-6 md:p-8" data-reveal>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="next" className="text-2xl">
+        <h2 id="next" className="text-xl">
           Get started
         </h2>
         <span className="text-sm text-muted tabular-nums">
@@ -29,12 +29,12 @@ export function NextSteps({user, data}) {
           style={{width: `${((dashboard.steps.length - left) / dashboard.steps.length) * 100}%`}}
         />
       </div>
-      <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+      <ol className="mt-6 grid gap-2">
         {dashboard.steps.map((s) => (
           <li key={s.id}>
             <Link
               to={s.to}
-              className={`flex h-full items-start gap-4 rounded-[18px] border p-4 transition-colors ${
+              className={`flex h-full items-start gap-3 rounded-[14px] border p-3 transition-colors ${
                 done[s.id] ? 'border-rule text-muted' : 'border-rule hover:border-ink'
               }`}
             >
