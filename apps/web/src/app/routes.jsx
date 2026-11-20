@@ -43,6 +43,8 @@ export const ROUTES = [
   {path: '/legal/services', Page: page(() => import('../features/legal/CataloguePage'), 'Legal')},
   {path: '/services/:slug', Page: page(() => import('../features/legal/ServicePage'), 'Service')},
   {path: '/checkout/:slug', Page: page(() => import('../features/orders/CheckoutPage'), 'Checkout')},
+  {path: '/orders', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllOrders')},
+  {path: '/receipts', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllReceipts')},
   {path: '/orders/:id', Page: page(() => import('../features/orders/OrderPage'), 'OrderPage')},
 
   // Public checks and help
@@ -61,6 +63,16 @@ export const ROUTES = [
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
   {
     path: '/:slug/dashboard',
+    layout: 'app',
+    Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
+  },
+  {
+    path: '/:slug/dashboard/receipts/:id',
+    layout: 'app',
+    Page: page(() => import('../features/orders/ReceiptPage'), 'Receipt'),
+  },
+  {
+    path: '/:slug/dashboard/:section',
     layout: 'app',
     Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
   },

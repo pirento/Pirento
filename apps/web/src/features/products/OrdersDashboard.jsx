@@ -1,9 +1,8 @@
-// Dashboard for the order-based products (Legal, Black, Green, Giftox), in the design system's patterns and the
-// product's own colours: numbers, what needs you, every order with its progress, what to start, and help.
+// Dashboard for the order-based products (Legal, Black, Green, Giftox), each its own app with its own sections
+// (data/site.js productDashboards), in the design system's patterns and the product's colours.
 import {useRef, useState} from 'react';
-import {Link} from 'react-router-dom';
+import {Link, Navigate} from 'react-router-dom';
 import {
-  ArrowUpRight,
   BadgeCheck,
   Building2,
   Calculator,
@@ -24,17 +23,19 @@ import {
   Sparkles,
   Users,
 } from 'lucide-react';
-import {LEGAL_CATALOGUE, ORDER_STEPS, statusLabel} from '@pirento/shared';
+import {LEGAL_CATALOGUE} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
-import {Tag} from '../../components/ui/Tag';
-import {orderDashboard as copy} from '../../data/site';
+import {orderDashboard as copy, productDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
+import {OrderRow} from '../orders/OrderRow';
+import {ReceiptList} from '../orders/ReceiptList';
 import {useApi} from '../../lib/api/useApi';
-import {formatDate, inr} from '../../lib/format';
+import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
+import {usePageMeta} from '../../lib/page';
 import {useServicesFor} from '../../lib/prices';
 
 const OPEN = ['pending_payment', 'paid', 'in_progress'];
@@ -60,50 +61,6 @@ const FILTERS = [
   {id: 'all', label: 'All', test: () => true},
 ];
 
-/** Where an order is, as four joined dots: awaiting payment → paid → in progress → completed. */
-function Progress({status}) {
-  const at = ORDER_STEPS.findIndex((s) => s.status === status);
-  if (at < 0) return null; // cancelled: the tag says so
-  return (
-    <span className="flex items-center" aria-hidden>
-      {ORDER_STEPS.map((s, i) => (
-        <span key={s.status} className="flex items-center">
-          {i > 0 && <span className={`h-px w-4 sm:w-6 ${i <= at ? 'bg-ink' : 'bg-rule'}`} />}
-          <span className={`size-2 rounded-full ${i <= at ? 'bg-accent' : 'border border-rule'}`} />
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function OrderRow({order}) {
-  return (
-    <li data-reveal>
-      <Link
-        to={`/orders/${order._id}`}
-        className="group grid gap-x-6 gap-y-3 border-b border-rule py-5 sm:grid-cols-[1fr_auto] sm:items-center"
-      >
-        <span className="min-w-0">
-          <span className="block font-medium group-hover:underline">
-            {order.serviceName}
-            {order.quantity > 1 && ` × ${order.quantity}`}
-          </span>
-          <span className="mt-1 block text-sm text-muted">
-            #{order.orderNo} · {formatDate(order.createdAt)}
-            {order.code && ` · code ${order.code}`}
-          </span>
-        </span>
-        <span className="flex flex-wrap items-center gap-x-5 gap-y-2">
-          <Progress status={order.status} />
-          <Tag tone={order.status === 'completed' ? 'accent' : 'rule'}>{statusLabel(order.status)}</Tag>
-          <span className="tabular-nums">{inr(order.amount / 100)}</span>
-          <ArrowUpRight aria-hidden className="hidden size-4 text-muted sm:block" />
-        </span>
-      </Link>
-    </li>
-  );
-}
-
 /** A card with a round outlined badge that fills with the product's colour on hover. */
 function Card({to, icon: Icon, title, body, meta}) {
   return (
@@ -123,7 +80,7 @@ function Card({to, icon: Icon, title, body, meta}) {
 }
 
 /** Legal: its areas of law with how many services each has. The others: their services with live prices. */
-function StartGrid({product, browse}) {
+function StartGrid({product, browse, limit}) {
   const services = useServicesFor(product.slug);
   const items =
     product.slug === 'legal'
@@ -140,13 +97,13 @@ function StartGrid({product, browse}) {
   return (
     <>
       <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        {items.slice(0, 6).map((it) => (
+        {items.slice(0, limit ?? items.length).map((it) => (
           <li key={it.key}>
             <Card to={it.to} icon={it.icon} title={it.title} meta={it.meta} />
           </li>
         ))}
       </ul>
-      {items.length > 6 && (
+      {limit && items.length > limit && (
         <div className="mt-8">
           <Button to={browse} variant="outline">
             See all {items.length}
@@ -157,13 +114,69 @@ function StartGrid({product, browse}) {
   );
 }
 
-export function OrdersDashboard({product}) {
+function OrderList({orders, mine, browse, product}) {
+  if (orders.error) return <p className="text-muted">⚠ {orders.error.message}</p>;
+  if (orders.data && mine.length === 0)
+    return (
+      <p className="text-muted">
+        {copy.orders.empty}{' '}
+        <Link to={browse} className="text-ink underline underline-offset-4">
+          Browse {product.short} services
+        </Link>
+      </p>
+    );
+  return (
+    <ul className="border-t border-rule">
+      {mine.map((o) => (
+        <OrderRow key={o._id} order={o} />
+      ))}
+    </ul>
+  );
+}
+
+function Waiting({toPay}) {
+  if (toPay.length === 0)
+    return (
+      <p className="flex items-center gap-2 text-muted">
+        <CircleCheck aria-hidden className="size-4" /> {copy.waiting.empty}
+      </p>
+    );
+  return (
+    <ul className="border-t border-rule">
+      {toPay.map((o) => (
+        <li key={o._id} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-rule">
+            <CreditCard aria-hidden className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium sm:truncate">Pay for {o.serviceName}</span>
+            <span className="block text-sm text-muted">
+              Order #{o.orderNo} · {inr(o.amount / 100)}
+            </span>
+          </span>
+          <Link
+            to={`/orders/${o._id}`}
+            className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+          >
+            Pay now
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function OrdersDashboard({product, section = 'overview'}) {
   const {redirect, user} = useSignedIn();
   const orders = useApi(user ? '/orders' : null);
   const [filter, setFilter] = useState('open');
   const ref = useRef(null);
-  usePageMotion(ref, [Boolean(orders.data)]);
+  const sections = productDashboards[product.slug];
+  const current = sections.find((s) => s.id === section);
+  usePageMotion(ref, [Boolean(orders.data), section]);
+  usePageMeta({title: `${current?.label ?? 'Dashboard'} — ${product.name}`});
   if (redirect) return redirect;
+  if (!current) return <Navigate to={`/${product.slug}/dashboard`} replace />;
   if (!user) return <div className="min-h-dvh" />;
 
   const mine = orders.data?.filter((o) => o.product === product.slug) ?? [];
@@ -171,29 +184,35 @@ export function OrdersDashboard({product}) {
   const working = mine.filter((o) => ['paid', 'in_progress'].includes(o.status));
   const done = mine.filter((o) => o.status === 'completed');
   const paidTotal = [...working, ...done].reduce((n, o) => n + o.amount, 0);
-  const shown = mine.filter(FILTERS.find((f) => f.id === filter).test);
   const browse = product.slug === 'legal' ? '/legal/services' : `/${product.slug}#services`;
+  const ordersLabel = sections.find((s) => s.id === 'orders').label;
+  const base = `/${product.slug}/dashboard`;
   const name = user.name?.trim().split(/\s+/)[0];
-  const summary = !orders.data
-    ? 'Loading your orders…'
-    : mine.length === 0
-      ? `No ${product.short} orders yet. Start with the areas below.`
-      : `${working.length} in progress · ${toPay.length} waiting for payment · ${done.length} completed.`;
   let n = 0;
 
   return (
     <div ref={ref} className="space-y-14 md:space-y-16">
       <header className="flex flex-wrap items-end justify-between gap-8">
         <div className="min-w-0">
-          <p className="eyebrow">{product.name} · Dashboard</p>
+          <p className="eyebrow">
+            {product.name} · {current.label}
+          </p>
           <Heading
             as="h1"
-            text={name ? `Hello, / ${name}.` : `Your ${product.short} / work.`}
+            text={
+              section === 'overview' ? (name ? `Hello, / ${name}.` : `Your ${product.short} / work.`) : current.label
+            }
             className="mt-5 text-[clamp(2.25rem,4.4vw,3.75rem)] leading-[1.02] break-words"
           />
-          <p className="body mt-4" aria-live="polite">
-            {summary}
-          </p>
+          {section === 'overview' && (
+            <p className="body mt-4" aria-live="polite">
+              {!orders.data
+                ? 'Loading your orders…'
+                : mine.length === 0
+                  ? `No ${product.short} orders yet. Start with the areas below.`
+                  : `${working.length} in progress · ${toPay.length} waiting for payment · ${done.length} completed.`}
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap gap-3">
           <Button to={browse} variant="accent">
@@ -205,106 +224,110 @@ export function OrdersDashboard({product}) {
         </div>
       </header>
 
-      <DashSection n={++n} id="glance" label={copy.glance.label} title={copy.glance.title}>
-        <StatsRow
-          compact
-          stats={[
-            {value: orders.data ? String(working.length) : '—', label: 'in progress'},
-            {value: orders.data ? String(toPay.length) : '—', label: 'to pay'},
-            {value: orders.data ? String(done.length) : '—', label: 'completed'},
-            {value: orders.data ? inr(paidTotal / 100) : '—', label: 'paid in all'},
-          ]}
-        />
-      </DashSection>
+      {section === 'overview' && (
+        <>
+          <DashSection n={++n} id="glance" label={copy.glance.label} title={copy.glance.title}>
+            <StatsRow
+              compact
+              stats={[
+                {value: orders.data ? String(working.length) : '—', label: 'in progress'},
+                {value: orders.data ? String(toPay.length) : '—', label: 'to pay'},
+                {value: orders.data ? String(done.length) : '—', label: 'completed'},
+                {value: orders.data ? inr(paidTotal / 100) : '—', label: 'paid in all'},
+              ]}
+            />
+          </DashSection>
+          <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
+            <Waiting toPay={toPay} />
+          </DashSection>
+          <DashSection
+            n={++n}
+            id="recent"
+            label={copy.recent.label}
+            title={copy.recent.title}
+            action={
+              <Link
+                to={`${base}/orders`}
+                className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline"
+              >
+                All {ordersLabel.toLowerCase()}
+              </Link>
+            }
+          >
+            <OrderList orders={orders} mine={mine.slice(0, 5)} browse={browse} product={product} />
+          </DashSection>
+          <DashSection
+            n={++n}
+            id="start"
+            label={copy.start.label}
+            title={product.slug === 'legal' ? copy.start.legalTitle : copy.start.title}
+          >
+            <StartGrid product={product} browse={`${base}/services`} limit={6} />
+          </DashSection>
+        </>
+      )}
 
-      <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
-        {toPay.length === 0 ? (
-          <p className="flex items-center gap-2 text-muted">
-            <CircleCheck aria-hidden className="size-4" /> {copy.waiting.empty}
-          </p>
-        ) : (
-          <ul className="border-t border-rule">
-            {toPay.map((o) => (
-              <li key={o._id} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-rule">
-                  <CreditCard aria-hidden className="size-4" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-medium sm:truncate">Pay for {o.serviceName}</span>
-                  <span className="block text-sm text-muted">
-                    Order #{o.orderNo} · {inr(o.amount / 100)}
-                  </span>
-                </span>
-                <Link
-                  to={`/orders/${o._id}`}
-                  className="shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent"
+      {section === 'orders' && (
+        <DashSection
+          n={1}
+          id="orders"
+          label={ordersLabel}
+          title={copy.orders.title}
+          action={
+            <div role="tablist" aria-label="Show" className="flex gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  role="tab"
+                  aria-selected={filter === f.id}
+                  onClick={() => setFilter(f.id)}
+                  className={`rounded-full border px-4 py-2 text-sm transition-colors ${
+                    filter === f.id ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'
+                  }`}
                 >
-                  Pay now
-                </Link>
+                  {f.label} <span className="tabular-nums opacity-70">{mine.filter(f.test).length}</span>
+                </button>
+              ))}
+            </div>
+          }
+        >
+          <OrderList
+            orders={orders}
+            mine={mine.filter(FILTERS.find((f) => f.id === filter).test)}
+            browse={browse}
+            product={product}
+          />
+        </DashSection>
+      )}
+
+      {section === 'receipts' && (
+        <DashSection n={1} id="receipts" label="Receipts" title="Every payment, / ready to print.">
+          <ReceiptList orders={orders.data && mine} />
+        </DashSection>
+      )}
+
+      {section === 'services' && (
+        <DashSection
+          n={1}
+          id="services"
+          label={current.label}
+          title={product.slug === 'legal' ? copy.start.legalTitle : copy.start.title}
+        >
+          <StartGrid product={product} browse={browse} />
+        </DashSection>
+      )}
+
+      {section === 'help' && (
+        <DashSection n={1} id="help" label={copy.help.label} title={copy.help.title}>
+          <ul className="grid gap-3 sm:grid-cols-3 sm:gap-4">
+            {copy.helpItems.map((h) => (
+              <li key={h.to}>
+                <Card to={h.to} icon={HELP_ICONS[h.icon]} title={h.title} body={h.body} />
               </li>
             ))}
           </ul>
-        )}
-      </DashSection>
-
-      <DashSection
-        n={++n}
-        id="orders"
-        label={copy.orders.label}
-        title={copy.orders.title}
-        action={
-          <div role="tablist" aria-label="Show" className="flex gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                role="tab"
-                aria-selected={filter === f.id}
-                onClick={() => setFilter(f.id)}
-                className={`rounded-full border px-4 py-2 text-sm transition-colors ${
-                  filter === f.id ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'
-                }`}
-              >
-                {f.label} <span className="tabular-nums opacity-70">{mine.filter(f.test).length}</span>
-              </button>
-            ))}
-          </div>
-        }
-      >
-        {orders.error && <p className="text-muted">⚠ {orders.error.message}</p>}
-        {orders.data && shown.length === 0 ? (
-          <p className="text-muted">
-            {mine.length === 0 ? copy.orders.empty : 'Nothing here.'}{' '}
-            <Link to={browse} className="text-ink underline underline-offset-4">
-              Browse {product.short} services
-            </Link>
-          </p>
-        ) : (
-          <ul className="border-t border-rule">
-            {shown.map((o) => (
-              <OrderRow key={o._id} order={o} />
-            ))}
-          </ul>
-        )}
-      </DashSection>
-
-      <DashSection
-        n={++n}
-        id="start"
-        label={copy.start.label}
-        title={product.slug === 'legal' ? copy.start.legalTitle : copy.start.title}
-      >
-        <StartGrid product={product} browse={browse} />
-      </DashSection>
-
-      <DashSection n={++n} id="help" label={copy.help.label} title={copy.help.title}>
-        <ul className="grid gap-4 sm:grid-cols-3">
-          {copy.helpItems.map((h) => (
-            <li key={h.to}>
-              <Card to={h.to} icon={HELP_ICONS[h.icon]} title={h.title} body={h.body} />
-            </li>
-          ))}
-        </ul>
-      </DashSection>
+        </DashSection>
+      )}
     </div>
   );
 }

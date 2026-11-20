@@ -4,7 +4,10 @@ import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
   Home,
+  Briefcase,
   LayoutDashboard,
+  Receipt,
+  ShoppingBag,
   LifeBuoy,
   LogOut,
   Menu,
@@ -21,6 +24,15 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
+import {productDashboards} from '../../data/site';
+
+const SECTION_ICONS = {
+  overview: LayoutDashboard,
+  orders: ShoppingBag,
+  receipts: Receipt,
+  services: Briefcase,
+  help: LifeBuoy,
+};
 
 const InApp = createContext(false);
 /** True inside the app shell; PageHero uses it to render a compact header. */
@@ -42,25 +54,27 @@ function useAppNav() {
       })),
     };
   }
-  const products = {
-    label: 'Products',
-    items: PRODUCTS.map((p) => ({label: p.name, to: `/${p.slug}/dashboard`, dot: p.color})),
-  };
+  // A product's dashboard is its own app: only its sections, never the other products.
   if (product) {
+    const sections = productDashboards[product.slug] ?? [{id: 'overview', label: 'Dashboard', icon: 'overview'}];
     return {
       title: product.name,
       groups: [
         {
           label: product.short,
           items: [
-            {label: 'Dashboard', to: `/${product.slug}/dashboard`, icon: LayoutDashboard},
-            {label: `${product.short} home`, to: `/${product.slug}`, icon: Home},
+            ...sections.map((s, i) => ({
+              label: s.label,
+              to: i === 0 ? `/${product.slug}/dashboard` : `/${product.slug}/dashboard/${s.id}`,
+              icon: SECTION_ICONS[s.icon],
+            })),
+            {label: `${product.short} website`, to: `/${product.slug}`, icon: Home},
           ],
         },
-        products,
       ],
     };
   }
+  // The Pirento dashboard is the hub: everything across products, and the way into each one.
   return {
     title: 'Pirento Ecosystem',
     groups: [
@@ -68,11 +82,16 @@ function useAppNav() {
         label: 'Account',
         items: [
           {label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard},
+          {label: 'Orders', to: '/orders', icon: ShoppingBag},
+          {label: 'Receipts', to: '/receipts', icon: Receipt},
           {label: 'Wallet', to: '/wallet', icon: WalletIcon},
           {label: 'Account', to: '/account', icon: UserRound},
         ],
       },
-      products,
+      {
+        label: 'Products',
+        items: PRODUCTS.map((p) => ({label: p.name, to: `/${p.slug}/dashboard`, dot: p.color})),
+      },
     ],
   };
 }
@@ -160,7 +179,8 @@ function Sidebar({onNavigate}) {
 
       <div className="mt-6 space-y-1 border-t border-rule pt-4 text-sm">
         {[
-          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: !staff},
+          // On a product's dashboard, the way back to the Pirento hub; the hub lists itself already.
+          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: !staff && Boolean(product)},
           {label: 'Admin', to: '/admin', icon: ShieldCheck, show: staff && !inAdmin},
           {label: 'Support', to: '/support', icon: LifeBuoy, show: !staff},
           {label: 'Pirento website', to: '/', icon: Home, show: staff},

@@ -218,8 +218,31 @@ export const terms = {
   ],
 };
 
+// Each product's own dashboard: the sections in its sidebar, in order (the first is /<slug>/dashboard).
+// Products not listed here have a single dashboard page for now.
+const ORDER_SECTIONS = (orders, services) => [
+  {id: 'overview', label: 'Overview', icon: 'overview'},
+  {id: 'orders', label: orders, icon: 'orders'},
+  {id: 'receipts', label: 'Receipts', icon: 'receipts'},
+  {id: 'services', label: services, icon: 'services'},
+  {id: 'help', label: 'Help', icon: 'help'},
+];
+export const productDashboards = {
+  legal: ORDER_SECTIONS('My requests', 'Areas of law'),
+  black: ORDER_SECTIONS('My filings', 'Services'),
+  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
+  giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
+};
+
+// The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
+export const receipt = {
+  title: 'Payment receipt',
+  note: 'This receipt confirms a payment made on Pirento. It is not a GST tax invoice.',
+};
+
 // Dashboards of the order-based products (Legal, Black, Green, Giftox): section names and headings.
 export const orderDashboard = {
+  recent: {label: 'Latest', title: 'Your latest / orders.'},
   glance: {label: 'At a glance', title: 'Your work with us.'},
   waiting: {label: 'Needs you', title: 'Waiting / on you.', empty: 'Nothing is waiting on you.'},
   orders: {label: 'Your orders', title: 'Every order, / step by step.', empty: 'No orders yet.'},

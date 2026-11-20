@@ -14,12 +14,14 @@ import {usePageMeta} from '../../lib/page';
 const APPS = {intern: Intern, vault: Vault, ai: Ai, one: One, capital: Capital, 'bharat-id': BharatId};
 
 export function ProductDashboard() {
-  const {slug} = useParams();
+  const {slug, section} = useParams();
   const product = getProduct(slug);
   usePageMeta({title: product ? `${product.name} · Dashboard` : 'Not found'});
   if (!product) return <NotFound />;
   const App = APPS[slug];
-  return App ? <App /> : <OrdersDashboard product={product} />;
+  // Products with one page ignore a section in the URL and show it.
+  if (App) return section ? <Navigate to={`/${slug}/dashboard`} replace /> : <App />;
+  return <OrdersDashboard product={product} section={section} />;
 }
 
 export const ProductRedirect = () => {
