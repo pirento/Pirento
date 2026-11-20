@@ -1,42 +1,20 @@
-// Home: the company's three ventures, the businesses alongside it, and a short "about us" that leads to /about.
+// Home: the rest of the Pirento family as linked cards, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
-import {ABOUT, ALONGSIDE, COMPANY, PARTNER, PEOPLE, VENTURES} from '../../data/group';
+import {ABOUT, COMPANY, FAMILY, PARTNER, PEOPLE} from '../../data/group';
 import {Avatar} from './Avatar';
-import {OrgCard} from './OrgCard';
+import {FamilyGrid} from './FamilyCard';
 
-export function VenturesSection({n}) {
+export function FamilySection({n}) {
   return (
-    <Section>
+    <Section id="family">
       <SectionHeader
         n={n}
-        label="Ventures"
-        title={`Built with / ${COMPANY.short}.`}
-        intro={`Three businesses run with ${COMPANY.name}, beside the Pirento products.`}
+        label="The Pirento family"
+        title="More than / ten products."
+        intro={`Pirento Ecosystem is one part of ${COMPANY.name}. Here is the rest of the family; open any card to visit its site.`}
       />
-      <div className="mt-16 grid gap-4 md:grid-cols-3">
-        {VENTURES.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
-    </Section>
-  );
-}
-
-export function AlongsideSection({n}) {
-  return (
-    <Section className="pt-0! md:pt-0!">
-      <SectionHeader
-        n={n}
-        label="Alongside"
-        title="Close to us, / run on their own."
-        intro="A family business and a charitable trust that share our people, not our company."
-      />
-      <div className="mt-16 grid gap-4 md:grid-cols-2">
-        {ALONGSIDE.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
+      <FamilyGrid items={FAMILY} />
     </Section>
   );
 }
@@ -44,10 +22,13 @@ export function AlongsideSection({n}) {
 export function AboutTeaser({n}) {
   const people = Object.values(PEOPLE);
   return (
-    <Section>
+    <Section className="pt-0! md:pt-0!">
       <SectionHeader n={n} label="About us" title={ABOUT.title} intro={ABOUT.intro} />
-      <div className="mt-14 flex flex-wrap items-center justify-between gap-8" data-reveal>
-        <ul className="flex flex-wrap gap-y-3 -space-x-3" aria-label="Our people">
+      <div
+        className="mt-14 grid gap-8 rounded-[22px] border border-rule p-6 md:p-8 lg:grid-cols-12 lg:items-center"
+        data-reveal
+      >
+        <ul className="flex flex-wrap gap-y-3 -space-x-3 lg:col-span-5" aria-label="Our people">
           {people.map((p) => (
             <li key={p.name} title={p.name} className="rounded-full ring-4 ring-paper">
               <Avatar person={p} className="size-14 text-sm" />
@@ -55,13 +36,13 @@ export function AboutTeaser({n}) {
             </li>
           ))}
         </ul>
-        <Button to="/about" variant="outline">
-          Meet the team
-        </Button>
+        <p className="text-sm leading-relaxed text-muted lg:col-span-5">{PARTNER.body}</p>
+        <div className="lg:col-span-2 lg:justify-self-end">
+          <Button to="/about" variant="outline">
+            Meet the team
+          </Button>
+        </div>
       </div>
-      <p className="mt-10 max-w-2xl text-sm text-muted" data-reveal>
-        {PARTNER.body}
-      </p>
     </Section>
   );
 }

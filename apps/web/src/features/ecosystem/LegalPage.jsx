@@ -1,26 +1,36 @@
-// /terms: the Terms and Conditions people accept when they create an account.
+// The legal pages (/terms, /privacy, /refunds): one layout, numbered sections, text from the data files.
 import {useRef} from 'react';
 import {TERMS_VERSION} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Section} from '../../components/ui/Heading';
+import {privacy, refunds} from '../../data/legal';
 import {terms} from '../../data/site';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 
-export function Terms() {
+const PAGES = {
+  terms: {doc: terms, name: 'Terms and Conditions', title: 'Terms and / Conditions.', version: TERMS_VERSION},
+  privacy: {doc: privacy, name: 'Privacy Policy', title: 'Privacy / Policy.'},
+  refunds: {doc: refunds, name: 'Refund and Cancellation Policy', title: 'Refunds and / cancellations.'},
+};
+
+function LegalPage({page}) {
+  const {doc, name, title, version} = PAGES[page];
   const ref = useRef(null);
   usePageMotion(ref);
-  usePageMeta({title: 'Terms and Conditions — Pirento Ecosystem'});
+  usePageMeta({title: `${name} — Pirento Ecosystem`});
   return (
     <div ref={ref}>
       <PageHero
         label="Legal"
-        title="Terms and / Conditions."
-        intro={`Last updated ${terms.updated} · version ${TERMS_VERSION}`}
+        title={title}
+        intro={[doc.intro, `Last updated ${doc.updated}${version ? ` · version ${version}` : ''}`]
+          .filter(Boolean)
+          .join(' ')}
       />
       <Section className="pt-0! md:pt-0!">
         <ol className="max-w-3xl space-y-12">
-          {terms.sections.map((s, i) => (
+          {doc.sections.map((s, i) => (
             <li key={s.title} data-reveal>
               <h2 className="text-2xl">
                 <span className="mr-3 text-muted tabular-nums">{String(i + 1).padStart(2, '0')}</span>
@@ -45,3 +55,7 @@ export function Terms() {
     </div>
   );
 }
+
+export const Terms = () => <LegalPage page="terms" />;
+export const Privacy = () => <LegalPage page="privacy" />;
+export const Refunds = () => <LegalPage page="refunds" />;

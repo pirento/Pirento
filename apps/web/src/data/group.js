@@ -58,6 +58,8 @@ export const COMPANY = {
 
 export const FOUNDATION = {
   name: 'Pirento Foundation',
+  // shortcut: opens the vercel.app copy of the Foundation site; switch to its own domain once it has one.
+  href: 'https://client-sigma-liart.vercel.app/',
   tagline: 'People. Planet. Possibility.',
   body: 'The social-impact arm of Venturecore Solutions Private Limited, with the company’s directors as its first trustees. It starts in Basti and eastern Uttar Pradesh.',
   // The profile asks for this until registration and 80G approval arrive.
@@ -179,3 +181,11 @@ export const ABOUT = {
   people: {label: 'People', title: 'Who does / the work.'},
   partner: {label: 'Partner', title: 'Who we / work with.'},
 };
+
+// Home and About: every part of the family as one card, in this order. `kind` is the card's small label.
+export const FAMILY = [
+  {...FOUNDATION, kind: 'Foundation', tagline: FOUNDATION.tagline, featured: true},
+  ...VENTURES.map((v) => ({...v, kind: 'Venture'})),
+  ...ALONGSIDE.map((a) => ({...a, kind: a.note, note: undefined})),
+  ...TOOLS.map((t) => ({...t, kind: 'Tool'})),
+];

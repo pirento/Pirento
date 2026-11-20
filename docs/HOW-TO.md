@@ -47,6 +47,10 @@ Edit `ID_SECTIONS` in `packages/shared/src/identity/form.js`. The form, the serv
 
 People, the company story, the Foundation, the ventures and the bodies alongside live in `apps/web/src/data/group.js`; the home page and `/about` only render it. To add a photo, put it in `apps/web/public/team/` and set that person's `photo`; until then they show initials. When a portfolio domain goes live, change its `href`.
 
+## Change a legal page
+
+The Terms live in `apps/web/src/data/site.js` (change `TERMS_VERSION` with them); the Privacy Policy and the Refund and Cancellation Policy in `apps/web/src/data/legal.js`. All three render through `features/ecosystem/LegalPage.jsx` and are linked from the footer. Keep each line true to what the code does.
+
 ## Change a price
 
 In admin → Services & prices (finance or superadmin): set a new price, reset it, or take a service off sale. The base price stays in `packages/shared/src/data/`; the catalog service keeps the change, the orders service charges it, and the website shows it through `lib/prices.jsx`. Use `useService` / `useServicesFor` from there, never `getService` directly, when showing a price.

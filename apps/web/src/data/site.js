@@ -7,6 +7,7 @@ export const brand = {
   // Pirento Ecosystem is a brand; the company behind it is Venturecore.
   legalName: 'Venturecore Solutions Private Limited',
   cin: 'U63121UP2023PTC188021',
+  gstin: '09AAJCV6240P1ZL',
   email: 'hello@pirento.com',
   supportEmail: 'support@pirento.com',
   status: 'Legal services open',
@@ -21,6 +22,22 @@ export const nav = [
   {label: 'Verify', to: '/verify'},
   {label: 'Support', to: '/support'},
 ];
+
+// The footer's link columns. Product sites swap the first column for their own links.
+export const footer = {
+  company: [
+    {label: 'About us', to: '/about'},
+    {label: 'The Pirento family', to: '/about#family'},
+    {label: 'Support', to: '/support'},
+    {label: 'Verify a record', to: '/verify'},
+  ],
+  legal: [
+    {label: 'Terms and Conditions', to: '/terms'},
+    {label: 'Privacy Policy', to: '/privacy'},
+    {label: 'Refunds and cancellations', to: '/refunds'},
+  ],
+  note: 'Pirento Ecosystem is our brand. Business partner of Vakilsearch.',
+};
 
 export const socials = [
   {name: 'X (Twitter)', href: 'https://x.com/pirento', icon: 'twitter'},
