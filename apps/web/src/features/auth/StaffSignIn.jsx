@@ -1,6 +1,6 @@
 // The staff door: the staff ID and password a superadmin issued you.
 import {useState} from 'react';
-import {Eye, EyeOff} from 'lucide-react';
+import {Eye, EyeOff, Lock} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
@@ -26,10 +26,11 @@ export function StaffSignIn({onSignedIn}) {
 
   return (
     <form onSubmit={submit} noValidate>
-      <p className="eyebrow">Staff sign in</p>
-      <p className="body mt-3 mb-8 text-base">
-        Authorised staff only. Use the staff ID and password a superadmin gave you.
-      </p>
+      <span className="inline-flex items-center gap-2 rounded-full border border-rule px-3 py-1 text-xs text-muted">
+        <Lock aria-hidden className="size-3.5" /> Restricted · staff only
+      </span>
+      <h1 className="mt-5 text-[clamp(1.9rem,3vw,2.5rem)] leading-tight">Sign in to the console</h1>
+      <p className="mt-3 mb-8 text-muted">Use the staff ID and password a superadmin gave you.</p>
       <div className="space-y-5">
         <Field
           label="Staff ID"
@@ -69,10 +70,13 @@ export function StaffSignIn({onSignedIn}) {
       >
         {busy ? 'Please wait' : 'Sign in'}
       </Button>
-      <p className="mt-6 text-sm text-muted">
-        Forgot your password? Ask a superadmin to set a new one. Given a staff role but no staff ID yet? Sign in with
-        your email at the customer sign-in, then open Admin.
-      </p>
+      <details className="mt-6 text-sm text-muted">
+        <summary className="cursor-pointer hover:text-ink">Trouble signing in?</summary>
+        <p className="mt-2">
+          Forgot your password: ask a superadmin to set a new one. Given a staff role but no staff ID yet: sign in with
+          your email at the customer sign-in, then open Admin.
+        </p>
+      </details>
     </form>
   );
 }

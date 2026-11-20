@@ -8,6 +8,9 @@ import {usePageMeta} from '../../lib/page';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole} from '../admin/adminNav';
 import {AuthShell} from './AuthShell';
+import {login} from '../../data/site';
+import {PRODUCT_ICONS} from '../../lib/productIcons';
+import {LayoutGrid, ShieldCheck} from 'lucide-react';
 import {CustomerSignIn} from './CustomerSignIn';
 import {StaffSignIn} from './StaffSignIn';
 
@@ -39,32 +42,26 @@ export function Login({staff = false}) {
     navigate(next);
   };
 
-  const shell = staff
-    ? {
-        brand: 'Pirento Admin',
-        title: 'Staff / sign in.',
-        perks: ['Order, Bharat ID and ticket queues', 'Users, money and site settings', 'Every staff action is logged'],
-        home: '/',
-        homeLabel: 'Pirento Ecosystem',
-      }
+  // Each door wears its own story: a product site shows that product, staff see the console.
+  const story = staff ? login.staff : product ? null : login.ecosystem;
+  const side = story
+    ? {...story, Icon: staff ? ShieldCheck : LayoutGrid, showProducts: !staff}
     : {
-        brand: siteName(product),
-        title: product ? `Sign in to / ${product.name}.` : 'One account. / Every product.',
-        perks: [
-          'One account for all ten Pirento products',
-          'Sign in with your Bharat ID or an emailed code',
-          'Your orders, wallet and ID in one dashboard',
-        ],
-        home: product ? `/${product.slug}` : '/',
-        homeLabel: siteName(product),
+        eyebrow: product.name,
+        quote: product.quote,
+        points: product.highlights,
+        Icon: PRODUCT_ICONS[product.slug],
+        showProducts: true,
       };
+  const home = staff || !product ? '/' : `/${product.slug}`;
 
   return (
-    <AuthShell {...shell} innerRef={ref}>
+    <AuthShell side={side} home={home} homeLabel={staff ? 'Pirento Ecosystem' : siteName(product)} innerRef={ref}>
       {staff ? (
         <StaffSignIn onSignedIn={onSignedIn} />
       ) : (
         <CustomerSignIn
+          title={product ? `Sign in to ${product.name}` : 'Sign in to Pirento'}
           product={product}
           onSignedIn={onSignedIn}
           onNamed={onNamed}
@@ -74,14 +71,12 @@ export function Login({staff = false}) {
           }}
         />
       )}
-      {!staff && (
-        <p className="mt-10 text-sm text-muted">
-          Pirento team?{' '}
-          <Link to="/admin/login" className="text-ink underline underline-offset-4">
-            Staff sign in
-          </Link>
-        </p>
-      )}
+      <p className="mt-10 border-t border-rule pt-6 text-sm text-muted">
+        {staff ? 'Not on the Pirento team? ' : 'Pirento team? '}
+        <Link to={staff ? '/login' : '/admin/login'} className="text-ink underline underline-offset-4">
+          {staff ? 'Customer sign in' : 'Staff sign in'}
+        </Link>
+      </p>
     </AuthShell>
   );
 }
