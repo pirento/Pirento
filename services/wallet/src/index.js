@@ -5,9 +5,10 @@ import {config} from './config.js';
 import {internalRoutes} from './routes/internal.routes.js';
 import {walletRoutes} from './routes/wallet.routes.js';
 import {staffRoutes} from './routes/staff.routes.js';
+import {withdrawalRoutes} from './routes/withdrawal.routes.js';
 
 const app = createApp('wallet');
 // Internal routes go first: they carry their own key, not a user's token.
-app.use(internalRoutes, staffRoutes, walletRoutes);
+app.use(internalRoutes, staffRoutes, withdrawalRoutes, walletRoutes);
 
 start(finish(app), {name: 'wallet', port: config.port, mongoUri: config.mongoUri});

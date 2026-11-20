@@ -23,6 +23,12 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_auth
       SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
       EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
+      # Account deletion asks these services to forget the person, and checks the wallet first.
+      WALLET_URL: http://wallet:4002
+      IDENTITY_URL: http://identity:4005
+      VAULT_URL: http://vault:4007
+      AI_URL: http://ai:4009
+      LEARNING_URL: http://learning:4006
     depends_on: [mongo]
 
   wallet:
@@ -32,7 +38,8 @@ services:
 
   catalog:
     <<: *service
-    environment: {<<: *env, SERVICE: catalog}
+    environment: {<<: *env, SERVICE: catalog, MONGO_URI: mongodb://mongo:27017/pirento_catalog}
+    depends_on: [mongo]
 
   orders:
     <<: *service
@@ -41,6 +48,7 @@ services:
       SERVICE: orders
       MONGO_URI: mongodb://mongo:27017/pirento_orders
       WALLET_URL: http://wallet:4002
+      CATALOG_URL: http://catalog:4003 # paused checkouts
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}

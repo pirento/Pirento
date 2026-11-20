@@ -4,6 +4,7 @@ import {ID_SECTIONS, LEGAL_CATALOGUE, servicesFor} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {inr} from '../../lib/format';
+import {Openings} from '../learning/Openings';
 
 export function Extra({product}) {
   const services = servicesFor(product.slug).filter((s) => s.price);
@@ -110,6 +111,7 @@ export function Extra({product}) {
           </li>
         ))}
       </ol>
+      {product.slug === 'intern' && <Openings />}
     </Section>
   );
 }

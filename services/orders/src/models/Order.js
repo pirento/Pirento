@@ -28,6 +28,9 @@ export const Order = mongoose.model(
       },
       code: {type: String, unique: true, sparse: true}, // public completion code
       ref: {type: String, index: true}, // Pirento One partner code that brought this order
+      coupon: String, // code used at checkout
+      discount: {type: Number, default: 0}, // paise taken off by the coupon; amount is after it
+      assignee: {_id: false, id: String, email: String}, // the staffer working it
     },
     {timestamps: true},
   ),

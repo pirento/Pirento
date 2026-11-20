@@ -14,6 +14,7 @@ import {savedRef} from './helpers';
 import {api} from '../../lib/api/client';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
+import {useApi} from '../../lib/api/useApi';
 import {usePageMeta} from '../../lib/page';
 
 export function Checkout() {
@@ -25,6 +26,8 @@ export function Checkout() {
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [coupon, setCoupon] = useState({code: '', applied: null, error: ''});
+  const settings = useApi('/catalog/settings');
   const ref = useRef(null);
   usePageMotion(ref, [slug]);
   usePageMeta({title: `Checkout · ${service?.name ?? ''} — Pirento`});
@@ -32,6 +35,7 @@ export function Checkout() {
   if (redirect) return redirect;
 
   const questions = checkoutQuestions(service.product, service.slug);
+  const paused = settings.data?.paused.includes(service.product);
   const submit = async (e) => {
     e.preventDefault();
     setError('');
@@ -39,7 +43,7 @@ export function Checkout() {
     try {
       const order = await api('/orders', {
         method: 'POST',
-        body: {serviceSlug: slug, quantity, intake: answers, ref: savedRef()},
+        body: {serviceSlug: slug, quantity, intake: answers, ref: savedRef(), coupon: applied?.code},
       });
       navigate(`/orders/${order._id}`);
     } catch (err) {
@@ -47,6 +51,20 @@ export function Checkout() {
       setBusy(false);
     }
   };
+
+  // Asks the server what the code takes off; the order itself is priced again on the server.
+  const applyCoupon = async () => {
+    const code = coupon.code.trim().toUpperCase();
+    if (!code) return;
+    try {
+      const quote = await api(`/orders/coupons/${encodeURIComponent(code)}?service=${slug}&quantity=${quantity}`);
+      setCoupon({code, applied: {...quote, quantity}, error: ''});
+    } catch (err) {
+      setCoupon({code, applied: null, error: err.message});
+    }
+  };
+  // A changed quantity changes the discount; ask again.
+  const applied = coupon.applied?.quantity === quantity || !coupon.applied ? coupon.applied : null;
 
   return (
     <div ref={ref}>
@@ -88,12 +106,39 @@ export function Checkout() {
               </span>
               <span className="num">{inr(service.price * quantity)}</span>
             </div>
+            <div className="mt-6 flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <Field
+                  label="Discount code (optional)"
+                  value={coupon.code}
+                  maxLength={16}
+                  onChange={(e) => setCoupon({code: e.target.value, applied: null, error: ''})}
+                  error={coupon.error}
+                />
+              </div>
+              <Button type="button" variant="outline" icon={null} className="mb-px" onClick={applyCoupon}>
+                Apply
+              </Button>
+            </div>
+            {applied && (
+              <div className="mt-4 flex items-baseline justify-between text-sm">
+                <span className="text-muted">{applied.code} · you pay</span>
+                <span className="tabular-nums">
+                  −{inr(applied.discount / 100)} · <span className="font-medium">{inr(applied.total / 100)}</span>
+                </span>
+              </div>
+            )}
             {error && (
               <p role="alert" className="mt-6 text-sm">
                 ⚠ {error}
               </p>
             )}
-            <Button type="submit" variant="accent" className="mt-8 w-full justify-center" disabled={busy}>
+            {paused && (
+              <p role="status" className="mt-6 text-sm">
+                Orders for this product are paused for now. Please try again later.
+              </p>
+            )}
+            <Button type="submit" variant="accent" className="mt-8 w-full justify-center" disabled={busy || paused}>
               {busy ? 'Placing order' : 'Continue to payment'}
             </Button>
             <p className="mt-4 flex items-center gap-2 text-xs text-muted">

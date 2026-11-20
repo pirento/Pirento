@@ -1,7 +1,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {STAFF_TRANSITIONS} from '@pirento/shared';
-import {ACCESS, audit, conflict, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {ACCESS, audit, conflict, productScope, requireAuth, requireRole, validate} from '@pirento/shared/server';
 import {PAID_STATUSES} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
@@ -13,11 +13,17 @@ export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.orders));
 const DAY = 86_400_000;
 
-staffRoutes.get('/staff/stats', async (_req, res) => {
+/** The filter that keeps product-scoped staff to their products. */
+const scoped = (req, filter = {}) => {
+  const products = productScope(req);
+  return products ? {...filter, product: {$in: products}} : filter;
+};
+
+staffRoutes.get('/staff/stats', async (req, res) => {
   const [byStatus, byProduct] = await Promise.all([
-    Order.aggregate([{$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]),
+    Order.aggregate([{$match: scoped(req)}, {$group: {_id: '$status', count: {$sum: 1}, amount: {$sum: '$amount'}}}]),
     Order.aggregate([
-      {$match: {status: {$in: PAID_STATUSES}}},
+      {$match: scoped(req, {status: {$in: PAID_STATUSES}})},
       {$group: {_id: '$product', count: {$sum: 1}, amount: {$sum: '$amount'}}},
     ]),
   ]);
@@ -32,9 +38,9 @@ staffRoutes.get('/staff/stats', async (_req, res) => {
 });
 
 /** Orders placed and paid value per day for the last 30 days, for the overview charts. */
-staffRoutes.get('/staff/daily', async (_req, res) => {
+staffRoutes.get('/staff/daily', async (req, res) => {
   const rows = await Order.aggregate([
-    {$match: {createdAt: {$gte: new Date(Date.now() - 30 * DAY)}}},
+    {$match: scoped(req, {createdAt: {$gte: new Date(Date.now() - 30 * DAY)}})},
     {
       $group: {
         _id: {$dateToString: {format: '%Y-%m-%d', date: '$createdAt'}},
@@ -49,7 +55,11 @@ staffRoutes.get('/staff/daily', async (_req, res) => {
 
 /** One customer's orders, for the admin user page. */
 staffRoutes.get('/staff/user/:userId', async (req, res) => {
-  res.json({data: await Order.find({userId: req.params.userId}, {intake: 0}).sort({createdAt: -1}).limit(100)});
+  res.json({
+    data: await Order.find(scoped(req, {userId: req.params.userId}), {intake: 0})
+      .sort({createdAt: -1})
+      .limit(100),
+  });
 });
 
 /** Pirento One partners with the orders and paid value their code brought in. */
@@ -83,9 +93,58 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
 staffRoutes.get('/staff/queue', async (req, res) => {
   const status =
     typeof req.query.status === 'string' && req.query.status in STAFF_TRANSITIONS ? req.query.status : null;
-  const filter = status ? {status} : {status: {$in: ['paid', 'in_progress']}};
+  const filter = scoped(req, status ? {status} : {status: {$in: ['paid', 'in_progress']}});
+  if (req.query.mine === '1') filter['assignee.id'] = req.user.sub;
   res.json({data: await Order.find(filter).sort({createdAt: 1}).limit(200)});
 });
+
+/** Open work per staffer, for the team page. */
+staffRoutes.get('/staff/workload', async (_req, res) => {
+  const rows = await Order.aggregate([
+    {$match: {status: {$in: ['paid', 'in_progress']}, 'assignee.id': {$exists: true}}},
+    {$group: {_id: '$assignee.id', open: {$sum: 1}}},
+  ]);
+  const unassigned = await Order.countDocuments({
+    status: {$in: ['paid', 'in_progress']},
+    'assignee.id': {$exists: false},
+  });
+  res.json({data: {byStaff: Object.fromEntries(rows.map((r) => [r._id, r.open])), unassigned}});
+});
+
+/** Give an order to a staffer (or take it back). The browser names them; their role is checked in auth's team list. */
+staffRoutes.patch(
+  '/staff/:id/assign',
+  validate(z.object({assignee: z.object({id: z.string().min(1).max(40), email: z.email()}).nullable()})),
+  async (req, res) => {
+    const order = await findAccessible(req);
+    const {assignee} = req.body;
+    // Anyone may take work for themselves; handing it to someone else is a superadmin's call.
+    if (assignee && assignee.id !== req.user.sub && req.user.role !== 'superadmin') {
+      throw conflict('NOT_YOURS', 'Only a superadmin can assign work to someone else');
+    }
+    const updated = await Order.findByIdAndUpdate(order._id, assignee ? {$set: {assignee}} : {$unset: {assignee: 1}}, {
+      new: true,
+    });
+    audit(req, 'order.assign', `#${order.orderNo}`, assignee?.email ?? 'unassigned');
+    res.json({data: updated});
+  },
+);
+
+/** A note to the customer on the order timeline, without changing its status. */
+staffRoutes.post(
+  '/staff/:id/message',
+  validate(z.object({note: z.string().trim().min(2).max(300)})),
+  async (req, res) => {
+    const order = await findAccessible(req);
+    const updated = await Order.findByIdAndUpdate(
+      order._id,
+      {$push: {timeline: {status: order.status, note: req.body.note}}},
+      {new: true},
+    );
+    audit(req, 'order.message', `#${order.orderNo}`, req.body.note);
+    res.json({data: updated});
+  },
+);
 
 staffRoutes.patch(
   '/staff/:id',

@@ -13,7 +13,8 @@ browser ──► gateway (:4000) ──► auth · wallet · catalog · orders 
 - The **gateway** is the only public entry. It rate-limits, refuses `/api/<service>/internal/*`, and forwards `/api/<service>/…` to that service.
 - A **service** owns its data. Nobody else reads its database. Another service that needs something calls its `/internal/*` route with the shared `INTERNAL_KEY` (example: orders → wallet for debits and refunds).
 - Every response is `{data}` or `{error: {code, message}}`.
-- **Staff roles**: `support`, `finance`, `staff` (operations), `superadmin`. `ACCESS` in `packages/shared/src/server/auth.js` says which roles use which area; each service guards its `/staff` routes with `requireRole(...ACCESS.<area>)`. Staff actions call `audit(req, action, target)`, which writes to the auth service's audit trail. Superadmins change roles and suspend accounts.
+- **Staff roles**: `support`, `finance`, `staff` (operations), `superadmin`. `ACCESS` in `packages/shared/src/server/auth.js` says which roles use which area; each service guards its `/staff` routes with `requireRole(...ACCESS.<area>)`. Staff actions call `audit(req, action, target)`, which writes to the auth service's audit trail. Superadmins change roles, limit operations staff to some products (`products` in their token, applied by `productScope`), and suspend accounts.
+- **Deleting an account** (auth `lib/forget.js`): refused while the wallet holds money; then identity, vault, ai and learning each get `/internal/forget`, and only then is the account anonymised. Orders, the ledger and tickets stay, tied to the anonymous account.
 
 ## Repository layout
 
@@ -50,18 +51,18 @@ services/<name>/src
 
 ## Services
 
-| Service  | Port | Owns                                                                 |
-| -------- | ---- | -------------------------------------------------------------------- |
-| gateway  | 4000 | routing, rate limits, serving the website                            |
-| auth     | 4001 | accounts, email codes, sessions, roles                               |
-| wallet   | 4002 | balances (paise) and the ledger                                      |
-| catalog  | 4003 | products and prices (read-only, from `packages/shared`)              |
-| orders   | 4004 | checkout, payments, staff queue, completion codes, partner referrals |
-| identity | 4005 | Bharat ID applications, video KYC, verify                            |
-| learning | 4006 | Intern exam and certificates                                         |
-| vault    | 4007 | encrypted files and passwords                                        |
-| support  | 4008 | tickets                                                              |
-| ai       | 4009 | the Claude assistant                                                 |
+| Service  | Port | Owns                                                               |
+| -------- | ---- | ------------------------------------------------------------------ |
+| gateway  | 4000 | routing, rate limits, serving the website                          |
+| auth     | 4001 | accounts, email codes, sessions, roles                             |
+| wallet   | 4002 | balances (paise), the ledger, withdrawals                          |
+| catalog  | 4003 | products and prices (from `packages/shared`), site settings        |
+| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals |
+| identity | 4005 | Bharat ID applications, video KYC, verify                          |
+| learning | 4006 | Intern exam, certificates, openings and applications               |
+| vault    | 4007 | encrypted files and passwords                                      |
+| support  | 4008 | tickets                                                            |
+| ai       | 4009 | the Claude assistant                                               |
 
 ## The website
 

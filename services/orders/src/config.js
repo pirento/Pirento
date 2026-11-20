@@ -4,6 +4,7 @@ export const config = {
   port: Number(env('PORT', 4004)),
   mongoUri: env('MONGO_URI', 'mongodb://127.0.0.1:27017/pirento_orders'),
   walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
+  catalogUrl: env('CATALOG_URL', 'http://127.0.0.1:4003'),
 };
 
 /** Prefix of the public completion code per product, e.g. BLK-7F3A9C21. */

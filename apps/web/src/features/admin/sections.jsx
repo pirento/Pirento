@@ -7,6 +7,13 @@ import {Certificates} from './Certificates';
 import {Partners} from './Partners';
 import {Services} from './Services';
 import {Audit} from './Audit';
+import {Withdrawals} from './Withdrawals';
+import {Coupons} from './Coupons';
+import {Team} from './Team';
+import {Waitlist} from './Waitlist';
+import {Deletions} from './Deletions';
+import {Settings} from './Settings';
+import {Openings} from './Openings';
 import {IdentityQueue} from '../identity/IdentityQueue';
 import {FILTERS, StaffOrder} from '../orders/StaffOrder';
 import {TicketQueue} from '../support/TicketQueue';
@@ -25,6 +32,13 @@ export const SECTIONS = {
   tickets: () => <TicketQueue />,
   users: Users,
   payments: Payments,
+  withdrawals: Withdrawals,
+  coupons: Coupons,
+  team: Team,
+  waitlist: Waitlist,
+  deletions: Deletions,
+  settings: Settings,
+  openings: Openings,
   certificates: Certificates,
   partners: Partners,
   services: Services,

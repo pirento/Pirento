@@ -1,3 +1,5 @@
+// The app shell: picks a layout per route (site, app or sign-in) and renders the page in it.
+import {Banner} from '../components/layout/Banner';
 import {Suspense, useEffect} from 'react';
 import {Route, Routes} from 'react-router-dom';
 import {startSmoothScroll} from '../lib/motion';
@@ -17,6 +19,7 @@ function SiteLayout({children}) {
       <Navbar />
       <main id="main">{children}</main>
       <Footer />
+      <Banner />
     </>
   );
 }

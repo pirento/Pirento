@@ -13,6 +13,8 @@ export const User = mongoose.model(
       role: {type: String, enum: ROLES, default: 'customer'},
       // A suspended account cannot sign in or refresh; set by a superadmin.
       suspended: {type: Boolean, default: false},
+      // Operations staff limited to these product slugs; empty means all products.
+      products: {type: [String], default: []},
     },
     {timestamps: true},
   ),

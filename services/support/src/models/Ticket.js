@@ -24,6 +24,9 @@ export const Ticket = mongoose.model(
           at: {type: Date, default: Date.now},
         },
       ],
+      // Team-only: who is on it, and notes the customer never sees.
+      assignee: {_id: false, id: String, email: String},
+      notes: [{_id: false, by: String, body: String, at: {type: Date, default: Date.now}}],
     },
     {timestamps: true},
   ),

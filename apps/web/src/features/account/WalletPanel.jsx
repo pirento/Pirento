@@ -7,6 +7,7 @@ import {Label} from '../../components/ui/Heading';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
+import {Withdraw} from './Withdraw';
 
 export function WalletPanel({n}) {
   const wallet = useApi('/wallet');
@@ -48,6 +49,8 @@ export function WalletPanel({n}) {
         </Button>
       </form>
       <p className="mt-3 text-xs text-muted">Test money only, until card and UPI top-ups go live.</p>
+
+      <Withdraw balance={wallet.data?.balance ?? 0} onDone={wallet.reload} />
 
       <ul className="mt-8">
         {transactions.slice(0, 6).map((t) => (

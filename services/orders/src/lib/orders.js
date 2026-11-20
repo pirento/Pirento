@@ -1,15 +1,19 @@
 import crypto from 'node:crypto';
-import {isId, isStaff, nextSeq, notFound} from '@pirento/shared/server';
+import {canUse, isId, nextSeq, notFound, productScope} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
 
 /** Six-digit order numbers, starting at 100001. */
 export const nextOrderNo = async () => (await nextSeq('order')) + 100000;
 
-/** The order in the URL, if the caller owns it or is staff. Anyone else gets a 404, not a 403. */
+/** Staff who may read any order (support reads them to answer tickets), within their product scope. */
+const staffCanSee = (req, order) =>
+  (canUse(req, 'orders') || canUse(req, 'support')) && (productScope(req)?.includes(order.product) ?? true);
+
+/** The order in the URL, if the caller owns it or may see it as staff. Anyone else gets a 404, not a 403. */
 export async function findAccessible(req) {
   const order = isId(req.params.id) && (await Order.findById(req.params.id));
-  if (!order || (order.userId !== req.user.sub && !isStaff(req))) throw notFound('Order not found');
+  if (!order || (order.userId !== req.user.sub && !staffCanSee(req, order))) throw notFound('Order not found');
   return order;
 }
 

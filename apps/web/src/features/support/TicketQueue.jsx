@@ -10,6 +10,7 @@ export const TicketQueue = () => (
     path="/support/staff/queue"
     filters={[
       {label: 'Waiting on us', value: 'open'},
+      {label: 'Mine', value: 'mine=1&status=open'},
       {label: 'Replied', value: 'answered'},
       {label: 'Closed', value: 'closed'},
     ]}

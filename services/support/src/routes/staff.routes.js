@@ -6,6 +6,13 @@ import {TICKET_STATUSES, Ticket} from '../models/Ticket.js';
 export const staffRoutes = Router();
 
 staffRoutes.get('/staff/queue', requireRole(...ACCESS.support), async (req, res) => {
-  const status = TICKET_STATUSES.includes(req.query.status) ? req.query.status : 'open';
-  res.json({data: await Ticket.find({status}, {messages: 0}).sort({updatedAt: 1}).limit(200)});
+  const filter = {status: TICKET_STATUSES.includes(req.query.status) ? req.query.status : 'open'};
+  if (req.query.mine === '1') filter['assignee.id'] = req.user.sub;
+  res.json({data: await Ticket.find(filter, {messages: 0, notes: 0}).sort({updatedAt: 1}).limit(200)});
+});
+
+/** Every ticket with one subject, any status: the Capital waitlist is kept this way. */
+staffRoutes.get('/staff/subject', requireRole(...ACCESS.support), async (req, res) => {
+  const subject = String(req.query.q ?? '').slice(0, 120);
+  res.json({data: await Ticket.find({subject}, {notes: 0}).sort({createdAt: -1}).limit(500)});
 });

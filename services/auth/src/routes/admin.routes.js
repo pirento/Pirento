@@ -1,10 +1,13 @@
 import {Router} from 'express';
 import {z} from 'zod';
-import {ACCESS, ApiError, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {ACCESS, ApiError, STAFF, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {PRODUCTS} from '@pirento/shared';
 import {config} from '../config.js';
 import {AuditLog} from '../models/AuditLog.js';
 import {ROLES, User} from '../models/User.js';
 import {endAllSessions} from '../lib/session.js';
+import {forgetUser} from '../lib/forget.js';
+import {DeletionRequest} from '../models/DeletionRequest.js';
 
 // Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 export const adminRoutes = Router();
@@ -50,6 +53,14 @@ adminRoutes.get('/admin/stats', requireRole(...ACCESS.users, 'staff'), async (_r
   res.json({data: {total, signups: perDay.map((d) => ({day: d._id, count: d.count}))}});
 });
 
+/** Everyone on the team, for assigning work. Any staff role may read it. */
+adminRoutes.get('/admin/team', requireRole(...STAFF), async (_req, res) => {
+  const team = await User.find({role: {$in: STAFF}}, {email: 1, name: 1, role: 1, products: 1, suspended: 1}).sort({
+    email: 1,
+  });
+  res.json({data: team});
+});
+
 /** Loads someone else's account for a superadmin change, with the guards every change shares. */
 async function targetOf(req) {
   if (req.params.id === req.user.sub) throw new ApiError(400, 'SELF', 'You cannot change your own account here');
@@ -77,6 +88,20 @@ adminRoutes.patch('/admin/users/:id/role', superOnly, validate(z.object({role: z
 });
 
 adminRoutes.patch(
+  '/admin/users/:id/products',
+  superOnly,
+  validate(z.object({products: z.array(z.enum(PRODUCTS.map((p) => p.slug))).max(10)})),
+  async (req, res) => {
+    const user = await targetOf(req);
+    user.products = req.body.products;
+    await user.save();
+    await endAllSessions(user._id); // the scope is in their token
+    await log(req, 'role.products', user, req.body.products.join(', ') || 'all products');
+    res.json({data: user});
+  },
+);
+
+adminRoutes.patch(
   '/admin/users/:id/suspend',
   superOnly,
   validate(z.object({suspended: z.boolean(), reason: z.string().trim().max(200).default('')})),
@@ -94,3 +119,44 @@ adminRoutes.get('/admin/audit', requireRole(...ACCESS.audit), async (req, res) =
   const filter = typeof req.query.action === 'string' && req.query.action ? {action: req.query.action} : {};
   res.json({data: await AuditLog.find(filter).sort({createdAt: -1}).limit(300)});
 });
+
+adminRoutes.get('/admin/deletions', requireRole(...ACCESS.accounts), async (req, res) => {
+  const status = ['requested', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'requested';
+  res.json({data: await DeletionRequest.find({status}).sort({createdAt: 1}).limit(200)});
+});
+
+adminRoutes.patch(
+  '/admin/deletions/:id',
+  requireRole(...ACCESS.accounts),
+  validate(z.object({decision: z.enum(['approve', 'reject']), answer: z.string().trim().max(300).default('')})),
+  async (req, res) => {
+    const doc = isId(req.params.id) && (await DeletionRequest.findById(req.params.id));
+    if (!doc || doc.status !== 'requested') throw notFound('No open request with that id');
+    if (req.body.decision === 'reject' && !req.body.answer) throw new ApiError(400, 'BAD_INPUT', 'Tell them why');
+    if (req.body.decision === 'approve') {
+      req.params.id = doc.userId; // targetOf reads the account id from the URL
+      await forgetUser(await targetOf(req));
+    }
+    // Conditional on 'requested', so a second click does not decide twice.
+    const done = await DeletionRequest.findOneAndUpdate(
+      {_id: doc._id, status: 'requested'},
+      {
+        $set: {
+          status: req.body.decision === 'approve' ? 'approved' : 'rejected',
+          answer: req.body.answer || undefined,
+          decidedBy: req.user.email,
+          decidedAt: new Date(),
+        },
+      },
+      {new: true},
+    );
+    await AuditLog.create({
+      actorId: req.user.sub,
+      actorEmail: req.user.email,
+      action: `account.delete.${req.body.decision}`,
+      target: doc.email,
+      detail: req.body.answer,
+    });
+    res.json({data: done});
+  },
+);

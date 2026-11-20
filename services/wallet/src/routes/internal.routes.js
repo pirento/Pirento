@@ -2,6 +2,7 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {requireInternal, validate} from '@pirento/shared/server';
 import {move} from '../lib/move.js';
+import {Wallet} from '../models/Wallet.js';
 
 // Called by other services (orders) only, never by a browser.
 export const internalRoutes = Router();
@@ -21,3 +22,9 @@ for (const type of ['debit', 'credit']) {
     res.json({data: {balance: wallet.balance}});
   });
 }
+
+/** A balance, so auth can refuse to delete an account that still holds money. */
+internalRoutes.post('/internal/balance', validate(z.object({userId: z.string().min(1)})), async (req, res) => {
+  const wallet = await Wallet.findOne({userId: req.body.userId});
+  res.json({data: {balance: wallet?.balance ?? 0}});
+});

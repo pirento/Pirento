@@ -1,7 +1,7 @@
 // One account for staff: profile, orders, wallet and Bharat ID, plus role and suspension for superadmins.
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {statusLabel} from '@pirento/shared';
+import {PRODUCTS, statusLabel} from '@pirento/shared';
 import {ArrowLeft} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Label} from '../../components/ui/Heading';
@@ -10,6 +10,7 @@ import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {DataTable} from './DataTable';
 import {ACCESS_OF, ROLES, roleLabel} from './adminNav';
+import {WalletAdjust} from './WalletAdjust';
 
 /** A panel that only loads when this role may read it. */
 const useIf = (allowed, path) => useApi(allowed ? path : null);
@@ -97,6 +98,34 @@ export function UserDetail({id, me}) {
             </div>
           )}
         </div>
+        {isSuper && u.role === 'staff' && (
+          <fieldset className="mt-6 border-t border-rule pt-6">
+            <legend className="eyebrow">Products this person works on (none ticked = all)</legend>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {PRODUCTS.map((p) => {
+                const on = u.products?.includes(p.slug);
+                const next = on ? u.products.filter((s) => s !== p.slug) : [...(u.products ?? []), p.slug];
+                return (
+                  <button
+                    key={p.slug}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() =>
+                      change(
+                        'products',
+                        {products: next},
+                        `Limit ${u.email} to: ${next.join(', ') || 'all products'}? They sign in again.`,
+                      )
+                    }
+                    className={`rounded-full border px-3 py-1.5 text-sm ${on ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+                  >
+                    {p.name}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+        )}
         {error && (
           <p role="alert" className="mt-4 text-sm">
             ⚠ {error}
@@ -110,6 +139,7 @@ export function UserDetail({id, me}) {
             <p className="eyebrow">Wallet</p>
             <p className="num mt-4 text-3xl!">{wallet.data ? inr(wallet.data.balance / 100) : '—'}</p>
             <p className="mt-2 text-sm text-muted">{wallet.data?.transactions.length ?? 0} recent movements</p>
+            {may('payments') && <WalletAdjust userId={id} onDone={wallet.reload} />}
           </div>
         )}
         {may('bharat-id') && (

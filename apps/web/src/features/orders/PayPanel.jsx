@@ -62,6 +62,11 @@ export function PayPanel({order, onPaid}) {
     <div className="rounded-[22px] border border-accent p-8" data-reveal>
       <Label n={1}>Pay</Label>
       <p className="num mt-6">{inr(order.amount / 100)}</p>
+      {order.discount > 0 && (
+        <p className="mt-2 text-sm text-muted">
+          {order.coupon} took {inr(order.discount / 100)} off
+        </p>
+      )}
       <div className="mt-8 space-y-3">
         <Button
           onClick={payWallet}

@@ -4,7 +4,9 @@ import {useApi} from '../../lib/api/useApi';
 
 export function StaffQueue({path, filters, render}) {
   const [filter, setFilter] = useState(filters[0].value);
-  const queue = useApi(`${path}${filter ? `?status=${filter}` : ''}`);
+  // A filter is a status, or a ready query such as "mine=1".
+  const query = filter && (filter.includes('=') ? filter : `status=${filter}`);
+  const queue = useApi(`${path}${query ? `?${query}` : ''}`);
   return (
     <>
       <div role="tablist" aria-label="Filter" className="no-scrollbar mt-8 flex gap-2 overflow-x-auto">

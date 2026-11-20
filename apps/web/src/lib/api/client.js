@@ -61,7 +61,12 @@ export async function api(path, {method = 'GET', body} = {}) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error?.message ?? 'Could not reach Pirento. Try again.');
+  if (!res.ok) {
+    // The gateway's rate limit answers in plain text, so name it here.
+    const fallback =
+      res.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Could not reach Pirento. Try again.';
+    throw new Error(json.error?.message ?? fallback);
+  }
   return json.data;
 }
 

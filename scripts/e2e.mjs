@@ -544,6 +544,335 @@ check(
   pm,
 );
 
+// ── Admin: coupons ──────────────────────────────────────────────────────
+const code = `E2E${Date.now().toString().slice(-6)}`;
+check(
+  'support cannot make codes',
+  (await call('/orders/staff/coupons', {method: 'POST', token: supToken, body: {code, kind: 'percent', value: 10}}))
+    .status === 403,
+);
+const cp = (
+  await call('/orders/staff/coupons', {
+    method: 'POST',
+    token: boss,
+    body: {code, kind: 'percent', value: 10, product: 'giftox', maxUses: 1},
+  })
+).data;
+check('create code', cp?.code === code, cp);
+check(
+  'code preview',
+  (await call(`/orders/coupons/${code.toLowerCase()}?service=giftox-welcome-kit`, {token: user})).data?.discount ===
+    14990,
+);
+check(
+  'code refuses other products',
+  (await call(`/orders/coupons/${code}?service=gst-registration`, {token: user})).error?.code === 'COUPON',
+);
+const disc = (
+  await call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'giftox-welcome-kit', coupon: code, intake: gift},
+  })
+).data;
+check('order with code is priced by the server', disc?.amount === 134910 && disc.discount === 14990, disc);
+check(
+  'a one-use code works once',
+  (
+    await call('/orders', {
+      method: 'POST',
+      token: user,
+      body: {serviceSlug: 'giftox-welcome-kit', coupon: code, intake: gift},
+    })
+  ).error?.code === 'COUPON',
+);
+await call(`/orders/staff/coupons/${cp._id}`, {method: 'PATCH', token: boss, body: {active: false}});
+check('code redemptions', (await call(`/orders/staff/coupons/${cp._id}/orders`, {token: boss})).data?.length === 1);
+
+// ── Admin: order assign, note, product scope ────────────────────────────
+const me2 = (await call('/auth/me', {token: staffToken})).data;
+check(
+  'staff cannot assign to someone else',
+  (
+    await call(`/orders/staff/${disc._id}/assign`, {
+      method: 'PATCH',
+      token: staffToken,
+      body: {assignee: {id: bossId, email: 'boss@example.com'}},
+    })
+  ).status === 409,
+);
+const took = (
+  await call(`/orders/staff/${disc._id}/assign`, {
+    method: 'PATCH',
+    token: staffToken,
+    body: {assignee: {id: me2._id, email: me2.email}},
+  })
+).data;
+check('take an order', took?.assignee?.id === me2._id);
+const noted = (
+  await call(`/orders/staff/${disc._id}/message`, {method: 'POST', token: staffToken, body: {note: 'Box packed'}})
+).data;
+check('note without status change', noted?.status === 'pending_payment' && noted.timeline.at(-1).note === 'Box packed');
+check(
+  'customer sees the note',
+  (await call(`/orders/${disc._id}`, {token: user})).data?.timeline.at(-1).note === 'Box packed',
+);
+check(
+  'team list',
+  (await call('/auth/admin/team', {token: staffToken})).data?.some((m) => m._id === me2._id),
+);
+check('workload', typeof (await call('/orders/staff/workload', {token: boss})).data?.unassigned === 'number');
+await call(`/auth/admin/users/${me2._id}/products`, {method: 'PATCH', token: boss, body: {products: ['legal']}});
+const scopedToken = (await loginWithCookie(me2.email)).token;
+check(
+  'scoped staff do not see other products',
+  (await call(`/orders/${disc._id}`, {token: scopedToken})).status === 404,
+);
+check(
+  'scoped queue only has their products',
+  ((await call('/orders/staff/queue?status=pending_payment', {token: scopedToken})).data ?? [1]).every(
+    (o) => o.product === 'legal',
+  ),
+);
+await call(`/auth/admin/users/${me2._id}/products`, {method: 'PATCH', token: boss, body: {products: []}});
+
+// ── Admin: tickets ──────────────────────────────────────────────────────
+const tk = (
+  await call('/support', {method: 'POST', token: user, body: {subject: 'Capital waitlist', message: 'A shop loan'}})
+).data;
+const supAgain = (await loginWithCookie(supUser.email)).token;
+const supMe = (await call('/auth/me', {token: supAgain})).data;
+const withNote = (
+  await call(`/support/${tk._id}/notes`, {method: 'POST', token: boss, body: {body: 'Call back Monday'}})
+).data;
+check('team note', withNote?.notes?.at(-1)?.body === 'Call back Monday');
+check('customer never sees notes', (await call(`/support/${tk._id}`, {token: user})).data?.notes === undefined);
+check(
+  'customer cannot add notes',
+  (await call(`/support/${tk._id}/notes`, {method: 'POST', token: user, body: {body: 'hi there'}})).status === 404,
+);
+const tAssigned = (
+  await call(`/support/${tk._id}/assign`, {
+    method: 'PATCH',
+    token: supAgain,
+    body: {assignee: {id: supMe._id, email: supMe.email}},
+  })
+).data;
+check('take a ticket', tAssigned?.assignee?.email === supMe.email);
+check(
+  'mine filter',
+  (await call('/support/staff/queue?mine=1&status=open', {token: supAgain})).data?.some((t) => t._id === tk._id),
+);
+check(
+  'capital waitlist',
+  (await call(`/support/staff/subject?q=${encodeURIComponent('Capital waitlist')}`, {token: boss})).data?.some(
+    (t) => t._id === tk._id,
+  ),
+);
+
+// ── Admin: wallet adjust and withdrawals ────────────────────────────────
+const userMe = (await call('/auth/me', {token: user})).data;
+check(
+  'support cannot adjust',
+  (
+    await call('/wallet/staff/adjust', {
+      method: 'POST',
+      token: supAgain,
+      body: {userId: userMe._id, type: 'credit', amount: 5, reason: 'test'},
+    })
+  ).status === 403,
+);
+const before = (await call('/wallet', {token: user})).data.balance;
+await call('/wallet/staff/adjust', {
+  method: 'POST',
+  token: boss,
+  body: {userId: userMe._id, type: 'credit', amount: 250, reason: 'Goodwill'},
+});
+check('adjust credits', (await call('/wallet', {token: user})).data.balance === before + 25000);
+check(
+  'withdrawal needs a UPI ID',
+  (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'nope'}})).status === 400,
+);
+const wd = (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 150, upi: 'test@upi'}}))
+  .data;
+check(
+  'withdrawal holds the money',
+  wd?.status === 'requested' && (await call('/wallet', {token: user})).data.balance === before + 10000,
+);
+check(
+  'one open withdrawal at a time',
+  (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'test@upi'}})).status ===
+    409,
+);
+check(
+  'rejecting needs a reason',
+  (await call(`/wallet/staff/withdrawals/${wd._id}`, {method: 'PATCH', token: boss, body: {decision: 'rejected'}}))
+    .status === 400,
+);
+await call(`/wallet/staff/withdrawals/${wd._id}`, {
+  method: 'PATCH',
+  token: boss,
+  body: {decision: 'rejected', reason: 'UPI ID inactive'},
+});
+check('rejected withdrawal comes back', (await call('/wallet', {token: user})).data.balance === before + 25000);
+check(
+  'decided once',
+  (
+    await call(`/wallet/staff/withdrawals/${wd._id}`, {
+      method: 'PATCH',
+      token: boss,
+      body: {decision: 'paid', utr: 'X1'},
+    })
+  ).status === 409,
+);
+const wd2 = (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'test@upi'}}))
+  .data;
+const paid = (
+  await call(`/wallet/staff/withdrawals/${wd2._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {decision: 'paid', utr: 'UTR123'},
+  })
+).data;
+check('paid withdrawal', paid?.status === 'paid' && paid.utr === 'UTR123');
+
+// ── Admin: settings ─────────────────────────────────────────────────────
+check(
+  'banner link must be on-site',
+  (
+    await call('/catalog/staff/settings', {
+      method: 'PATCH',
+      token: boss,
+      body: {banner: {on: true, text: 'Hi', link: 'https://evil.example'}, paused: []},
+    })
+  ).status === 400,
+);
+check(
+  'staff cannot change settings',
+  (
+    await call('/catalog/staff/settings', {
+      method: 'PATCH',
+      token: staffToken,
+      body: {banner: {on: false, text: '', link: ''}, paused: []},
+    })
+  ).status === 403,
+);
+await call('/catalog/staff/settings', {
+  method: 'PATCH',
+  token: boss,
+  body: {banner: {on: true, text: 'Diwali boxes are here', link: '/giftox'}, paused: ['giftox']},
+});
+check('banner is public', (await call('/catalog/settings')).data?.banner.text === 'Diwali boxes are here');
+check(
+  'paused product takes no orders',
+  (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'giftox-welcome-kit', intake: gift}})).error
+    ?.code === 'PAUSED',
+);
+await call('/catalog/staff/settings', {
+  method: 'PATCH',
+  token: boss,
+  body: {banner: {on: false, text: '', link: ''}, paused: []},
+});
+
+// ── Admin: openings ─────────────────────────────────────────────────────
+const op = (
+  await call('/learning/staff/openings', {
+    method: 'POST',
+    token: boss,
+    body: {
+      title: 'Design intern',
+      kind: 'internship',
+      mode: 'remote',
+      description: 'Help design the Pirento sites for three months.',
+    },
+  })
+).data;
+check('post opening', Boolean(op?._id), op);
+check(
+  'openings are public',
+  (await call('/learning/openings')).data?.some((o) => o._id === op._id),
+);
+check(
+  'apply',
+  (await call(`/learning/openings/${op._id}/apply`, {method: 'POST', token: user, body: {note: 'I design'}})).status ===
+    201,
+);
+check(
+  'apply once',
+  (await call(`/learning/openings/${op._id}/apply`, {method: 'POST', token: user, body: {}})).status === 409,
+);
+const apps = (await call(`/learning/staff/openings/${op._id}/applications`, {token: boss})).data;
+await call(`/learning/staff/openings/applications/${apps[0]._id}`, {
+  method: 'PATCH',
+  token: boss,
+  body: {status: 'shortlisted'},
+});
+check(
+  'applicant sees status',
+  (await call('/learning/openings/mine', {token: user})).data?.[0]?.status === 'shortlisted',
+);
+await call(`/learning/staff/openings/${op._id}`, {method: 'PATCH', token: boss, body: {open: false}});
+check('closed opening hidden', !(await call('/learning/openings')).data?.some((o) => o._id === op._id));
+
+// ── Account deletion ────────────────────────────────────────────────────
+const leaver = await loginWithCookie(`leaver${Date.now()}@example.com`);
+const leaverMe = (await call('/auth/me', {token: leaver.token})).data;
+await call('/vault/credentials', {
+  method: 'POST',
+  token: leaver.token,
+  body: {label: 'Bank', username: 'me', password: 'secret'},
+});
+check(
+  'ask to delete',
+  (await call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {reason: 'Done'}})).status === 201,
+);
+check('ask once', (await call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {}})).status === 409);
+check('staff cannot see deletions', (await call('/auth/admin/deletions', {token: staffToken})).status === 403);
+const dreq = (await call('/auth/admin/deletions', {token: boss})).data.find((d) => d.userId === leaverMe._id);
+await call('/wallet/staff/adjust', {
+  method: 'POST',
+  token: boss,
+  body: {userId: leaverMe._id, type: 'credit', amount: 10, reason: 'Test'},
+});
+check(
+  'cannot delete while money is held',
+  (await call(`/auth/admin/deletions/${dreq._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).error
+    ?.code === 'HAS_BALANCE',
+);
+await call('/wallet/staff/adjust', {
+  method: 'POST',
+  token: boss,
+  body: {userId: leaverMe._id, type: 'debit', amount: 10, reason: 'Test'},
+});
+const gone = (
+  await call(`/auth/admin/deletions/${dreq._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})
+).data;
+check('deletion approved', gone?.status === 'approved', gone);
+const anon = (await call(`/auth/admin/users/${leaverMe._id}`, {token: boss})).data;
+check('account anonymised', anon?.email.endsWith('@deleted.invalid') && anon.suspended && !anon.name);
+check(
+  'sessions ended',
+  (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: leaver.cookie}})).status === 401,
+);
+const audit2 = new Set(((await call('/auth/admin/audit', {token: boss})).data ?? []).map((r) => r.action));
+check(
+  'new actions are audited',
+  [
+    'coupon.create',
+    'order.assign',
+    'order.message',
+    'ticket.note',
+    'wallet.credit',
+    'withdrawal.paid',
+    'withdrawal.rejected',
+    'settings.update',
+    'opening.create',
+    'account.delete.approve',
+    'role.products',
+  ].every((a) => audit2.has(a)),
+  [...audit2],
+);
+
 // ── AI ──────────────────────────────────────────────────────────────────
 const ai = (await call('/ai/status', {token: user})).data;
 if (ai?.enabled) console.log('note: ANTHROPIC_API_KEY is set; skipping the AI-off check');

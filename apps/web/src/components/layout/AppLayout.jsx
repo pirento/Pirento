@@ -1,6 +1,6 @@
 // The working shell for dashboards and admin: a sidebar instead of the
 // marketing navbar and footer, so the page is about the work, not the pitch.
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {Home, LayoutDashboard, LifeBuoy, LogOut, Menu, Search, ShieldCheck, X} from 'lucide-react';
 import {PRODUCTS} from '@pirento/shared';
@@ -22,7 +22,11 @@ function useAppNav() {
   if (pathname.startsWith('/admin')) {
     return {
       title: 'Pirento Admin',
-      groups: [{label: 'Admin', items: sectionsFor(user?.role).map((s) => ({...s, to: `/admin/${s.id}`}))}],
+      // One sidebar group per section group (Work, People, Money…), keeping their order.
+      groups: Object.entries(Object.groupBy(sectionsFor(user?.role), (s) => s.group)).map(([label, items]) => ({
+        label,
+        items: items.map((s) => ({...s, to: `/admin/${s.id}`})),
+      })),
     };
   }
   const products = {
@@ -54,6 +58,12 @@ function Sidebar({onNavigate}) {
   const {user, signOut} = useSession();
   const {title, groups} = useAppNav();
   const product = useProductSite();
+  const {pathname} = useLocation();
+  const navRef = useRef(null);
+  // A long admin list scrolls; keep the current page's link in view.
+  useEffect(() => {
+    navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({block: 'nearest'});
+  }, [pathname]);
 
   return (
     <div className="flex h-full flex-col">
@@ -66,7 +76,7 @@ function Sidebar({onNavigate}) {
         {title}
       </Link>
 
-      <nav aria-label="Dashboard" className="mt-8 flex-1 space-y-8 overflow-y-auto">
+      <nav ref={navRef} aria-label="Dashboard" className="mt-8 min-h-0 flex-1 space-y-6 overflow-y-auto">
         {groups.map((g) => (
           <div key={g.label}>
             <p className="eyebrow px-3">{g.label}</p>

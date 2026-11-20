@@ -37,6 +37,7 @@ export async function issueSession(res, user) {
   setRefreshCookie(res, refresh, config.refreshDays * 86_400);
 
   const claims = {sub: String(user._id), email: user.email, role: user.role};
+  if (user.role === 'staff' && user.products?.length) claims.products = user.products;
   const token = jwt.sign(claims, jwtSecret(), {expiresIn: config.accessTokenLife});
   res.json({data: {token, user}});
 }

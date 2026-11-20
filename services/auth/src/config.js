@@ -15,6 +15,15 @@ export const config = {
   refreshDays: 30,
   refreshCookie: 'pirento_rt',
 
+  walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
+  /** Services that keep personal data and forget it when an account is deleted. */
+  forgetUrls: () => [
+    env('IDENTITY_URL', 'http://127.0.0.1:4005'),
+    env('VAULT_URL', 'http://127.0.0.1:4007'),
+    env('AI_URL', 'http://127.0.0.1:4009'),
+    env('LEARNING_URL', 'http://127.0.0.1:4006'),
+  ],
+
   /** Emails promoted to superadmin on sign-in: the way to bootstrap the first admin. */
   superadminEmails: () =>
     env('SUPERADMIN_EMAILS', '')

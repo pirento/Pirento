@@ -1,5 +1,6 @@
 // The Pirento Ecosystem dashboard: one place for every product, the wallet,
 // recent orders and your profile.
+import {DeleteAccount} from './DeleteAccount';
 import {useRef, useState} from 'react';
 import {LogOut, ShieldCheck} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
@@ -50,6 +51,7 @@ function ProfileCard({n}) {
       <Button onClick={signOut} variant="outline" icon={LogOut} className="mt-8">
         Sign out
       </Button>
+      <DeleteAccount />
     </div>
   );
 }

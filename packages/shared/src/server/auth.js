@@ -18,6 +18,9 @@ export const ACCESS = {
   learning: ['staff', 'superadmin'],
   partners: ['finance', 'superadmin'],
   audit: ['superadmin'],
+  coupons: ['finance', 'superadmin'],
+  accounts: ['superadmin'], // deletion requests, site settings
+  openings: ['staff', 'superadmin'],
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');
@@ -44,5 +47,12 @@ export const requireRole =
     roles.includes(req.user?.role) ? next() : next(new ApiError(403, 'FORBIDDEN', 'You do not have access to this'));
 
 export const isStaff = (req) => STAFF.includes(req.user?.role);
+/**
+ * Operations staff can be limited to some products (their token carries
+ * `products`). Returns that list, or null when the caller sees every product.
+ */
+export const productScope = (req) =>
+  req.user?.role === 'staff' && req.user.products?.length ? req.user.products : null;
+
 /** Staff who may work `area` (a key of ACCESS). */
 export const canUse = (req, area) => ACCESS[area].includes(req.user?.role);

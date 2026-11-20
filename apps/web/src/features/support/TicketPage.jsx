@@ -9,6 +9,7 @@ import {TextArea} from '../../components/ui/TextArea';
 import {useSignedIn} from '../auth/useSignedIn';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {STATUS} from './status';
+import {TeamPanel} from './TeamPanel';
 import {api} from '../../lib/api/client';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
@@ -68,6 +69,7 @@ export function Ticket() {
             </li>
           ))}
         </ol>
+        {staffView && <TeamPanel ticket={t} me={me} onChange={ticket.reload} />}
         {t.status !== 'closed' && (
           <form
             onSubmit={(e) => {
