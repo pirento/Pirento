@@ -67,7 +67,7 @@ services/<name>/src
 ## The website
 
 - `/` is the **Pirento Ecosystem** site; `/dashboard` is the shared dashboard (products, wallet, orders, profile).
-- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
+- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. Every home has its own layout and a working widget (service search, rate card, tree calculator, exam facts, chat sample, spec sheet, referral path, EMI calculator, sample ID card, box strip), set in `features/products/designs.js`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
 - Three layouts (`app/App.jsx`): marketing pages get the navbar and footer; dashboards and admin get the app shell (`components/layout/AppLayout.jsx`, a sidebar, no footer); sign-in pages stand alone. Routes pick one with `layout` in `app/routes.jsx`.
 - Admin is `/admin/<section>`; `features/admin/adminNav.js` lists the sections and the roles that see them.
 - Sign-in is `/login` (customers) and `/admin/login` (staff). Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.

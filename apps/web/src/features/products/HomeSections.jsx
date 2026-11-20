@@ -1,22 +1,84 @@
-// The shared sections of every product home page: features, who it is for, related products.
+// The sections of a product home page: features (three layouts), who it is for, how it works (two layouts), related products.
 import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
-import {Section, SectionHeader} from '../../components/ui/Heading';
+import {Illustration} from '../../components/Illustration';
+import {productIllustration} from '../../data/site';
+import {Heading, Label, Section, SectionHeader} from '../../components/ui/Heading';
+import {Steps} from '../../components/ui/Blocks';
 
-/** Six features: the first is a wide card, the rest a grid, so the section reads as a story, not a list. */
-export function Features({product}) {
-  const [lead, ...rest] = [...product.highlights, ...(product.more ?? [])];
+const featuresOf = (product) => [...product.highlights, ...(product.more ?? [])];
+
+export function Features({product, variant = 'bento', n}) {
+  if (variant === 'rows') return <FeatureRows product={product} n={n} />;
+  if (variant === 'cards') return <FeatureCards product={product} n={n} />;
+  return <FeatureBento product={product} n={n} />;
+}
+
+/** Rows: the heading stays put on the left while numbered lines scroll by on the right. */
+function FeatureRows({product, n}) {
   return (
     <Section className="pt-0! md:pt-0!">
-      <SectionHeader n={1} label="What you get" title="What it does / today." intro={product.overview} />
+      <div className="grid gap-12 lg:grid-cols-12">
+        <div className="lg:col-span-4">
+          <div className="lg:sticky lg:top-28">
+            <SectionHeader n={n} label="What you get" title="Six things / it does." />
+          </div>
+        </div>
+        <ol className="border-t border-rule lg:col-span-8">
+          {featuresOf(product).map((h, i) => (
+            <li key={h.title} className="grid gap-4 border-b border-rule py-8 sm:grid-cols-[5rem_1fr]" data-reveal>
+              <span className="num text-[clamp(1.75rem,3vw,2.5rem)]! text-muted">{String(i + 1).padStart(2, '0')}</span>
+              <span>
+                <h3 className="text-[clamp(1.5rem,2.4vw,2rem)]">{h.title}</h3>
+                <p className="mt-2 max-w-xl text-lg leading-relaxed text-muted">{h.body}</p>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </Section>
+  );
+}
+
+/** Cards: six even cards on stone, two rows of three. */
+function FeatureCards({product, n}) {
+  return (
+    <Section className="pt-0! md:pt-0!">
+      <SectionHeader n={n} label="What you get" title="Everything / in one place." intro={product.overview} />
+      <div className="mt-16 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
+        {featuresOf(product).map((h, i) => (
+          <div
+            key={h.title}
+            className="group bg-stone p-8 transition-colors duration-500 hover:bg-paper md:p-10"
+            data-reveal
+          >
+            <span className="flex size-12 items-center justify-center rounded-full border border-rule text-sm tabular-nums transition-colors duration-500 group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
+              {String(i + 1).padStart(2, '0')}
+            </span>
+            <h3 className="mt-12 text-2xl">{h.title}</h3>
+            <p className="mt-3 leading-relaxed text-muted">{h.body}</p>
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/** Bento: the first feature is a wide card, the rest a grid, so the section reads as a story, not a list. */
+function FeatureBento({product, n}) {
+  const [lead, ...rest] = featuresOf(product);
+  return (
+    <Section className="pt-0! md:pt-0!">
+      <SectionHeader n={n} label="What you get" title="What it does / today." intro={product.overview} />
       <div className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div
           className="flex flex-col justify-between rounded-[22px] bg-stone p-8 md:col-span-2 md:p-12 lg:row-span-2"
           data-reveal
         >
           <span className="eyebrow">01 · {product.short}</span>
-          <div className="mt-16">
+          <Illustration name={productIllustration[product.slug]} className="mt-8 hidden md:block" />
+          <div className="mt-10">
             <h3 className="text-[clamp(1.75rem,3vw,2.75rem)] leading-tight">{lead.title}</h3>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">{lead.body}</p>
           </div>
@@ -39,11 +101,11 @@ export function Features({product}) {
   );
 }
 
-export function Audience({product}) {
+export function Audience({product, n}) {
   if (!product.audience) return null;
   return (
     <Section>
-      <SectionHeader n={3} label="Who it is for" title="Made for / people like you." />
+      <SectionHeader n={n} label="Who it is for" title="Made for / people like you." />
       <ul className="mt-16 grid border-t border-rule md:grid-cols-3">
         {product.audience.map((a, i) => (
           <li
@@ -62,12 +124,12 @@ export function Audience({product}) {
 }
 
 /** Cross-links to the products that go well with this one, each in its own colour. */
-export function Related({product}) {
+export function Related({product, n}) {
   const list = (product.related ?? []).map(getProduct).filter(Boolean);
   if (!list.length) return null;
   return (
     <Section>
-      <SectionHeader n={6} label="Goes well with" title="One account, / more to use." />
+      <SectionHeader n={n} label="Goes well with" title="One account, / more to use." />
       <ul className="mt-16 grid gap-4 md:grid-cols-3">
         {list.map((p) => (
           <li key={p.slug} data-reveal>
@@ -91,5 +153,44 @@ export function Related({product}) {
         ))}
       </ul>
     </Section>
+  );
+}
+
+/** How it works: a dark band with steps across, or a paper timeline down the page. */
+export function How({product, variant = 'steps', n}) {
+  if (variant === 'timeline') {
+    return (
+      <Section id="how">
+        <div className="grid gap-12 lg:grid-cols-12">
+          <div className="lg:col-span-5">
+            <SectionHeader n={n} label="How it works" title="Step by / step." />
+          </div>
+          <ol className="relative border-l border-rule lg:col-span-7">
+            {product.steps.map((s, i) => (
+              <li key={s.title} className="relative pb-12 pl-10 last:pb-0" data-reveal>
+                <span
+                  aria-hidden
+                  className={`absolute top-1 -left-[9px] size-[17px] rounded-full border-2 ${
+                    i === product.steps.length - 1 ? 'border-accent bg-accent' : 'border-ink bg-paper'
+                  }`}
+                />
+                <span className="text-sm text-muted tabular-nums">Step {String(i + 1).padStart(2, '0')}</span>
+                <h3 className="mt-2 text-2xl">{s.title}</h3>
+                <p className="mt-2 max-w-lg leading-relaxed text-muted">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </Section>
+    );
+  }
+  return (
+    <section id="how" className="inverse py-28 md:py-40">
+      <div className="container-x">
+        <Label n={n}>How it works</Label>
+        <Heading text="From first click / to done." className="h-section mt-6 mb-20" data-lines />
+        <Steps steps={product.steps} />
+      </div>
+    </section>
   );
 }

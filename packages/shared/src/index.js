@@ -17,3 +17,5 @@ export {ID_SECTIONS, RELATIONS, validateSection} from './identity/form.js';
 
 // Money helpers
 export {emi} from './money/emi.js';
+export {EXAM_RULES, VAULT_LIMITS} from './data/examRules.js';
+export {GREEN_DRIVES} from './data/greenDrives.js';

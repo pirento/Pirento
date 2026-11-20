@@ -31,7 +31,8 @@ Short recipes for the changes we make most. Each one names every place to touch.
 
 1. Add the product to `packages/shared/src/data/products.js` (copy, steps, FAQ, status) and its colours to `PRODUCT_COLOURS` in `data/brand.js`. The contrast test tells you if its text colour is unreadable.
 2. Its home page works at once. For a dashboard, add a component to `APPS` in `apps/web/src/features/products/ProductDashboardPage.jsx`, or sell priced services through `catalog/services.js` and it gets the orders dashboard.
-3. Add an illustration name in `apps/web/src/data/site.js` (`productIllustration`).
+3. Give it a layout in `apps/web/src/features/products/designs.js`: a hero (`split`, `split-reverse`, `center`, `editorial`), a working widget from `features/products/widgets/`, a features layout (`bento`, `rows`, `cards`), a how-it-works layout (`steps`, `timeline`), and `covers` if the widget already is the prices or how-it-works section. Pick a mix no other site has.
+4. Add an illustration name in `apps/web/src/data/site.js` (`productIllustration`); the bento layout shows it.
 
 ## Add a service to sell
 
@@ -40,6 +41,10 @@ Add it to the catalogue data in `packages/shared/src/data/` (prices in rupees). 
 ## Change a Bharat ID question
 
 Edit `ID_SECTIONS` in `packages/shared/src/identity/form.js`. The form, the server's validation and the staff view all follow. Never store a full Aadhaar or bank account number; use `store` to keep only what is needed.
+
+## Change a price
+
+In admin → Services & prices (finance or superadmin): set a new price, reset it, or take a service off sale. The base price stays in `packages/shared/src/data/`; the catalog service keeps the change, the orders service charges it, and the website shows it through `lib/prices.jsx`. Use `useService` / `useServicesFor` from there, never `getService` directly, when showing a price.
 
 ## Change a colour
 

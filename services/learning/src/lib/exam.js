@@ -1,5 +1,7 @@
-export const EXAM_MINUTES = 30;
-export const PASS_PERCENT = 60;
+import {EXAM_RULES} from '@pirento/shared';
+
+export const EXAM_MINUTES = EXAM_RULES.minutes;
+export const PASS_PERCENT = EXAM_RULES.passPercent;
 const GRACE_MS = 2 * 60_000; // network slack on submit
 
 /** Questions as the browser sees them: no answers. */
