@@ -1,5 +1,8 @@
-// "Continue with Google", drawn by Google's own script; shown only when the server has a client id.
+// "Google" in the sign-in pages' own button style. When the install has a Google client id, Google's real
+// button sits invisibly on top of ours, so the click goes to Google (its rules require its own button);
+// without one, the button says Google sign-in is not set up yet.
 import {useEffect, useRef, useState} from 'react';
+import {authButton} from './AuthButtons';
 
 const SCRIPT = 'https://accounts.google.com/gsi/client';
 
@@ -15,34 +18,50 @@ function loadScript() {
   });
 }
 
-export function GoogleButton({clientId, onCredential}) {
+export function GoogleButton({clientId, onCredential, onUnavailable}) {
   const box = useRef(null);
-  const [failed, setFailed] = useState(false);
-  // Keep the latest handler without re-rendering Google's button on every keystroke.
+  const [ready, setReady] = useState(false);
+  // Keep the latest handler without re-drawing Google's button on every keystroke.
   const handler = useRef(onCredential);
   handler.current = onCredential;
 
   useEffect(() => {
+    if (!clientId) return;
     let live = true;
     loadScript().then(
       () => {
         if (!live || !box.current) return;
         window.google.accounts.id.initialize({client_id: clientId, callback: (r) => handler.current(r.credential)});
         window.google.accounts.id.renderButton(box.current, {
-          theme: 'outline',
+          type: 'standard',
           size: 'large',
-          shape: 'pill',
-          text: 'continue_with',
-          width: box.current.offsetWidth || 360,
+          width: Math.min(400, box.current.offsetWidth || 200),
         });
+        setReady(true);
       },
-      () => live && setFailed(true),
+      () => {},
     );
     return () => {
       live = false;
     };
   }, [clientId]);
 
-  if (failed) return <p className="text-sm text-muted">Google sign-in could not load here. Use another way below.</p>;
-  return <div ref={box} className="min-h-11 w-full" />;
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        tabIndex={ready ? -1 : 0}
+        onClick={() => !clientId && onUnavailable?.()}
+        className={authButton('soft')}
+        aria-hidden={ready || undefined}
+      >
+        <img src="/brand/google-g.svg" alt="" width="18" height="18" className="size-[18px]" />
+        Google
+      </button>
+      {clientId && (
+        // Google's own button, the size of ours and almost invisible: it takes the click and the focus.
+        <div ref={box} className="absolute inset-0 overflow-hidden opacity-[0.011]" aria-label="Sign in with Google" />
+      )}
+    </div>
+  );
 }

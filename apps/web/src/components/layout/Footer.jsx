@@ -5,7 +5,7 @@ import {brand, nav, socials} from '../../data/site';
 import {lenis} from '../../lib/motion';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
-import {PirentoLogo} from './PirentoLogo';
+import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 
 const icons = {twitter: Twitter, linkedin: Linkedin, instagram: Instagram};
 
@@ -77,7 +77,9 @@ export function Footer() {
         </div>
         {/* Product sites: their name as the wordmark (the viewBox grows with it so letters keep their shape).
             The ecosystem: the Pirento logo itself. */}
-        {product ? (
+        {product && hasLogo(product.slug) ? (
+          <SiteLogo brand={product.slug} tone="light" alt={product.name} className="mt-16 h-auto w-full max-w-3xl" />
+        ) : product ? (
           <svg viewBox={`0 0 ${name.length * 140} 210`} className="mt-16 w-full" role="img" aria-label={name}>
             <text
               x="0"

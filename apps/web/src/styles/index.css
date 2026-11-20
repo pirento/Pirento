@@ -280,3 +280,8 @@ h3,
     background: #fff;
   }
 }
+
+/* Sign-in pages: squarer fields, matching their 8px buttons (features/auth/AuthButtons.jsx). */
+.auth-form input:not([type='checkbox']):not([type='radio']) {
+  border-radius: 8px;
+}

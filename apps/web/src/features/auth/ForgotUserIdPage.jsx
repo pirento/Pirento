@@ -2,7 +2,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {MailCheck} from 'lucide-react';
-import {Button} from '../../components/ui/Button';
+import {AuthButton} from './AuthButtons';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {AuthShell} from './AuthShell';
@@ -58,14 +58,14 @@ export function ForgotUserId() {
               onChange={(e) => setContact(e.target.value)}
               error={error}
             />
-            <Button
+            <AuthButton
+              arrow
               type="submit"
-              variant="accent"
-              className="w-full justify-center"
+
               disabled={busy || contact.trim().length < 3}
             >
               {busy ? 'Please wait' : 'Email my user ID'}
-            </Button>
+            </AuthButton>
           </form>
         </>
       )}

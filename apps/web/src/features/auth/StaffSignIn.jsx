@@ -1,7 +1,7 @@
 // The staff door: the staff ID and password a superadmin issued you.
 import {useState} from 'react';
 import {Lock} from 'lucide-react';
-import {Button} from '../../components/ui/Button';
+import {AuthButton} from './AuthButtons';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {PasswordField} from './PasswordField';
@@ -50,14 +50,15 @@ export function StaffSignIn({onSignedIn}) {
           error={error}
         />
       </div>
-      <Button
+      <AuthButton
+        arrow
         type="submit"
-        variant="accent"
-        className="mt-8 w-full justify-center"
+
+        className="mt-8"
         disabled={busy || !staffId.trim() || !password}
       >
         {busy ? 'Please wait' : 'Sign in'}
-      </Button>
+      </AuthButton>
       <details className="mt-6 text-sm text-muted">
         <summary className="cursor-pointer hover:text-ink">Trouble signing in?</summary>
         <p className="mt-2">

@@ -1,7 +1,7 @@
 // The sign-in page frame: a side panel that says whose door this is, and the form, which comes first on phones.
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
-import {PirentoLogo, PirentoMark} from '../../components/layout/PirentoLogo';
+import {PirentoLogo, PirentoMark, SiteLogo, SiteMark} from '../../components/layout/PirentoLogo';
 
 /**
  * `side` = {eyebrow, quote, line, Icon} for a product, or {pirento, label, quote, line} for Pirento's own doors
@@ -19,7 +19,9 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
           to={home}
           className="relative flex items-center gap-2.5 text-sm font-semibold tracking-[0.04em] uppercase"
         >
-          {side.pirento ? (
+          {side.brand ? (
+            <SiteLogo brand={side.brand} tone="light" alt={side.eyebrow} className="h-11 w-auto" />
+          ) : side.pirento ? (
             <>
               <PirentoLogo tone="light" alt="Pirento" className="h-7 w-auto" />
               <span className="text-xs font-medium text-muted">{side.label}</span>
@@ -33,7 +35,9 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         </Link>
 
         <div className="relative">
-          {side.pirento ? (
+          {side.brand ? (
+            <SiteMark brand={side.brand} tone="light" alt="" className="h-20 w-auto" />
+          ) : side.pirento ? (
             <PirentoMark tone="light" alt="" className="h-20 w-auto" />
           ) : (
             <span className="flex size-14 items-center justify-center rounded-[16px] bg-accent text-on-accent">
@@ -53,7 +57,9 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         {/* Phones: a slim bar instead of the panel, so the form is on the first screen. */}
         <header className="inverse flex items-center justify-between gap-4 px-5 py-4 lg:hidden">
           <Link to={home} className="flex items-center gap-2.5 text-sm font-semibold tracking-[0.04em] uppercase">
-            {side.pirento ? (
+            {side.brand ? (
+              <SiteLogo brand={side.brand} tone="light" alt={side.eyebrow} className="h-9 w-auto" />
+            ) : side.pirento ? (
               <>
                 <PirentoLogo tone="light" alt="Pirento" className="h-6 w-auto" />
                 <span className="text-xs font-medium normal-case text-muted">{side.label}</span>
@@ -70,7 +76,7 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         </header>
 
         <div className="flex flex-1 flex-col px-5 py-10 sm:px-12 lg:justify-center lg:py-16 xl:px-24">
-          <div className="mx-auto w-full max-w-[26rem]">
+          <div className="auth-form mx-auto w-full max-w-[26rem]">
             <Link to={home} className="mb-10 inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
               <ArrowLeft aria-hidden className="size-4" /> Back to {homeLabel}
             </Link>

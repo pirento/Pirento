@@ -1,6 +1,6 @@
 // The brand mark in the navbar: Pirento Ecosystem, or the current product.
 import {Link} from 'react-router-dom';
-import {PirentoLogo} from './PirentoLogo';
+import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {useProductSite} from '../../lib/site';
 
 // Product sites show their own name; on phones only the short part, so Sign in still fits.
@@ -13,7 +13,9 @@ export function Logo() {
       aria-label={product ? product.name : 'Pirento Ecosystem, home'}
       className="flex shrink-0 items-center gap-2.5 font-display text-[0.95rem] font-semibold tracking-[0.04em] whitespace-nowrap uppercase"
     >
-      {product ? (
+      {product && hasLogo(product.slug) ? (
+        <SiteLogo brand={product.slug} alt="" className="h-10 w-auto" />
+      ) : product ? (
         <>
           <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
           <span>

@@ -1,6 +1,7 @@
 import {useLayoutEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {getProduct, getService} from '@pirento/shared';
+import {iconDir} from '../components/layout/PirentoLogo';
 
 /**
  * Which product site a path belongs to, or null for the Pirento Ecosystem site.
@@ -39,6 +40,13 @@ export function useSiteTheme() {
       root.style.removeProperty('--product-dark');
       delete root.dataset.product;
     }
+    // The tab icon follows the site: a product's own icons when it has them, Pirento's otherwise.
+    const dir = iconDir(product?.slug);
+    const icons = {'32x32': 'favicon-32.png', '192x192': 'icon-192.png'};
+    for (const link of document.querySelectorAll('link[rel="icon"]'))
+      link.href = `${dir}/${icons[link.sizes.value] ?? 'favicon-32.png'}`;
+    const touch = document.querySelector('link[rel="apple-touch-icon"]');
+    if (touch) touch.href = `${dir}/apple-touch-icon.png`;
   }, [product]);
   return product;
 }

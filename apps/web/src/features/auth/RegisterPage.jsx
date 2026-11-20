@@ -2,7 +2,7 @@
 import {useEffect, useState} from 'react';
 import {Link, Navigate} from 'react-router-dom';
 import {isUsername, passwordProblem} from '@pirento/shared';
-import {Button} from '../../components/ui/Button';
+import {AuthButton} from './AuthButtons';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {AuthShell} from './AuthShell';
@@ -264,9 +264,9 @@ export function Register() {
             ⚠ {error}
           </p>
         )}
-        <Button type="submit" variant="accent" className="w-full justify-center" disabled={busy || !ready}>
+        <AuthButton arrow type="submit" disabled={busy || !ready}>
           {busy ? 'Please wait' : ['Send codes', 'Verify', 'Create account'][step]}
-        </Button>
+        </AuthButton>
       </form>
 
       <p className="mt-8 text-center text-sm text-muted">

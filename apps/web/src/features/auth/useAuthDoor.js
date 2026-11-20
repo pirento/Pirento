@@ -7,6 +7,7 @@ import {useSession} from '../../lib/api/session';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {PRODUCT_ICONS} from '../../lib/productIcons';
+import {hasLogo} from '../../components/layout/PirentoLogo';
 import {siteName, useProductSite} from '../../lib/site';
 
 /** A same-site path to return to; anything else (another origin, //evil) is ignored. */
@@ -26,7 +27,13 @@ export function useAuthDoor({page, staff = false}) {
   const story = staff ? login.staff : product ? null : login.ecosystem;
   const side = story
     ? {...story, pirento: true, label: staff ? 'Admin' : 'Ecosystem', Icon: staff ? ShieldCheck : LayoutGrid}
-    : {eyebrow: product.name, quote: product.quote, line: product.overview, Icon: PRODUCT_ICONS[product.slug]};
+    : {
+        eyebrow: product.name,
+        quote: product.quote,
+        line: product.overview,
+        Icon: PRODUCT_ICONS[product.slug],
+        brand: hasLogo(product.slug) ? product.slug : null,
+      };
 
   return {
     user,

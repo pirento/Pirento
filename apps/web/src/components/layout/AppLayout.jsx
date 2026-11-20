@@ -14,7 +14,7 @@ import {
   Wallet as WalletIcon,
   X,
 } from 'lucide-react';
-import {PirentoLogo} from './PirentoLogo';
+import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
 import {PRODUCTS} from '@pirento/shared';
 import {useSession} from '../../lib/api/session';
@@ -95,7 +95,9 @@ function Sidebar({onNavigate}) {
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-3 font-display text-[0.95rem] font-semibold tracking-[0.04em] uppercase"
       >
-        {product ? (
+        {product && hasLogo(product.slug) ? (
+          <SiteLogo brand={product.slug} alt={product.name} className="h-9 w-auto" />
+        ) : product ? (
           <>
             <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
             {title}
@@ -201,7 +203,9 @@ export function AppLayout({children}) {
           <Sidebar />
         </aside>
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule bg-paper/90 px-5 backdrop-blur lg:hidden">
-          {product ? (
+          {product && hasLogo(product.slug) ? (
+            <SiteLogo brand={product.slug} alt={product.name} className="h-8 w-auto" />
+          ) : product ? (
             <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
           ) : (
             <PirentoLogo alt="Pirento" className="h-6 w-auto" />

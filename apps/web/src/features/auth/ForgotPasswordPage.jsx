@@ -2,7 +2,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {passwordProblem} from '@pirento/shared';
-import {Button} from '../../components/ui/Button';
+import {AuthButton} from './AuthButtons';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {AuthShell} from './AuthShell';
@@ -111,16 +111,16 @@ export function ForgotPassword() {
             ⚠ {error}
           </p>
         )}
-        <Button
+        <AuthButton
+          arrow
           type="submit"
-          variant="accent"
-          className="w-full justify-center"
+
           disabled={
             busy || (step === 'ask' ? !login.trim() : code.length < 6 || !password || pwProblem || password !== confirm)
           }
         >
           {busy ? 'Please wait' : step === 'ask' ? 'Send code' : 'Save and sign in'}
-        </Button>
+        </AuthButton>
       </form>
       <p className="mt-8 text-center text-sm text-muted">
         Remembered it?{' '}

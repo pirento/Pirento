@@ -33,6 +33,7 @@ Short recipes for the changes we make most. Each one names every place to touch.
 2. Its home page works at once. For a dashboard, add a component to `APPS` in `apps/web/src/features/products/ProductDashboardPage.jsx`, or sell priced services through `catalog/services.js` and it gets the orders dashboard.
 3. Give it a layout in `apps/web/src/features/products/designs.js`: a hero (`split`, `split-reverse`, `center`, `editorial`), a working widget from `features/products/widgets/`, a features layout (`bento`, `rows`, `cards`), a how-it-works layout (`steps`, `timeline`), and `covers` if the widget already is the prices or how-it-works section. Pick a mix no other site has.
 4. Add an illustration name in `apps/web/src/data/site.js` (`productIllustration`); the bento layout shows it.
+5. When it has a logo: put `logo.png` (light backgrounds), `logo-light.png` (its dark panels), `mark.png`, `mark-light.png` and the favicons (`favicon-32.png`, `icon-192.png`, `apple-touch-icon.png`) in `apps/web/public/brand/<slug>/`, and add one line to `ART` in `components/layout/PirentoLogo.jsx`. Its navbar, footer, sidebar, sign-in pages and browser tab pick it up.
 
 ## Add a service to sell
 

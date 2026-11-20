@@ -1,12 +1,12 @@
-// Customer sign-in: a code by mobile, email or Bharat ID (in that order), or user ID + password below;
-// then your name, the first time. Links to create an account and to recover a password or user ID.
+// Customer sign-in: a code by mobile, email or Bharat ID (in that order); or, below, a password or Google;
+// then your name, the first time. Ends with "New to Pirento?" and the way to create an account.
 import {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Fingerprint, KeyRound, Mail, Smartphone} from 'lucide-react';
-import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
+import {AuthButton, AuthLink, OrDivider, authButton} from './AuthButtons';
 import {CodeBoxes} from './CodeBoxes';
 import {GoogleButton} from './GoogleButton';
 import {PasswordField} from './PasswordField';
@@ -16,9 +16,9 @@ const METHODS = {
     icon: Smartphone,
     tab: 'Mobile',
     label: 'Mobile number',
-    placeholder: '98765 43210',
-    hint: 'We text a 6-digit code to the mobile on your account.',
-    clean: (v) => v.replace(/[^\d +-]/g, ''),
+    placeholder: '10-digit mobile number',
+    hint: 'Receive your sign-in code by SMS.',
+    clean: (v) => v.replace(/\D/g, '').slice(0, 10),
     request: (value, product) => ['/auth/otp/phone/request', {phone: value, product}],
     verify: (value, code) => ['/auth/otp/phone/verify', {phone: value, code}],
   },
@@ -27,7 +27,7 @@ const METHODS = {
     tab: 'Email',
     label: 'Email',
     placeholder: 'you@example.com',
-    hint: 'We email a 6-digit code. No password needed.',
+    hint: 'Receive your sign-in code by email.',
     clean: (v) => v,
     request: (value, product) => ['/auth/otp/request', {email: value, product}],
     verify: (value, code) => ['/auth/otp/verify', {email: value, code}],
@@ -67,6 +67,28 @@ const Problem = ({error, query}) =>
       )}
     </p>
   );
+
+/** The mobile number field, with +91 in its own box in front. */
+function MobileInput({value, onChange}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-medium">Mobile number</span>
+      <span className="mt-2 flex overflow-hidden rounded-[8px] border border-rule bg-paper focus-within:border-ink">
+        <span className="flex items-center border-r border-rule bg-stone px-4 text-muted">+91</span>
+        <input
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          placeholder="10-digit mobile number"
+          required
+          value={value}
+          onChange={onChange}
+          className="min-w-0 flex-1 bg-transparent px-4 py-3 text-base outline-none"
+        />
+      </span>
+    </label>
+  );
+}
 
 export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSkip}) {
   const providers = useApi('/auth/providers');
@@ -137,7 +159,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
 
   const heading =
     mode === 'password'
-      ? 'Sign in with your user ID'
+      ? 'Sign in with password'
       : {enter: title, code: active === 'mobile' ? 'Check your phone' : 'Check your email', name: 'One last thing'}[
           step
         ];
@@ -145,7 +167,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
     mode === 'password'
       ? 'Your user ID, or the email you signed up with, and your password.'
       : {
-          enter: 'Choose how to get your sign-in code.',
+          enter: 'Sign in with your mobile number, email or Bharat ID.',
           code: (
             <>
               We sent a 6-digit code to <span className="text-ink">{sent?.sentTo ?? value}</span>. It works for 10
@@ -157,17 +179,9 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
 
   return (
     <div>
-      <h1 className="text-[clamp(1.9rem,3vw,2.5rem)] leading-tight">{heading}</h1>
+      <p className="eyebrow">Account sign in</p>
+      <h1 className="mt-3 text-[clamp(1.9rem,3vw,2.5rem)] leading-tight">{heading}</h1>
       <p className="mt-3 text-muted">{sub}</p>
-
-      {mode === 'code' && step === 'enter' && providers.data?.google && (
-        <div className="mt-8">
-          <GoogleButton clientId={providers.data.google} onCredential={google} />
-          <p className="mt-6 flex items-center gap-4 text-xs text-muted">
-            <span className="h-px flex-1 bg-rule" /> or use a code <span className="h-px flex-1 bg-rule" />
-          </p>
-        </div>
-      )}
 
       <form onSubmit={submit} noValidate className="mt-8">
         {mode === 'password' && (
@@ -202,7 +216,11 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
 
         {mode === 'code' && step === 'enter' && (
           <>
-            <div role="tablist" aria-label="Get a code by" className="grid grid-cols-3 gap-1 rounded-full bg-stone p-1">
+            <div
+              role="tablist"
+              aria-label="Get a code by"
+              className="grid grid-cols-3 gap-1 rounded-[10px] border border-rule bg-stone p-1"
+            >
               {Object.entries(METHODS).map(([id, x]) => {
                 const off = id === 'mobile' && !mobileOn;
                 return (
@@ -219,37 +237,42 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
                       setValue('');
                       setError(null);
                     }}
-                    className={`flex items-center justify-center gap-2 rounded-full px-2 py-2 text-sm transition-colors ${
+                    className={`flex h-[38px] items-center justify-center gap-2 rounded-[6px] px-2 text-sm transition-colors ${
                       active === id
-                        ? 'bg-paper text-ink ring-1 ring-rule'
+                        ? 'border border-rule bg-paper font-medium text-ink'
                         : off
                           ? 'cursor-not-allowed text-muted opacity-60'
                           : 'text-muted hover:text-ink'
                     }`}
                   >
-                    <x.icon aria-hidden className="size-4 shrink-0" />
+                    {/* Icons only where there is room; on a phone the three names need the space. */}
+                    <x.icon aria-hidden className="hidden size-4 shrink-0 sm:block" />
                     <span className="truncate">{x.tab}</span>
                   </button>
                 );
               })}
             </div>
-            <p className="mt-3 text-xs text-muted">
-              {m.hint}
-              {!mobileOn && ' Mobile codes are Expected.'}
-            </p>
             <div className="mt-6">
-              <Field
-                key={active}
-                label={m.label}
-                type={active === 'email' ? 'email' : 'text'}
-                inputMode={active === 'email' ? 'email' : 'numeric'}
-                autoComplete={active === 'email' ? 'email' : active === 'mobile' ? 'tel' : 'off'}
-                placeholder={m.placeholder}
-                maxLength={active === 'email' ? 200 : 16}
-                required
-                value={value}
-                onChange={(e) => setValue(m.clean(e.target.value))}
-              />
+              {active === 'mobile' ? (
+                <MobileInput value={value} onChange={(e) => setValue(m.clean(e.target.value))} />
+              ) : (
+                <Field
+                  key={active}
+                  label={m.label}
+                  type={active === 'email' ? 'email' : 'text'}
+                  inputMode={active === 'email' ? 'email' : 'numeric'}
+                  autoComplete={active === 'email' ? 'email' : 'off'}
+                  placeholder={m.placeholder}
+                  maxLength={active === 'email' ? 200 : 16}
+                  required
+                  value={value}
+                  onChange={(e) => setValue(m.clean(e.target.value))}
+                />
+              )}
+              <p className="mt-2 text-xs text-muted">
+                {m.hint}
+                {!mobileOn && ' Mobile codes are Expected.'}
+              </p>
               <Problem error={error} query={query} />
             </div>
           </>
@@ -296,10 +319,10 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
           />
         )}
 
-        <Button
+        <AuthButton
           type="submit"
-          variant="accent"
-          className="mt-8 w-full justify-center"
+          arrow
+          className="mt-6"
           disabled={busy || (mode === 'code' && step === 'code' && code.length < 6)}
         >
           {busy
@@ -307,7 +330,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
             : mode === 'password'
               ? 'Sign in'
               : {enter: 'Send code', code: 'Sign in', name: 'Continue'}[step]}
-        </Button>
+        </AuthButton>
         {mode === 'code' && step === 'name' && (
           <button type="button" onClick={onSkip} className="mt-4 w-full text-sm text-muted underline">
             Skip for now
@@ -317,30 +340,41 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
 
       {step === 'enter' && (
         <>
-          <p className="my-8 flex items-center gap-4 text-xs text-muted">
-            <span className="h-px flex-1 bg-rule" /> or <span className="h-px flex-1 bg-rule" />
-          </p>
-          <button
-            type="button"
-            onClick={() => switchMode(mode === 'code' ? 'password' : 'code')}
-            className="flex w-full items-center justify-center gap-2 rounded-full border border-rule px-6 py-3.5 text-[0.95rem] font-medium transition-colors hover:border-ink"
-          >
-            {mode === 'code' ? (
-              <>
-                <KeyRound aria-hidden className="size-4" /> Sign in with user ID and password
-              </>
-            ) : (
-              <>
-                <Smartphone aria-hidden className="size-4" /> Sign in with a code instead
-              </>
-            )}
-          </button>
-          <p className="mt-8 text-center text-sm text-muted">
-            New to Pirento?{' '}
-            <Link to={`/register${query}`} className="font-medium text-ink underline underline-offset-4">
+          <OrDivider />
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => switchMode(mode === 'code' ? 'password' : 'code')}
+              className={authButton('outline')}
+            >
+              {mode === 'code' ? (
+                <>
+                  <KeyRound aria-hidden className="size-4" /> Use password
+                </>
+              ) : (
+                <>
+                  <Smartphone aria-hidden className="size-4" /> Use a code
+                </>
+              )}
+            </button>
+            <GoogleButton
+              clientId={providers.data?.google}
+              onCredential={google}
+              onUnavailable={() =>
+                setError(new Error('Google sign-in is not set up yet. Use a code or your password.'))
+              }
+            />
+          </div>
+
+          <div className="mt-8 border-t border-rule pt-8">
+            <h2 className="text-xl">New to Pirento?</h2>
+            <p className="mt-2 text-sm text-muted">
+              {product ? `Create an account to use ${product.name}.` : 'Create one account for every Pirento product.'}
+            </p>
+            <AuthLink to={`/register${query}`} className="mt-5">
               Create an account
-            </Link>
-          </p>
+            </AuthLink>
+          </div>
         </>
       )}
     </div>
