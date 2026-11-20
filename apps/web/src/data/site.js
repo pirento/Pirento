@@ -4,7 +4,8 @@ import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
 
 export const brand = {
   name: 'Pirento',
-  legalName: 'Pirento Ecosystem Pvt. Ltd.',
+  // Pirento Ecosystem is a brand; the company behind it is Venturecore.
+  legalName: 'Venturecore Solutions Private Limited',
   cin: 'U63121UP2023PTC188021',
   email: 'hello@pirento.com',
   supportEmail: 'support@pirento.com',
@@ -15,6 +16,7 @@ export const brand = {
 export const nav = [
   {label: 'Home', to: '/'},
   {label: 'Products', to: '/products'},
+  {label: 'About', to: '/about'},
   {label: 'Legal', to: '/legal'},
   {label: 'Verify', to: '/verify'},
   {label: 'Support', to: '/support'},
@@ -153,7 +155,7 @@ export const terms = {
     {
       title: 'Agreement to terms',
       body: [
-        'These Terms and Conditions are a legally binding agreement between you, whether personally or on behalf of an entity ("you"), and Pirento Ecosystem Pvt. Ltd. ("Pirento", "we", "us" or "our"), about your access to and use of our websites and any related media, mobile website or app (together, the "Site").',
+        'These Terms and Conditions are a legally binding agreement between you, whether personally or on behalf of an entity ("you"), and Venturecore Solutions Private Limited, which runs the Pirento Ecosystem brand ("Pirento", "we", "us" or "our"), about your access to and use of our websites and any related media, mobile website or app (together, the "Site").',
       ],
     },
     {

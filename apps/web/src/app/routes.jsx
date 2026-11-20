@@ -31,6 +31,7 @@ export const ROUTES = [
     layout: 'auth',
     Page: page(() => import('../features/auth/ForgotUserIdPage'), 'ForgotUserId'),
   },
+  {path: '/about', Page: page(() => import('../features/about/AboutPage'), 'About')},
   {path: '/terms', Page: page(() => import('../features/ecosystem/TermsPage'), 'Terms')},
   {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
   {path: '/account', layout: 'app', Page: page(() => import('../features/account/AccountPage'), 'Account')},

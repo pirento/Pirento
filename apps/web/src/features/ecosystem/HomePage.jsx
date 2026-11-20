@@ -1,4 +1,5 @@
-// The Pirento Ecosystem home page: product picker hero, one-account pillars, products by need, Legal, numbers.
+// The Pirento Ecosystem home page: hero, the ten products, the Foundation, the ventures and the bodies alongside,
+// about us, one-account pillars, how it works, Legal, numbers.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {LEGAL_CATALOGUE, PRODUCTS} from '@pirento/shared';
@@ -7,6 +8,8 @@ import {Faq, StatsRow, Steps} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Heading, Section, SectionHeader} from '../../components/ui/Heading';
 import {home, stats} from '../../data/site';
+import {FoundationSection} from '../about/FoundationSection';
+import {AboutTeaser, AlongsideSection, VenturesSection} from '../about/GroupSections';
 import {EcosystemPicker} from './EcosystemPicker';
 import {Pillars} from './Pillars';
 import {ProductGroups} from './ProductGroups';
@@ -51,12 +54,20 @@ export function Home() {
         </div>
       </section>
 
-      <Pillars copy={home.pillars} n={1} />
+      <ProductGroups copy={home.ecosystem} n={1} />
 
-      <ProductGroups copy={home.ecosystem} n={2} />
+      <FoundationSection n={2} />
+
+      <VenturesSection n={3} />
+
+      <AlongsideSection n={4} />
+
+      <AboutTeaser n={5} />
+
+      <Pillars copy={home.pillars} n={6} />
 
       <Section inverse>
-        <SectionHeader n={3} label={home.how.label} title={home.how.title} />
+        <SectionHeader n={7} label={home.how.label} title={home.how.title} />
         <div className="mt-20">
           <Steps steps={home.how.steps} />
         </div>
@@ -64,7 +75,7 @@ export function Home() {
 
       <Section>
         <SectionHeader
-          n={4}
+          n={8}
           label={home.legal.label}
           title={home.legal.title}
           hl="priced up front."
@@ -98,7 +109,7 @@ export function Home() {
       </Section>
 
       <Section className="pt-0! md:pt-0!">
-        <SectionHeader n={5} label={home.numbers.label} title={home.numbers.title} />
+        <SectionHeader n={9} label={home.numbers.label} title={home.numbers.title} />
         <div className="mt-16">
           <StatsRow stats={stats} />
         </div>
@@ -107,7 +118,7 @@ export function Home() {
       <Section className="pt-0! md:pt-0!">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <SectionHeader n={6} label={home.faq.label} title={home.faq.title} />
+            <SectionHeader n={10} label={home.faq.label} title={home.faq.title} />
           </div>
           <div className="md:col-span-8">
             <Faq items={home.faq.items} />
@@ -115,7 +126,7 @@ export function Home() {
         </div>
       </Section>
 
-      <ContactCta n={7} />
+      <ContactCta n={11} />
     </div>
   );
 }

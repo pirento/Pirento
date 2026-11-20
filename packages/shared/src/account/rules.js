@@ -1,7 +1,7 @@
 // Account rules the sign-up form and the auth service both check: mobile numbers, user IDs, passwords, terms.
 
 /** The terms a new account accepts. Change it when the text at /terms changes. */
-export const TERMS_VERSION = '2026-11-20';
+export const TERMS_VERSION = '2026-11-20.2';
 
 export const MIN_PASSWORD = 8;
 

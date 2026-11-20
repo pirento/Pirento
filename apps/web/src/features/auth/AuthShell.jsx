@@ -2,6 +2,7 @@
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
 import {PirentoLogo, PirentoMark, SiteLogo, SiteMark, hasMark} from '../../components/layout/PirentoLogo';
+import {brand} from '../../data/site';
 
 /**
  * `side` = {eyebrow, quote, line, Icon} for a product, or {pirento, label, quote, line} for Pirento's own doors
@@ -49,7 +50,9 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         </div>
 
         <div className="relative">
-          <p className="text-xs text-muted">© {new Date().getFullYear()} Pirento Ecosystem Pvt. Ltd.</p>
+          <p className="text-xs text-muted">
+            © {new Date().getFullYear()} {brand.legalName}
+          </p>
         </div>
       </aside>
 

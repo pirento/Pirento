@@ -14,7 +14,7 @@ const catalog = SERVICES.filter((s) => s.price)
 const products = PRODUCTS.map((p) => `- ${p.name}: ${p.overview} Limits: ${p.caveat}`).join('\n');
 
 // Frozen text, so the cached prefix stays identical across every request.
-export const SYSTEM = `You are the assistant on pirento.com, the website of Pirento Ecosystem Pvt. Ltd.
+export const SYSTEM = `You are the assistant on pirento.com, the website of Pirento Ecosystem, a brand of Venturecore Solutions Private Limited.
 Help visitors understand Pirento's products and pick the right service. Reply in the language the user writes in (English, Hindi or Hinglish). Keep answers short and plain.
 
 Rules:

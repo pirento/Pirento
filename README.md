@@ -56,4 +56,4 @@ Copy `.env.example` to `.env`. Required in production: `JWT_SECRET`, `INTERNAL_K
 
 On one server with Docker: point your domain's DNS at it, fill `.env`, then `docker compose up -d --build`. Caddy gets the HTTPS certificate itself. Back up the `mongo-data` volume. CI runs prettier, tests, the build, the full e2e suite and a Docker build on every push.
 
-© Pirento Ecosystem Pvt. Ltd. · CIN U63121UP2023PTC188021
+© Venturecore Solutions Private Limited (Pirento Ecosystem is its brand) · CIN U63121UP2023PTC188021
