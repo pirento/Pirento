@@ -25,7 +25,7 @@ export function useAuthDoor({page, staff = false}) {
   // Each door shows only its own site: a product's pages show that product alone.
   const story = staff ? login.staff : product ? null : login.ecosystem;
   const side = story
-    ? {...story, Icon: staff ? ShieldCheck : LayoutGrid}
+    ? {...story, pirento: true, label: staff ? 'Admin' : 'Ecosystem', Icon: staff ? ShieldCheck : LayoutGrid}
     : {eyebrow: product.name, quote: product.quote, line: product.overview, Icon: PRODUCT_ICONS[product.slug]};
 
   return {

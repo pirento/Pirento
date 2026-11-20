@@ -14,6 +14,7 @@ import {
   Wallet as WalletIcon,
   X,
 } from 'lucide-react';
+import {PirentoLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
 import {PRODUCTS} from '@pirento/shared';
 import {useSession} from '../../lib/api/session';
@@ -94,8 +95,20 @@ function Sidebar({onNavigate}) {
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-3 font-display text-[0.95rem] font-semibold tracking-[0.04em] uppercase"
       >
-        <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
-        {title}
+        {product ? (
+          <>
+            <span aria-hidden className="size-2.5 rounded-[3px] bg-accent ring-1 ring-ink" />
+            {title}
+          </>
+        ) : (
+          // Pirento's own shells (ecosystem, admin): the logo, then which one this is.
+          <>
+            <PirentoLogo alt="Pirento" className="h-6 w-auto" />
+            <span className="text-xs font-medium normal-case tracking-normal text-muted">
+              {title.replace('Pirento ', '')}
+            </span>
+          </>
+        )}
       </Link>
 
       <button
@@ -188,7 +201,11 @@ export function AppLayout({children}) {
           <Sidebar />
         </aside>
         <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule bg-paper/90 px-5 backdrop-blur lg:hidden">
-          <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
+          {product ? (
+            <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
+          ) : (
+            <PirentoLogo alt="Pirento" className="h-6 w-auto" />
+          )}
           <button
             onClick={() => setOpen(true)}
             aria-label="Open menu"

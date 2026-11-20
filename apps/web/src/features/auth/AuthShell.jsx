@@ -1,9 +1,11 @@
 // The sign-in page frame: a side panel that says whose door this is, and the form, which comes first on phones.
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
+import {PirentoLogo, PirentoMark} from '../../components/layout/PirentoLogo';
 
 /**
- * `side` = {eyebrow, quote, line, Icon}: only this site's own words, nothing about other products.
+ * `side` = {eyebrow, quote, line, Icon} for a product, or {pirento, label, quote, line} for Pirento's own doors
+ * (ecosystem and staff), which show the Pirento logo and mark. Only this site's own words.
  * The page's one <h1> is in the form column (children), so this panel uses no heading.
  */
 export function AuthShell({side, home, homeLabel, children, innerRef}) {
@@ -17,14 +19,27 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
           to={home}
           className="relative flex items-center gap-2.5 text-sm font-semibold tracking-[0.04em] uppercase"
         >
-          <span aria-hidden className="size-2.5 rounded-[3px] bg-accent" />
-          {side.eyebrow}
+          {side.pirento ? (
+            <>
+              <PirentoLogo tone="light" alt="Pirento" className="h-7 w-auto" />
+              <span className="text-xs font-medium text-muted">{side.label}</span>
+            </>
+          ) : (
+            <>
+              <span aria-hidden className="size-2.5 rounded-[3px] bg-accent" />
+              {side.eyebrow}
+            </>
+          )}
         </Link>
 
         <div className="relative">
-          <span className="flex size-14 items-center justify-center rounded-[16px] bg-accent text-on-accent">
-            <Icon aria-hidden className="size-6" />
-          </span>
+          {side.pirento ? (
+            <PirentoMark tone="light" alt="" className="h-20 w-auto" />
+          ) : (
+            <span className="flex size-14 items-center justify-center rounded-[16px] bg-accent text-on-accent">
+              <Icon aria-hidden className="size-6" />
+            </span>
+          )}
           <p className="mt-10 max-w-md font-display text-[clamp(2rem,3vw,2.75rem)] leading-[1.1]">{side.quote}</p>
           <p className="mt-6 max-w-sm text-muted">{side.line}</p>
         </div>
@@ -38,10 +53,19 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
         {/* Phones: a slim bar instead of the panel, so the form is on the first screen. */}
         <header className="inverse flex items-center justify-between gap-4 px-5 py-4 lg:hidden">
           <Link to={home} className="flex items-center gap-2.5 text-sm font-semibold tracking-[0.04em] uppercase">
-            <span className="flex size-8 items-center justify-center rounded-[10px] bg-accent text-on-accent">
-              <Icon aria-hidden className="size-4" />
-            </span>
-            {side.eyebrow}
+            {side.pirento ? (
+              <>
+                <PirentoLogo tone="light" alt="Pirento" className="h-6 w-auto" />
+                <span className="text-xs font-medium normal-case text-muted">{side.label}</span>
+              </>
+            ) : (
+              <>
+                <span className="flex size-8 items-center justify-center rounded-[10px] bg-accent text-on-accent">
+                  <Icon aria-hidden className="size-4" />
+                </span>
+                {side.eyebrow}
+              </>
+            )}
           </Link>
         </header>
 

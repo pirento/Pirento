@@ -5,6 +5,7 @@ import {brand, nav, socials} from '../../data/site';
 import {lenis} from '../../lib/motion';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
+import {PirentoLogo} from './PirentoLogo';
 
 const icons = {twitter: Twitter, linkedin: Linkedin, instagram: Instagram};
 
@@ -74,19 +75,24 @@ export function Footer() {
             </button>
           </div>
         </div>
-        {/* The site's own name as the wordmark; the viewBox grows with the name so letters keep their shape. */}
-        <svg viewBox={`0 0 ${name.length * 140} 210`} className="mt-16 w-full" role="img" aria-label={name}>
-          <text
-            x="0"
-            y="180"
-            textLength={name.length * 140}
-            lengthAdjust="spacingAndGlyphs"
-            fill="currentColor"
-            style={{font: '600 230px var(--font-display)', letterSpacing: '-0.04em'}}
-          >
-            {name.toUpperCase()}
-          </text>
-        </svg>
+        {/* Product sites: their name as the wordmark (the viewBox grows with it so letters keep their shape).
+            The ecosystem: the Pirento logo itself. */}
+        {product ? (
+          <svg viewBox={`0 0 ${name.length * 140} 210`} className="mt-16 w-full" role="img" aria-label={name}>
+            <text
+              x="0"
+              y="180"
+              textLength={name.length * 140}
+              lengthAdjust="spacingAndGlyphs"
+              fill="currentColor"
+              style={{font: '600 230px var(--font-display)', letterSpacing: '-0.04em'}}
+            >
+              {name.toUpperCase()}
+            </text>
+          </svg>
+        ) : (
+          <PirentoLogo tone="light" alt="Pirento" className="mt-16 h-auto w-full max-w-5xl" />
+        )}
         <p className="mt-8 flex flex-wrap gap-x-6 gap-y-1 border-t border-rule pt-6 text-xs text-muted">
           <span>
             © {new Date().getFullYear()} {brand.legalName}

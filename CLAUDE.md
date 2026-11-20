@@ -5,6 +5,7 @@ Notes for AI-assisted work on this repo. Read README.md first.
 ## Rules
 
 - **Where things live:** read `docs/ARCHITECTURE.md` first, and `docs/HOW-TO.md` for the usual changes. One idea per file: pages and their parts in `apps/web/src/features/<area>/`, each service as `config.js`, `models/`, `routes/`, `lib/`.
+- **Logo:** the Pirento wordmark and mark are the files in `apps/web/public/brand/`; render them with `PirentoLogo` / `PirentoMark` (`components/layout/PirentoLogo.jsx`, `tone="light"` on dark panels). Never redraw the logo in CSS or text. Product sites keep their own name and colour.
 - **Colours:** from the brand guidelines (`docs/BRAND_GUIDELINES.md`, Appendix A): register in `packages/shared/src/data/brand.js`, tokens in `apps/web/src/styles/index.css`. Product sites get their accent and dark via `useSiteTheme` (`apps/web/src/lib/site.js`). Keep `brand.test.js` passing.
 - **Design is fixed.** Layout, type and motion follow `docs/DESIGN_SYSTEM.md`. Colours come only from the CSS tokens (`bg-paper`, `text-ink`, `bg-accent` …); never put a hex value in a component. Accent stays under ~5% of a screen. Never two dark (`inverse`) sections in a row, except contact → footer.
 - **No invented facts.** Numbers, names, quotes and claims come from data files only. Stats are counted from the catalog (`apps/web/src/data/site.js`). Unbuilt products are labelled "Expected".

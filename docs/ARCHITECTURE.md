@@ -33,6 +33,7 @@ apps/web/src
     api/                   client (token + silent refresh), session, useApi
     format.js  motion.js  page.js  site.js (which product site you are on)
   data/site.js             site copy for the ecosystem pages
+apps/web/public/brand      the Pirento logo and "t" mark (dark and light), square artwork, favicons and app icons
   styles/index.css         colour and type tokens
 
 packages/shared/src
