@@ -31,13 +31,13 @@ npm run format   # prettier
 
 ## What it does
 
-- **Sign-in** by emailed code (`/login`, staff at `/admin/login`). First sign-in asks your name. Sessions: 15-minute access token in memory, rotating refresh cookie.
+- **Sign-in** by emailed code on a full-screen page in the site's own colours (`/login`, staff at `/admin/login`). First sign-in asks your name. Sessions: 15-minute access token in memory, rotating refresh cookie.
 - **Pirento Ecosystem dashboard** (`/dashboard`): every product with its live status, the wallet, recent orders, your profile.
 - **Product sites** at `/<product>` with dashboards at `/<product>/dashboard`, each in the product's dark and accent colours from the brand guidelines.
 - **Orders**: server-priced checkout for Legal, Black, Green (trees) and Giftox (gift boxes), paid from the wallet or Razorpay, worked by staff, finished with a public code (`LGL-`, `BLK-`, `GRN-`, `GFT-`).
 - **Bharat ID**: seven saved steps (Aadhaar checked by checksum, only its last 4 digits kept), a 20-second **video KYC** where you say your name and a one-time code, then review and consent. Staff watch the video and approve or reject; the video is deleted once the ID is issued. A 10-digit ID with a QR verify page.
 - **Intern** exam and certificates, **Vault** encrypted files and passwords, **AI** assistant on Claude, **One** partner referrals, **Capital** EMI calculator and waitlist, **Support** tickets.
-- **Admin** (`/admin`): queues for orders, Bharat ID and tickets; superadmins also get an overview and roles.
+- **Admin** (`/admin/<section>`): overview with 30-day charts, orders, Bharat ID review, tickets, users (orders, wallet, ID, role, suspend), payments ledger, certificates, partners, services and prices, audit trail. Staff roles: support, finance, staff (operations), superadmin; each sees only its sections.
 - **Verify** (`/verify`): any Bharat ID, certificate or completion code.
 
 ## Configuration

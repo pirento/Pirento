@@ -13,6 +13,7 @@ browser ──► gateway (:4000) ──► auth · wallet · catalog · orders 
 - The **gateway** is the only public entry. It rate-limits, refuses `/api/<service>/internal/*`, and forwards `/api/<service>/…` to that service.
 - A **service** owns its data. Nobody else reads its database. Another service that needs something calls its `/internal/*` route with the shared `INTERNAL_KEY` (example: orders → wallet for debits and refunds).
 - Every response is `{data}` or `{error: {code, message}}`.
+- **Staff roles**: `support`, `finance`, `staff` (operations), `superadmin`. `ACCESS` in `packages/shared/src/server/auth.js` says which roles use which area; each service guards its `/staff` routes with `requireRole(...ACCESS.<area>)`. Staff actions call `audit(req, action, target)`, which writes to the auth service's audit trail. Superadmins change roles and suspend accounts.
 
 ## Repository layout
 
@@ -66,6 +67,8 @@ services/<name>/src
 
 - `/` is the **Pirento Ecosystem** site; `/dashboard` is the shared dashboard (products, wallet, orders, profile).
 - Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
+- Three layouts (`app/App.jsx`): marketing pages get the navbar and footer; dashboards and admin get the app shell (`components/layout/AppLayout.jsx`, a sidebar, no footer); sign-in pages stand alone. Routes pick one with `layout` in `app/routes.jsx`.
+- Admin is `/admin/<section>`; `features/admin/adminNav.js` lists the sections and the roles that see them.
 - Sign-in is `/login` (customers) and `/admin/login` (staff). Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
 
 ## Colours and type

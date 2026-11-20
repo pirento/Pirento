@@ -15,6 +15,12 @@ Short recipes for the changes we make most. Each one names every place to touch.
 3. New data? Add a model in `models/`, one per file.
 4. Add a check to `scripts/e2e.mjs`.
 
+## Add an admin section
+
+1. Add it to `ADMIN_SECTIONS` in `apps/web/src/features/admin/adminNav.js` (id, label, icon, intro, roles).
+2. Write the component in `features/admin/` and add it to `SECTIONS` in `features/admin/sections.jsx`.
+3. Its API goes on the owning service's `/staff` routes, guarded by `requireRole(...ACCESS.<area>)`; add the area to `ACCESS` in `packages/shared/src/server/auth.js` if it is new. Call `audit(req, 'thing.done', target)` for anything that changes data.
+
 ## Add a service
 
 1. Copy the shape of a small one (`services/support`): `index.js`, `config.js`, `models/`, `routes/`, and `package.json` with a `dev` script.

@@ -1,4 +1,5 @@
 import {PRODUCT_COLOURS, textOn} from './brand.js';
+import {PRODUCT_DETAILS} from './productDetails.js';
 
 // The ten Pirento products. Every line here describes what the product does
 // today and what it does not do yet. Keep it that way: no numbers or claims
@@ -345,7 +346,7 @@ export const PRODUCTS = [
   },
 ].map((p) => {
   const {dark, accent} = PRODUCT_COLOURS[p.slug];
-  return {...p, ...SITE[p.slug], color: accent, dark, onColor: textOn(accent, dark)};
+  return {...p, ...SITE[p.slug], ...PRODUCT_DETAILS[p.slug], color: accent, dark, onColor: textOn(accent, dark)};
 });
 
 export const getProduct = (slug) => PRODUCTS.find((p) => p.slug === slug) ?? null;

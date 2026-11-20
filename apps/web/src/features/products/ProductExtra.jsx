@@ -27,11 +27,21 @@ export function Extra({product}) {
               <Link
                 to={`/services/${s.slug}`}
                 data-cursor="View"
-                className="group flex h-full flex-col rounded-[18px] border border-rule p-6 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink"
+                className="group flex h-full flex-col rounded-[22px] border border-rule p-8 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink"
               >
                 <span className="text-sm text-muted">{s.category}</span>
                 <span className="mt-2 text-lg font-medium">{s.name}</span>
                 {s.description && <span className="mt-2 text-sm text-muted">{s.description}</span>}
+                {s.items && (
+                  <span className="mt-6 flex flex-wrap gap-2">
+                    {s.items.map((item) => (
+                      <span key={item} className="rounded-full border border-rule px-3 py-1 text-xs text-muted">
+                        {item}
+                      </span>
+                    ))}
+                  </span>
+                )}
+                {s.deliveryTime && <span className="mt-4 text-sm text-muted">Usually {s.deliveryTime}</span>}
                 <span className="num mt-auto pt-8">
                   {inr(s.price)}
                   {s.unit && <span className="text-base text-muted"> / {s.unit}</span>}
@@ -40,6 +50,25 @@ export function Extra({product}) {
             </li>
           ))}
         </ul>
+        {product.slug === 'legal' && (
+          <>
+            <h3 className="mt-20 text-2xl">Every category</h3>
+            <ul className="mt-6 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
+              {LEGAL_CATALOGUE.map((c, i) => (
+                <li key={c.title} className="bg-paper" data-reveal>
+                  <Link
+                    to={`/legal/services#cat-${i}`}
+                    className="flex h-full flex-col p-6 transition-colors duration-300 hover:bg-stone"
+                  >
+                    <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="mt-6 font-medium">{c.title}</span>
+                    <span className="mt-1 text-sm text-muted">{c.services.length} services</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
         {product.slug === 'legal' && (
           <div className="mt-10" data-reveal>
             <Button to="/legal/services" variant="outline">
@@ -75,7 +104,7 @@ export function Extra({product}) {
       <SectionHeader n={2} label={product.short} title={b.title} />
       <ol className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {b.items.map((item, i) => (
-          <li key={item} className="flex items-start gap-4 rounded-[18px] border border-rule bg-stone p-6" data-reveal>
+          <li key={item} className="flex items-start gap-4 rounded-[22px] border border-rule bg-stone p-8" data-reveal>
             <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
             <span className="text-lg">{item}</span>
           </li>
