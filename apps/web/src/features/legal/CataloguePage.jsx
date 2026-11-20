@@ -2,19 +2,19 @@
 import {useMemo, useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Search} from 'lucide-react';
-import {LEGAL_CATALOGUE, servicesFor} from '@pirento/shared';
+import {LEGAL_CATALOGUE} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Label} from '../../components/ui/Heading';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
-
-const legal = servicesFor('legal');
+import {useServicesFor} from '../../lib/prices';
 
 export function Legal() {
   const ref = useRef(null);
   const [q, setQ] = useState('');
+  const legal = useServicesFor('legal');
   usePageMotion(ref);
   usePageMeta({
     title: 'Pirento Legal — services and prices',

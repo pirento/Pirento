@@ -1,7 +1,8 @@
 // The Pirento Ecosystem home page.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
-import {LEGAL_CATALOGUE, PRODUCTS, SERVICES} from '@pirento/shared';
+import {LEGAL_CATALOGUE, PRODUCTS} from '@pirento/shared';
+import {useServicesFor} from '../../lib/prices';
 import {Illustration} from '../../components/Illustration';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Faq, StatsRow, Steps} from '../../components/ui/Blocks';
@@ -17,6 +18,7 @@ import {usePageMeta, useTilt} from '../../lib/page';
 const featured = ['private-limited-company', 'gst-registration', 'trademark-registration', 'talk-to-lawyer'];
 
 export function Home() {
+  const legalServices = useServicesFor('legal');
   const ref = useRef(null);
   const tilt = useTilt();
   usePageMotion(ref);
@@ -87,7 +89,7 @@ export function Home() {
           <div className="lg:col-span-5">
             <ul className="border-t border-rule">
               {featured.map((slug) => {
-                const s = SERVICES.find((x) => x.slug === slug);
+                const s = legalServices.find((x) => x.slug === slug);
                 return (
                   <li key={slug} data-reveal>
                     <Link

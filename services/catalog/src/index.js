@@ -3,8 +3,9 @@ import {createApp, finish, start} from '@pirento/shared/server';
 import {config} from './config.js';
 import {catalogRoutes} from './routes/catalog.routes.js';
 import {settingsRoutes} from './routes/settings.routes.js';
+import {priceRoutes} from './routes/price.routes.js';
 
 const app = createApp('catalog');
-app.use(settingsRoutes, catalogRoutes);
+app.use(settingsRoutes, priceRoutes, catalogRoutes);
 
 start(finish(app), {name: 'catalog', port: config.port, mongoUri: config.mongoUri});

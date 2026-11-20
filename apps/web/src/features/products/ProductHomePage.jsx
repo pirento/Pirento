@@ -2,7 +2,7 @@
 import {useRef} from 'react';
 import {useParams} from 'react-router-dom';
 import {AlertTriangle} from 'lucide-react';
-import {PRODUCTS, getProduct, servicesFor} from '@pirento/shared';
+import {PRODUCTS, getProduct} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Faq, Steps} from '../../components/ui/Blocks';
 import {Heading, Label, Section, SectionHeader} from '../../components/ui/Heading';
@@ -12,16 +12,18 @@ import {Audience, Features, Related} from './HomeSections';
 import {Extra} from './ProductExtra';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {useServicesFor} from '../../lib/prices';
 
 export function ProductHome() {
   const {slug} = useParams();
   const product = getProduct(slug);
+  const services = useServicesFor(slug);
   const ref = useRef(null);
   usePageMotion(ref, [slug]);
   usePageMeta({title: product ? `${product.name} — ${product.overview}` : 'Not found', description: product?.overview});
   if (!product) return <NotFound />;
   const index = PRODUCTS.indexOf(product);
-  const withServices = {...product, services: servicesFor(slug).some((s) => s.price)};
+  const withServices = {...product, services: services.some((s) => s.price)};
 
   return (
     <div ref={ref} key={slug}>

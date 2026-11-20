@@ -814,6 +814,47 @@ check(
 await call(`/learning/staff/openings/${op._id}`, {method: 'PATCH', token: boss, body: {open: false}});
 check('closed opening hidden', !(await call('/learning/openings')).data?.some((o) => o._id === op._id));
 
+// ── Admin: prices, coupon given back ────────────────────────────────────
+check(
+  'staff cannot change prices',
+  (await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: staffToken, body: {price: 1}}))
+    .status === 403,
+);
+await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: boss, body: {price: 1199}});
+check('new price is public', (await call('/catalog/prices')).data?.['gst-registration']?.price === 1199);
+const repriced = (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}}))
+  .data;
+check('orders charge the new price', repriced?.amount === 119900, repriced);
+await call('/catalog/staff/prices/gst-registration', {
+  method: 'PATCH',
+  token: boss,
+  body: {price: null, offSale: true},
+});
+check(
+  'off-sale service takes no orders',
+  (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}})).error
+    ?.code === 'NOT_FOR_SALE',
+);
+await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: boss, body: {price: null}});
+check('reset removes the override', !(await call('/catalog/prices')).data?.['gst-registration']);
+check('service page shows the live price', (await call('/catalog/services/gst-registration')).data?.price === 999);
+const code2 = `BACK${Date.now().toString().slice(-6)}`;
+const cp2 = (
+  await call('/orders/staff/coupons', {
+    method: 'POST',
+    token: boss,
+    body: {code: code2, kind: 'flat', value: 100, maxUses: 1},
+  })
+).data;
+const o2 = (
+  await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}})
+).data;
+await call(`/orders/${o2._id}/cancel`, {method: 'POST', token: user});
+check(
+  'unpaid cancel gives the code back',
+  (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp2._id)?.uses === 0,
+);
+
 // ── Account deletion ────────────────────────────────────────────────────
 const leaver = await loginWithCookie(`leaver${Date.now()}@example.com`);
 const leaverMe = (await call('/auth/me', {token: leaver.token})).data;

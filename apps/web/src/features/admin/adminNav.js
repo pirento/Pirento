@@ -148,7 +148,7 @@ export const ADMIN_SECTIONS = [
     label: 'Services & prices',
     icon: Briefcase,
     roles: ALL_STAFF,
-    intro: 'Every service on sale and its price, read from the catalogue.',
+    intro: 'Every service and its price. Finance and superadmins can change a price or take a service off sale.',
   },
   {
     id: 'settings',

@@ -7,6 +7,7 @@ import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 import {completionCode, findAccessible} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
+import {releaseCoupon} from '../lib/coupons.js';
 
 // The team's side: numbers, the work queue, and moving orders along.
 export const staffRoutes = Router();
@@ -171,6 +172,7 @@ staffRoutes.patch(
         {new: true},
       );
       if (!updated) throw conflict('CHANGED', 'Someone else just updated this order. Reload and try again.');
+      if (status === 'cancelled' && order.status === 'pending_payment') await releaseCoupon(order);
     }
 
     if (status === 'cancelled' && paidByWallet) {

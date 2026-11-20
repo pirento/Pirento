@@ -19,6 +19,7 @@ export const ACCESS = {
   partners: ['finance', 'superadmin'],
   audit: ['superadmin'],
   coupons: ['finance', 'superadmin'],
+  pricing: ['finance', 'superadmin'],
   accounts: ['superadmin'], // deletion requests, site settings
   openings: ['staff', 'superadmin'],
 };
