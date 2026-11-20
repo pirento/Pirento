@@ -1,4 +1,4 @@
-// Discount codes: checking one at checkout, counting its use, and giving the use back.
+// Discount codes: checking one at checkout, and counting its use once the order is paid.
 import {ApiError} from '@pirento/shared/server';
 import {Coupon} from '../models/Coupon.js';
 
@@ -18,22 +18,14 @@ export function discountFor(coupon, product, amount, now = new Date()) {
   return Math.min(off, amount - 100);
 }
 
-/**
- * Checks a code and counts one use in a single update, so the last use of a
- * limited code cannot be taken by two orders at once.
- * A use is counted when the order is placed; `releaseCoupon` gives it back if the order is cancelled unpaid.
- */
-export async function redeem(code, product, amount) {
-  const coupon = await Coupon.findOne({code});
-  const discount = discountFor(coupon, product, amount);
-  const taken = await Coupon.findOneAndUpdate(
-    {_id: coupon._id, ...(coupon.maxUses ? {uses: {$lt: coupon.maxUses}} : {})},
-    {$inc: {uses: 1}},
-  );
-  if (!taken) throw refuse('This code has been used up');
-  return discount;
+/** The discount a code gives this order, checked when the order is placed. Nothing is counted yet. */
+export async function discountOf(code, product, amount) {
+  return discountFor(await Coupon.findOne({code}), product, amount);
 }
 
-/** Gives back the use an unpaid, now cancelled order took. Never below zero. */
-export const releaseCoupon = (order) =>
-  order.coupon ? Coupon.updateOne({code: order.coupon, uses: {$gt: 0}}, {$inc: {uses: -1}}) : null;
+/**
+ * Counts one use once the order is paid, so unpaid orders can never use up a limited code.
+ * A payment is never refused over it: if the last use was taken while this order sat unpaid,
+ * the count may go one past the limit.
+ */
+export const countUse = (order) => (order.coupon ? Coupon.updateOne({code: order.coupon}, {$inc: {uses: 1}}) : null);

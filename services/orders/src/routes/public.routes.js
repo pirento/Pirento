@@ -2,7 +2,7 @@
 import {Router} from 'express';
 import {ApiError, notFound} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
-import {markPaid} from '../lib/orders.js';
+import {markPaid, noteExtraPayment} from '../lib/orders.js';
 import {razorpayConfig, webhookSignatureOk} from '../lib/razorpay.js';
 
 export const publicRoutes = Router();
@@ -33,8 +33,7 @@ publicRoutes.post('/payments/razorpay/webhook', async (req, res) => {
         {method: 'razorpay', razorpayOrderId: payment.order_id, razorpayPaymentId: payment.id},
         'Paid with Razorpay',
       );
-      // shortcut: money captured on an order cancelled meanwhile is refunded by hand in Razorpay; automate with its refunds API.
-      if (!paid && order.status === 'cancelled') console.warn(`Captured payment on cancelled order ${order.orderNo}`);
+      if (!paid) await noteExtraPayment(await Order.findById(order._id), payment.id);
     }
   }
   res.json({data: {ok: true}});

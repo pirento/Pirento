@@ -26,6 +26,8 @@ export const Order = mongoose.model(
         razorpayOrderId: {type: String, index: true, sparse: true},
         razorpayPaymentId: String,
         refunded: Boolean,
+        // Razorpay payments that arrived after the order was already settled; the team refunds them.
+        extra: [String],
       },
       code: {type: String, unique: true, sparse: true}, // public completion code
       ref: {type: String, index: true}, // Pirento One partner code that brought this order

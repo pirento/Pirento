@@ -54,7 +54,7 @@ export const refunds = {
     {
       title: 'Before you pay',
       body: [
-        'An order you have not paid for can be cancelled at any time. If you used a coupon on it, the coupon use is returned to you.',
+        'An order you have not paid for can be cancelled at any time. A discount code only counts as used once you pay, so cancelling leaves it unused.',
       ],
     },
     {

@@ -27,7 +27,7 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Effects:** wrap `useEffect` bodies in braces. An arrow that returns a value (e.g. `scrollIntoView`, which returns a Promise in new browsers) crashes React on unmount.
 - **Layout check:** `html` has `overflow-x: clip`, so `scrollWidth` never shows overflow. Check element edges against the viewport instead.
 - **Prices on screen:** read through `useService` / `useServicesFor` (`apps/web/src/lib/prices.jsx`) so admin price changes show; the orders service reads the live price from the catalog service.
-- **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser.
+- **Money:** stored in paise (integers) in the wallet service; debits use one atomic update with a `$gte` balance guard. Prices are read on the server; never trust an amount from the browser. A discount code counts as used only when its order is paid (`markPaid`). One open withdrawal per person is a unique index, so save the request before debiting.
 - **Motion:** pages call `usePageMotion(ref)`. Mark elements with `data-reveal`, hero extras with `data-hero-fade`, heading lines with `<Heading data-lines>`. All of it is skipped under reduced motion.
 - **New page:** add one line to `apps/web/src/app/routes.jsx` above the `/:slug` product routes, call `usePageMeta`, keep one `<h1>`.
 - **Bharat ID form:** steps and rules live once in `packages/shared/src/identity/form.js`; the browser and the identity service both validate with `validateSection`. Never store a full Aadhaar or account number.

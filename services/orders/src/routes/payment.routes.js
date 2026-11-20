@@ -3,7 +3,7 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, conflict, requireAuth, validate} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
-import {findOwn, markPaid} from '../lib/orders.js';
+import {findOwn, markPaid, noteExtraPayment} from '../lib/orders.js';
 import {debitForOrder, voidOrderDebit} from '../lib/wallet.js';
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig} from '../lib/razorpay.js';
 
@@ -74,7 +74,11 @@ paymentRoutes.post(
       },
       'Paid with Razorpay',
     );
-    // Already paid (the webhook can arrive first): just return the order as it is.
-    res.json({data: paid ?? (await Order.findById(order._id))});
+    if (paid) return res.json({data: paid});
+    // Not pending any more: the webhook got there first with this same payment, or the order was settled
+    // another way, and then this payment needs refunding.
+    const now = await Order.findById(order._id);
+    await noteExtraPayment(now, req.body.razorpay_payment_id);
+    res.json({data: await Order.findById(order._id)});
   },
 );

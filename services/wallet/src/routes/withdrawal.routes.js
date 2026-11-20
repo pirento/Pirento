@@ -28,15 +28,23 @@ withdrawalRoutes.post(
     }),
   ),
   async (req, res) => {
-    // One open request at a time keeps the queue honest and the money easy to follow.
-    if (await Withdrawal.exists({userId: req.user.sub, status: 'requested'})) {
-      throw conflict('OPEN_REQUEST', 'You already have a withdrawal waiting. Wait for it to finish.');
-    }
     const amount = toPaise(req.body.amount);
     const doc = new Withdrawal({userId: req.user.sub, email: req.user.email, amount, upi: req.body.upi});
-    // Debit first, keyed on the request id: a failed debit leaves no request behind.
-    await move(req.user.sub, 'debit', amount, `Withdrawal to ${doc.upi}`, `wd-${doc._id}`);
-    await doc.save();
+    // Save first: the database allows one open request per person, so a second click stops here.
+    try {
+      await doc.save();
+    } catch (err) {
+      if (err.code === 11000)
+        throw conflict('OPEN_REQUEST', 'You already have a withdrawal waiting. Wait for it to finish.');
+      throw err;
+    }
+    // Then the debit, keyed on the request id. If it fails (too little money), the request goes too.
+    try {
+      await move(req.user.sub, 'debit', amount, `Withdrawal to ${doc.upi}`, `wd-${doc._id}`);
+    } catch (err) {
+      await doc.deleteOne();
+      throw err;
+    }
     res.status(201).json({data: doc});
   },
 );

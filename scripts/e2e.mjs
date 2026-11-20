@@ -578,18 +578,19 @@ const disc = (
   })
 ).data;
 check('order with code is priced by the server', disc?.amount === 134910 && disc.discount === 14990, disc);
-check(
-  'a one-use code works once',
-  (
-    await call('/orders', {
-      method: 'POST',
-      token: user,
-      body: {serviceSlug: 'giftox-welcome-kit', coupon: code, intake: gift},
-    })
-  ).error?.code === 'COUPON',
-);
+// A code counts only when an order is paid, so a second unpaid order with a one-use code still goes through.
+const disc2 = await call('/orders', {
+  method: 'POST',
+  token: user,
+  body: {serviceSlug: 'giftox-welcome-kit', coupon: code, intake: gift},
+});
+check('an unpaid order leaves a one-use code free', disc2.status === 201, disc2);
+await call(`/orders/${disc2.data?._id}/cancel`, {method: 'POST', token: user});
 await call(`/orders/staff/coupons/${cp._id}`, {method: 'PATCH', token: boss, body: {active: false}});
-check('code redemptions', (await call(`/orders/staff/coupons/${cp._id}/orders`, {token: boss})).data?.length === 1);
+check(
+  'orders placed with the code',
+  (await call(`/orders/staff/coupons/${cp._id}/orders`, {token: boss})).data?.length === 2,
+);
 
 // ── Admin: order assign, note, product scope ────────────────────────────
 const me2 = (await call('/auth/me', {token: staffToken})).data;
@@ -727,8 +728,18 @@ check(
     })
   ).status === 409,
 );
-const wd2 = (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'test@upi'}}))
-  .data;
+// Two clicks at once: the database lets only one request through, and only one amount is held.
+const twin = await Promise.all(
+  [1, 2].map(() => call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'test@upi'}})),
+);
+check(
+  'a double click opens one withdrawal',
+  twin.filter((r) => r.status === 201).length === 1 &&
+    twin.filter((r) => r.status === 409).length === 1 &&
+    (await call('/wallet', {token: user})).data.balance === before + 15000,
+  twin.map((r) => r.status),
+);
+const wd2 = twin.find((r) => r.status === 201).data;
 const paid = (
   await call(`/wallet/staff/withdrawals/${wd2._id}`, {
     method: 'PATCH',
@@ -851,10 +862,29 @@ const cp2 = (
 const o2 = (
   await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}})
 ).data;
+const usesOf = async () =>
+  (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp2._id)?.uses;
+check('an unpaid order does not use the code up', (await usesOf()) === 0);
 await call(`/orders/${o2._id}/cancel`, {method: 'POST', token: user});
+const o3 = (
+  await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}})
+).data;
+await call('/wallet/staff/adjust', {
+  method: 'POST',
+  token: boss,
+  body: {
+    userId: (await call('/auth/me', {token: user})).data._id,
+    type: 'credit',
+    amount: o3.amount / 100,
+    reason: 'Test',
+  },
+});
+await call(`/orders/${o3._id}/pay/wallet`, {method: 'POST', token: user});
+check('paying counts the code', (await usesOf()) === 1);
 check(
-  'unpaid cancel gives the code back',
-  (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp2._id)?.uses === 0,
+  'a used-up code is refused',
+  (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}}))
+    .error?.code === 'COUPON',
 );
 
 // ── Sign-in methods: Bharat ID, staff door, providers ───────────────────

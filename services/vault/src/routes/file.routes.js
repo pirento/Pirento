@@ -19,9 +19,14 @@ fileRoutes.post(
   '/files',
   express.raw({type: 'application/octet-stream', limit: config.maxFileBytes}),
   async (req, res) => {
-    const name = decodeURIComponent(String(req.headers['x-file-name'] ?? ''))
-      .trim()
-      .slice(0, 200);
+    let name = '';
+    try {
+      name = decodeURIComponent(String(req.headers['x-file-name'] ?? ''))
+        .trim()
+        .slice(0, 200);
+    } catch {
+      // A broken name (e.g. a bare "%") is treated like no name, not a server error.
+    }
     if (!name || !Buffer.isBuffer(req.body) || !req.body.length) throw badInput('Choose a file to upload');
 
     const [{used = 0} = {}] = await VaultFile.aggregate([

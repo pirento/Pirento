@@ -108,7 +108,7 @@ export function Coupons() {
           {label: 'Code', cell: (c) => <span className="font-medium">{c.code}</span>},
           {label: 'Takes off', cell: (c) => (c.kind === 'percent' ? `${c.value}%` : `₹${c.value}`)},
           {label: 'On', cell: (c) => PRODUCTS.find((p) => p.slug === c.product)?.name ?? 'Every product'},
-          {label: 'Used', right: true, cell: (c) => `${c.uses}${c.maxUses ? ` / ${c.maxUses}` : ''}`},
+          {label: 'Used (paid orders)', right: true, cell: (c) => `${c.uses}${c.maxUses ? ` / ${c.maxUses}` : ''}`},
           {label: 'Ends', cell: (c) => (c.expiresAt ? formatDate(c.expiresAt) : '—')},
           {
             label: 'State',

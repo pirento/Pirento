@@ -8,7 +8,7 @@ import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 import {findAccessible, findOwn, nextOrderNo} from '../lib/orders.js';
-import {redeem, releaseCoupon} from '../lib/coupons.js';
+import {discountOf} from '../lib/coupons.js';
 
 export const customerRoutes = Router();
 customerRoutes.use(requireAuth);
@@ -45,7 +45,7 @@ customerRoutes.post(
 
     const full = service.price * 100 * req.body.quantity; // the price is always the server's
     const coupon = req.body.coupon || undefined;
-    const discount = coupon ? await redeem(coupon, service.product, full) : 0;
+    const discount = coupon ? await discountOf(coupon, service.product, full) : 0;
 
     const order = await Order.create({
       orderNo: await nextOrderNo(),
@@ -81,6 +81,5 @@ customerRoutes.post('/:id/cancel', async (req, res) => {
     {new: true},
   );
   if (!cancelled) throw conflict('NOT_CANCELLABLE', 'Paid orders can only be cancelled by our team');
-  await releaseCoupon(cancelled);
   res.json({data: cancelled});
 });

@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import {canUse, isId, nextSeq, notFound, productScope} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
+import {countUse} from './coupons.js';
 
 /** Six-digit order numbers, starting at 100001. */
 export const nextOrderNo = async () => (await nextSeq('order')) + 100000;
@@ -35,16 +36,42 @@ export async function findOwn(req) {
 }
 
 /**
- * Moves an order from pending_payment to paid, exactly once.
+ * Moves an order from pending_payment to paid, exactly once, and counts its discount code.
  * Returns null when the order was not pending any more (already paid, or cancelled).
  */
-export const markPaid = (id, payment, note) =>
-  Order.findOneAndUpdate(
+export async function markPaid(id, payment, note) {
+  const paid = await Order.findOneAndUpdate(
     {_id: id, status: 'pending_payment'},
     {$set: {status: 'paid', payment}, $push: {timeline: {status: 'paid', note}}},
     {new: true},
   );
+  // Only the payment that moved the order counts the code, so a retry never counts it twice.
+  if (paid) await countUse(paid);
+  return paid;
+}
 
 /** A fresh public completion code for a product, or undefined if it has none. */
 export const completionCode = (product) =>
   CODE_PREFIX[product] && `${CODE_PREFIX[product]}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
+/**
+ * A card/UPI payment captured for an order that was already paid another way, or cancelled.
+ * Noted once on the order, where the customer and the team both see it, so it gets refunded.
+ */
+export async function noteExtraPayment(order, paymentId) {
+  if (order.payment?.razorpayPaymentId === paymentId) return;
+  // shortcut: refunded by hand in the Razorpay dashboard; automate with its refunds API.
+  const noted = await Order.updateOne(
+    {_id: order._id, 'payment.extra': {$ne: paymentId}},
+    {
+      $push: {
+        'payment.extra': paymentId,
+        timeline: {
+          status: order.status,
+          note: 'A card/UPI payment arrived after this order was settled. Our team will refund it.',
+        },
+      },
+    },
+  );
+  if (noted.modifiedCount) console.warn(`Extra Razorpay payment ${paymentId} on order ${order.orderNo}`);
+}
