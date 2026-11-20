@@ -27,7 +27,8 @@ const ART = {
   one: art('/brand/one', 777 / 308, 508 / 521),
   vault: art('/brand/vault', 776 / 336, 447 / 527),
   giftox: art('/brand/giftox', 759 / 350, 537 / 586),
-  'bharat-id': art('/brand/bharat-id', 831 / 308),
+  ai: art('/brand/ai', 1200 / 295, 700 / 650),
+  'bharat-id': art('/brand/bharat-id', 832 / 308, 646 / 820),
 };
 
 /** True when this product has its own logo files (others show their name and colour square). */
