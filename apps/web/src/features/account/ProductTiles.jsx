@@ -7,7 +7,7 @@ import {useProductSummaries} from './useProductSummaries';
 export function ProductTiles() {
   const lines = useProductSummaries();
   return (
-    <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-5">
       {PRODUCTS.map((p) => (
         <li key={p.slug} data-reveal>
           <Link

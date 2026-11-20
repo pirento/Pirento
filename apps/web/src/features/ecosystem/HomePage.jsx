@@ -1,26 +1,21 @@
-// The Pirento Ecosystem home page.
+// The Pirento Ecosystem home page: product picker hero, one-account pillars, products by need, Legal, numbers.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {LEGAL_CATALOGUE, PRODUCTS} from '@pirento/shared';
-import {useServicesFor} from '../../lib/prices';
-import {Illustration} from '../../components/Illustration';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Faq, StatsRow, Steps} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Heading, Section, SectionHeader} from '../../components/ui/Heading';
-import {Tag} from '../../components/ui/Tag';
-import {home, productIllustration, stats} from '../../data/site';
-import {ProductCard} from './ProductCard';
-import {inr} from '../../lib/format';
+import {home, stats} from '../../data/site';
+import {EcosystemPicker} from './EcosystemPicker';
+import {Pillars} from './Pillars';
+import {ProductGroups} from './ProductGroups';
+import {ServiceSearch} from '../products/widgets/ServiceSearch';
 import {usePageMotion} from '../../lib/motion';
-import {usePageMeta, useTilt} from '../../lib/page';
-
-const featured = ['private-limited-company', 'gst-registration', 'trademark-registration', 'talk-to-lawyer'];
+import {usePageMeta} from '../../lib/page';
 
 export function Home() {
-  const legalServices = useServicesFor('legal');
   const ref = useRef(null);
-  const tilt = useTilt();
   usePageMotion(ref);
   usePageMeta({title: 'Pirento Ecosystem — one account for legal, tax, identity and more'});
 
@@ -45,9 +40,7 @@ export function Home() {
             </div>
           </div>
           <div className="lg:col-span-5" data-hero-visual>
-            <div ref={tilt} className="transition-transform duration-300 ease-out">
-              <Illustration name="ecosystem" className="shadow-[0_30px_80px_-40px_rgba(15,38,32,0.4)]" />
-            </div>
+            <EcosystemPicker />
           </div>
         </div>
         <div aria-hidden className="container-x relative mt-16 hidden items-center gap-3 text-xs text-muted md:flex">
@@ -58,17 +51,12 @@ export function Home() {
         </div>
       </section>
 
-      <Section id="products">
-        <SectionHeader n={1} label={home.ecosystem.label} title={home.ecosystem.title} intro={home.ecosystem.intro} />
-        <div className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {PRODUCTS.map((p) => (
-            <ProductCard key={p.slug} product={p} />
-          ))}
-        </div>
-      </Section>
+      <Pillars copy={home.pillars} n={1} />
+
+      <ProductGroups copy={home.ecosystem} n={2} />
 
       <Section inverse>
-        <SectionHeader n={2} label={home.how.label} title={home.how.title} />
+        <SectionHeader n={3} label={home.how.label} title={home.how.title} />
         <div className="mt-20">
           <Steps steps={home.how.steps} />
         </div>
@@ -76,44 +64,33 @@ export function Home() {
 
       <Section>
         <SectionHeader
-          n={3}
+          n={4}
           label={home.legal.label}
           title={home.legal.title}
           hl="priced up front."
           intro={home.legal.intro}
         />
         <div className="mt-16 grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-7" data-reveal>
-            <Illustration name={productIllustration.legal} />
+          <div className="min-w-0 lg:col-span-7" data-reveal>
+            <ServiceSearch flat />
           </div>
-          <div className="lg:col-span-5">
-            <ul className="border-t border-rule">
-              {featured.map((slug) => {
-                const s = legalServices.find((x) => x.slug === slug);
-                return (
-                  <li key={slug} data-reveal>
-                    <Link
-                      to={`/services/${slug}`}
-                      className="group flex items-center justify-between gap-4 border-b border-rule py-5"
-                    >
-                      <span>
-                        <span className="block text-lg font-medium">{s.name}</span>
-                        <span className="text-sm text-muted">{s.deliveryTime}</span>
-                      </span>
-                      <span className="num text-2xl! transition-colors group-hover:text-ink">{inr(s.price)}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="mt-6 flex flex-wrap gap-2" data-reveal>
-              {LEGAL_CATALOGUE.slice(0, 6).map((c) => (
-                <Tag key={c.title}>{c.title}</Tag>
+          <div className="min-w-0 lg:col-span-5">
+            <ul className="grid gap-x-6 border-t border-rule sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              {LEGAL_CATALOGUE.map((c, i) => (
+                <li key={c.title} data-reveal>
+                  <Link
+                    to={`/legal/services#cat-${i}`}
+                    className="flex items-baseline justify-between gap-4 border-b border-rule py-3.5 hover:text-ink"
+                  >
+                    <span>{c.title}</span>
+                    <span className="text-sm text-muted tabular-nums">{c.services.length}</span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
             <div className="mt-8" data-reveal>
-              <Button to="/legal/services" variant="outline">
-                All legal services
+              <Button to="/legal" variant="outline">
+                Visit Pirento Legal
               </Button>
             </div>
           </div>
@@ -121,7 +98,7 @@ export function Home() {
       </Section>
 
       <Section className="pt-0! md:pt-0!">
-        <SectionHeader n={4} label={home.numbers.label} title={home.numbers.title} />
+        <SectionHeader n={5} label={home.numbers.label} title={home.numbers.title} />
         <div className="mt-16">
           <StatsRow stats={stats} />
         </div>
@@ -130,7 +107,7 @@ export function Home() {
       <Section className="pt-0! md:pt-0!">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <SectionHeader n={5} label={home.faq.label} title={home.faq.title} />
+            <SectionHeader n={6} label={home.faq.label} title={home.faq.title} />
           </div>
           <div className="md:col-span-8">
             <Faq items={home.faq.items} />
@@ -138,7 +115,7 @@ export function Home() {
         </div>
       </Section>
 
-      <ContactCta n={6} />
+      <ContactCta n={7} />
     </div>
   );
 }

@@ -8,7 +8,7 @@ import {WidgetCard} from './Card';
 
 const POPULAR = ['private-limited-company', 'gst-registration', 'trademark-registration', 'talk-to-lawyer'];
 
-export function ServiceSearch() {
+export function ServiceSearch({flat = false}) {
   const services = useServicesFor('legal');
   const [q, setQ] = useState('');
   const needle = q.trim().toLowerCase();
@@ -18,7 +18,8 @@ export function ServiceSearch() {
         .slice(0, 5)
     : POPULAR.map((slug) => services.find((s) => s.slug === slug)).filter(Boolean);
   return (
-    <WidgetCard label={`Search ${services.length} services`}>
+    // Outside a hero the card goes flat: the design system keeps its one shadow for hero cards.
+    <WidgetCard label={`Search ${services.length} services`} className={flat ? 'shadow-none!' : ''}>
       <label className="relative mt-4 block">
         <span className="sr-only">Search legal services</span>
         <Search aria-hidden className="absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted" />

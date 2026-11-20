@@ -41,10 +41,46 @@ export const home = {
   highlight: 'One account.',
   intro:
     'Pirento brings <strong>legal work, tax filing, identity, storage and learning</strong> under one sign-in and one wallet. You see what we do for you, step by step.',
+  pillars: {
+    label: 'One account',
+    title: 'Sign in once. / It all comes along.',
+    items: [
+      {
+        title: 'One sign-in',
+        body: 'An emailed 6-digit code opens every Pirento site. No password to forget.',
+        to: '/login',
+        cta: 'Sign in',
+      },
+      {
+        title: 'One wallet',
+        body: 'Pay for Legal, Black, Green and Giftox from the same balance, in paise, with every move on record.',
+        to: '/dashboard',
+        cta: 'Open the wallet',
+      },
+      {
+        title: 'One identity',
+        body: 'Bharat ID: reviewed once by our team, with a public page anyone can check.',
+        to: '/bharat-id',
+        cta: 'About Bharat ID',
+      },
+    ],
+  },
   ecosystem: {
     label: 'Ecosystem',
-    title: 'Ten products. / One sign-in.',
+    title: 'Ten products, / grouped by need.',
     intro: 'Each product does one job well. Your account, wallet and identity carry across all of them.',
+    // How the products are grouped on the home page. Every product appears once.
+    groups: [
+      {title: 'Paperwork and compliance', body: 'Registrations, filings and legal help.', products: ['legal', 'black']},
+      {title: 'Identity and safekeeping', body: 'Who you are, and what you keep.', products: ['bharat-id', 'vault']},
+      {
+        title: 'Learn, refer, plan',
+        body: 'Certificates, referrals and loan planning.',
+        products: ['intern', 'one', 'capital'],
+      },
+      {title: 'Give', body: 'Trees on a drive, boxes at a door.', products: ['green', 'giftox']},
+      {title: 'Ask', body: 'Not sure where to start? Ask in your words.', products: ['ai']},
+    ],
   },
   how: {
     label: 'How it works',
@@ -93,6 +129,38 @@ export const home = {
     label: 'Contact',
     title: 'Have a matter? / Let’s talk.',
   },
+};
+
+// The ecosystem dashboard: quick actions and the first things worth doing.
+export const dashboard = {
+  actions: [
+    {label: 'Browse legal services', to: '/legal/services'},
+    {label: 'Apply for Bharat ID', to: '/bharat-id/dashboard'},
+    {label: 'Ask Pirento AI', to: '/ai/dashboard'},
+    {label: 'Get help', to: '/support'},
+  ],
+  // Done-or-not is worked out from your own records in DashboardPage.
+  steps: [
+    {id: 'name', title: 'Add your name', body: 'So our team knows what to call you.', to: '#account'},
+    {
+      id: 'order',
+      title: 'Place your first order',
+      body: 'Every price is shown before you start.',
+      to: '/legal/services',
+    },
+    {
+      id: 'identity',
+      title: 'Apply for Bharat ID',
+      body: 'Seven short steps and a 20-second video.',
+      to: '/bharat-id/dashboard',
+    },
+    {
+      id: 'certificate',
+      title: 'Earn an Intern certificate',
+      body: 'A free exam with a public verify page.',
+      to: '/intern/dashboard',
+    },
+  ],
 };
 
 export const productIllustration = {

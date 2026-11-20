@@ -32,7 +32,8 @@ npm run format   # prettier
 ## What it does
 
 - **Sign-in** by emailed code on a full-screen page in the site's own colours (`/login`, staff at `/admin/login`). First sign-in asks your name. Sessions: 15-minute access token in memory, rotating refresh cookie.
-- **Pirento Ecosystem dashboard** (`/dashboard`): every product with its live status, the wallet, recent orders, your profile.
+- **Pirento Ecosystem home** (`/`): pick any product in the hero to preview its site, what one account gives you, the ten products grouped by need, Legal search.
+- **Pirento Ecosystem dashboard** (`/dashboard`): quick actions, your wallet, open orders, Bharat ID and certificates at a glance, a get-started checklist from your own records, every product with its live status, recent orders, the wallet and your account.
 - **Product sites** at `/<product>` with dashboards at `/<product>/dashboard`, each in the product's dark and accent colours from the brand guidelines, with its own home layout and a working widget in the hero (search Legal services, Black rate card, Green tree calculator, Capital EMI calculator and more).
 - **Orders**: server-priced checkout for Legal, Black, Green (trees) and Giftox (gift boxes), paid from the wallet or Razorpay, worked by staff, finished with a public code (`LGL-`, `BLK-`, `GRN-`, `GFT-`).
 - **Bharat ID**: seven saved steps (Aadhaar checked by checksum, only its last 4 digits kept), a 20-second **video KYC** where you say your name and a one-time code, then review and consent. Staff watch the video and approve or reject; the video is deleted once the ID is issued. A 10-digit ID with a QR verify page.
