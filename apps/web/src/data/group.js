@@ -82,6 +82,8 @@ export const FOUNDATION = {
 export const VENTURES = [
   {
     name: 'A T Elevator',
+    icon: 'elevator',
+    meta: 'Lifts · Lucknow',
     domain: 'atelevator.com',
     href: 'https://at-elevator.vercel.app/',
     tagline: 'Moving you forward. Safely. Smoothly. Reliably.',
@@ -90,12 +92,16 @@ export const VENTURES = [
   },
   {
     name: 'A T Facility',
+    icon: 'facility',
+    meta: 'Housekeeping and upkeep',
     tagline: 'Clean spaces, better places.',
     body: 'Housekeeping, cleaning services, hygiene solutions and maintenance support.',
     lead: 'aman',
   },
   {
     name: 'Inzario Space',
+    icon: 'interior',
+    meta: 'Interior design · Lucknow',
     domain: 'inzariospace.com',
     href: 'https://inzariospace.com/',
     tagline: 'Spaces that feel like you.',
@@ -108,10 +114,14 @@ export const VENTURES = [
 export const TOOLS = [
   {
     name: 'Pirento Blank',
+    icon: 'journal',
+    meta: 'Tool · Traders',
     body: 'A private trading journal and planning tool for Indian share-market traders: net P&L after charges, risk checks and trade reviews. It gives no investment advice.',
   },
   {
     name: 'Venturecore Billing',
+    icon: 'billing',
+    meta: 'Tool · Every business',
     body: 'Quotations, invoices, payments, GST and finance for every business in the group, each with its own data, logo and payment gateway.',
   },
 ];
@@ -120,6 +130,7 @@ export const TOOLS = [
 export const ALONGSIDE = [
   {
     name: 'Shri Sarraf',
+    icon: 'jewellery',
     domain: 'shrisarraf.com',
     href: 'https://shrisarraf.com/',
     tagline: 'Crafting timeless elegance.',
@@ -128,6 +139,7 @@ export const ALONGSIDE = [
   },
   {
     name: 'JBC Seva Trust',
+    icon: 'trust',
     domain: 'jbcsevatrust.org',
     tagline: 'Serving humanity. Preserving nature.',
     body: 'A public charitable trust for elder care, marriage support for girls from poor families, child education and nutrition, and tree plantation. Ravikant Soni is a trustee.',
@@ -182,10 +194,13 @@ export const ABOUT = {
   partner: {label: 'Partner', title: 'Who we / work with.'},
 };
 
-// Home and About: every part of the family as one card, in this order. `kind` is the card's small label.
-export const FAMILY = [
-  {...FOUNDATION, kind: 'Foundation', tagline: FOUNDATION.tagline, featured: true},
-  ...VENTURES.map((v) => ({...v, kind: 'Venture'})),
-  ...ALONGSIDE.map((a) => ({...a, kind: a.note, note: undefined})),
-  ...TOOLS.map((t) => ({...t, kind: 'Tool'})),
+// Home and About: the family beyond the ten products, in rows like the products above it.
+export const FAMILY_GROUPS = [
+  {title: 'Ventures', body: 'Businesses built and run with Venturecore.', items: VENTURES},
+  {
+    title: 'Run on their own',
+    body: 'Close to us, with their own books and decisions.',
+    items: ALONGSIDE.map(({note, ...a}) => ({...a, meta: note})),
+  },
+  {title: 'Tools', body: 'Software the group runs on.', items: TOOLS},
 ];

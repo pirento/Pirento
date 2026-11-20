@@ -1,9 +1,9 @@
 // Home: the rest of the Pirento family as linked cards, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
-import {ABOUT, COMPANY, FAMILY, PARTNER, PEOPLE} from '../../data/group';
+import {ABOUT, COMPANY, PARTNER, PEOPLE} from '../../data/group';
 import {Avatar} from './Avatar';
-import {FamilyGrid} from './FamilyCard';
+import {FamilyRows} from './FamilyRows';
 
 export function FamilySection({n}) {
   return (
@@ -12,9 +12,9 @@ export function FamilySection({n}) {
         n={n}
         label="The Pirento family"
         title="More than / ten products."
-        intro={`Pirento Ecosystem is one part of ${COMPANY.name}. Here is the rest of the family; open any card to visit its site.`}
+        intro={`Pirento Ecosystem is one part of ${COMPANY.name}. Here is the rest of the family.`}
       />
-      <FamilyGrid items={FAMILY} />
+      <FamilyRows />
     </Section>
   );
 }
