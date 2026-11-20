@@ -1,0 +1,47 @@
+import {lazy} from 'react';
+import {Navigate} from 'react-router-dom';
+import {Home} from '../features/ecosystem/HomePage';
+import {NotFound} from '../features/ecosystem/NotFoundPage';
+
+// Pages load on first visit, so the home page ships the least JavaScript.
+const page = (load, name) => lazy(() => load().then((m) => ({default: m[name]})));
+
+/**
+ * Every page of the site, in matching order. To add a page: write it under
+ * features/<area>/, then add one line here. Product sites (/:slug) stay last,
+ * so a fixed path like /verify is never mistaken for a product.
+ */
+export const ROUTES = [
+  // Pirento Ecosystem
+  {path: '/', element: <Home />},
+  {path: '/products', Page: page(() => import('../features/ecosystem/ProductsPage'), 'Products')},
+  {path: '/products/:slug', Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductRedirect')},
+
+  // Signing in and the shared account
+  {path: '/login', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
+  {path: '/admin/login', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/dashboard', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
+  {path: '/account', element: <Navigate to="/dashboard" replace />},
+
+  // Buying: catalogue, service pages, checkout, orders
+  {path: '/legal/services', Page: page(() => import('../features/legal/CataloguePage'), 'Legal')},
+  {path: '/services/:slug', Page: page(() => import('../features/legal/ServicePage'), 'Service')},
+  {path: '/checkout/:slug', Page: page(() => import('../features/orders/CheckoutPage'), 'Checkout')},
+  {path: '/orders/:id', Page: page(() => import('../features/orders/OrderPage'), 'OrderPage')},
+
+  // Public checks and help
+  {path: '/verify', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
+  {path: '/verify/:code', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
+  {path: '/support', Page: page(() => import('../features/support/SupportPage'), 'Support')},
+  {path: '/support/:id', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
+
+  // Staff
+  {path: '/admin', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
+  {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
+
+  // The ten product sites: home at /<slug>, app at /<slug>/dashboard
+  {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
+  {path: '/:slug/dashboard', Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard')},
+
+  {path: '*', element: <NotFound />},
+];

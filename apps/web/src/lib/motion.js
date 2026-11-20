@@ -100,7 +100,6 @@ export function usePageMotion(ref, deps = []) {
       hide.revert();
       ctx?.revert();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
 

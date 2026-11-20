@@ -51,6 +51,7 @@ services:
       <<: *env
       SERVICE: identity
       MONGO_URI: mongodb://mongo:27017/pirento_identity
+      KYC_ENCRYPTION_KEY: ${KYC_ENCRYPTION_KEY:?set KYC_ENCRYPTION_KEY in .env}
     depends_on: [mongo]
 
   learning:

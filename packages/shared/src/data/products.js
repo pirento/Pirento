@@ -159,8 +159,12 @@ const SITE = {
     steps: [
       signIn,
       {
-        title: 'Fill eight short steps',
-        body: 'Contact, personal, documents, address, work, bank, nominee, then review.',
+        title: 'Fill seven short steps',
+        body: 'Contact, personal, documents, address, work, bank, nominee. Each one is saved as you go.',
+      },
+      {
+        title: 'Record a 20-second video',
+        body: 'Say your name and a one-time code on camera, so we know it is really you.',
       },
       {title: 'We review by hand', body: 'Our team checks your details. If something needs a change, we tell you why.'},
       {title: 'Get your ID', body: 'A 10-digit Bharat ID with a QR to its public verify page.'},
@@ -172,6 +176,10 @@ const SITE = {
         a: 'No. We check its format and checksum, then keep only the last 4 digits. The same goes for your bank account.',
       },
       {q: 'Can I stop halfway?', a: 'Yes. Each step is saved; come back and continue where you left off.'},
+      {
+        q: 'What happens to my video?',
+        a: 'Our team watches it to check it is you, then it is deleted once your ID is issued.',
+      },
     ],
   },
   giftox: {

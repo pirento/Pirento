@@ -20,7 +20,7 @@ export function useProductSite() {
   return productFromPath(pathname, search);
 }
 
-/** Paints the page in the current product's brand colour (the design system's single accent). */
+/** Paints the page in the current product's brand colours: its accent and its dark. */
 export function useSiteTheme() {
   const product = useProductSite();
   useLayoutEffect(() => {
@@ -28,10 +28,12 @@ export function useSiteTheme() {
     if (product) {
       root.style.setProperty('--accent', product.color);
       root.style.setProperty('--on-accent', product.onColor);
+      root.style.setProperty('--product-dark', product.dark);
       root.dataset.product = product.slug;
     } else {
       root.style.removeProperty('--accent');
       root.style.removeProperty('--on-accent');
+      root.style.removeProperty('--product-dark');
       delete root.dataset.product;
     }
   }, [product]);

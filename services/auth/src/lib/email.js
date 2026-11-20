@@ -1,8 +1,9 @@
 import nodemailer from 'nodemailer';
 
-// Email clients ignore CSS variables and stylesheets, so this one template
-// carries the design-system colours inline: paper, ink, muted, rule, accent.
-const C = {paper: '#f1f3f0', ink: '#0f2620', muted: '#56665f', rule: '#cbd6cf', accent: '#f2b33d'};
+// Email clients ignore CSS variables and stylesheets, so the brand colours from
+// the brand guidelines (Appendix A) are written inline: Pirento dark, master red,
+// light neutral, and a body grey that passes 4.5:1 on white.
+const C = {paper: '#F4F6F7', ink: '#1B2A33', muted: '#56636C', rule: '#D6D6D6', accent: '#E40E2A'};
 
 const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 

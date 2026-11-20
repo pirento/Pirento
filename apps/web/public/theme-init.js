@@ -9,5 +9,5 @@
   }
   document.documentElement.dataset.mode = mode;
   var meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.content = mode === 'dark' ? '#0b1a16' : '#f1f3f0';
+  if (meta) meta.content = mode === 'dark' ? '#0e171c' : '#ffffff';
 })();

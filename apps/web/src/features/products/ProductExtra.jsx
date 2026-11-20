@@ -1,0 +1,86 @@
+// The section that differs per product site (prices, tracks, steps…).
+import {Link} from 'react-router-dom';
+import {ID_SECTIONS, LEGAL_CATALOGUE, servicesFor} from '@pirento/shared';
+import {Button} from '../../components/ui/Button';
+import {Section, SectionHeader} from '../../components/ui/Heading';
+import {inr} from '../../lib/format';
+
+export function Extra({product}) {
+  const services = servicesFor(product.slug).filter((s) => s.price);
+  if (services.length) {
+    const list = product.slug === 'legal' ? services.slice(0, 9) : services;
+    return (
+      <Section id="services" className="pt-0! md:pt-0!">
+        <SectionHeader
+          n={2}
+          label="Services"
+          title="Prices you / see first."
+          intro={
+            product.slug === 'legal'
+              ? `${services.length} services across ${LEGAL_CATALOGUE.length} categories.`
+              : undefined
+          }
+        />
+        <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {list.map((s) => (
+            <li key={s.slug} data-reveal>
+              <Link
+                to={`/services/${s.slug}`}
+                data-cursor="View"
+                className="group flex h-full flex-col rounded-[18px] border border-rule p-6 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink"
+              >
+                <span className="text-sm text-muted">{s.category}</span>
+                <span className="mt-2 text-lg font-medium">{s.name}</span>
+                {s.description && <span className="mt-2 text-sm text-muted">{s.description}</span>}
+                <span className="num mt-auto pt-8">
+                  {inr(s.price)}
+                  {s.unit && <span className="text-base text-muted"> / {s.unit}</span>}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {product.slug === 'legal' && (
+          <div className="mt-10" data-reveal>
+            <Button to="/legal/services" variant="outline">
+              All {services.length} legal services
+            </Button>
+          </div>
+        )}
+      </Section>
+    );
+  }
+  const blocks = {
+    intern: {title: 'Five tracks, / one exam each.', items: product.tracks},
+    'bharat-id': {
+      title: 'Seven steps, / one short video.',
+      items: [...ID_SECTIONS.map((s) => s.title), 'Video verification', 'Review and submit'],
+    },
+    vault: {
+      title: 'What happens / to your files.',
+      items: [
+        'Sealed with AES-256-GCM, a fresh IV per item',
+        'Files up to 5 MB, 50 MB in all',
+        'Passwords never shown in lists, only on request',
+        'Downloads are never opened in the browser',
+        'Pirento holds the key: not end-to-end encrypted',
+      ],
+    },
+    ai: {title: 'Ask it / like this.', items: product.examples},
+  };
+  const b = blocks[product.slug];
+  if (!b) return null;
+  return (
+    <Section className="pt-0! md:pt-0!">
+      <SectionHeader n={2} label={product.short} title={b.title} />
+      <ol className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {b.items.map((item, i) => (
+          <li key={item} className="flex items-start gap-4 rounded-[18px] border border-rule bg-stone p-6" data-reveal>
+            <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
+            <span className="text-lg">{item}</span>
+          </li>
+        ))}
+      </ol>
+    </Section>
+  );
+}

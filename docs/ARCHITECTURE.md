@@ -1,0 +1,77 @@
+# How Pirento is built
+
+Pirento is one website (`apps/web`) in front of small backend services (`services/*`). They share one package (`packages/shared`) for data, rules and server helpers. Every folder does one job, and every file holds one idea, so you can find things by name.
+
+## The big picture
+
+```
+browser ──► gateway (:4000) ──► auth · wallet · catalog · orders · identity · learning · vault · support · ai
+               │                   each with its own MongoDB database
+               └── serves the built website in production
+```
+
+- The **gateway** is the only public entry. It rate-limits, refuses `/api/<service>/internal/*`, and forwards `/api/<service>/…` to that service.
+- A **service** owns its data. Nobody else reads its database. Another service that needs something calls its `/internal/*` route with the shared `INTERNAL_KEY` (example: orders → wallet for debits and refunds).
+- Every response is `{data}` or `{error: {code, message}}`.
+
+## Repository layout
+
+```
+apps/web/src
+  main.jsx                 entry: styles, router, session, app shell
+  app/                     App shell, route table (routes.jsx), page-change effects
+  components/
+    layout/                navbar, footer, preloader, cursor, contact block
+    ui/                    Button, Tag, Heading/Section, Field, TextArea, Blocks
+    PageHero.jsx, Illustration.jsx
+  features/<area>/         one folder per area of the product, pages and their parts
+    ecosystem/  products/  auth/  account/  admin/  orders/  legal/  verify/
+    identity/   learning/  vault/ ai/      partner/ capital/ support/
+  lib/
+    api/                   client (token + silent refresh), session, useApi
+    format.js  motion.js  page.js  site.js (which product site you are on)
+  data/site.js             site copy for the ecosystem pages
+  styles/index.css         colour and type tokens
+
+packages/shared/src
+  index.js                 browser-safe exports
+  data/                    raw data: products, brand colours, catalogue, prices, intake, exam bank
+  catalog/ orders/ identity/ money/   rules shared by browser and server
+  server/                  createApp, errors, env, auth, internal calls, validate, db, crypto
+
+services/<name>/src
+  index.js                 boots the service: createApp, mount routes, start
+  config.js                everything read from the environment
+  models/                  one Mongoose model per file
+  routes/                  one Express router per area (public, staff, …)
+  lib/                     pure logic, with its tests next to it
+```
+
+## Services
+
+| Service  | Port | Owns                                                                 |
+| -------- | ---- | -------------------------------------------------------------------- |
+| gateway  | 4000 | routing, rate limits, serving the website                            |
+| auth     | 4001 | accounts, email codes, sessions, roles                               |
+| wallet   | 4002 | balances (paise) and the ledger                                      |
+| catalog  | 4003 | products and prices (read-only, from `packages/shared`)              |
+| orders   | 4004 | checkout, payments, staff queue, completion codes, partner referrals |
+| identity | 4005 | Bharat ID applications, video KYC, verify                            |
+| learning | 4006 | Intern exam and certificates                                         |
+| vault    | 4007 | encrypted files and passwords                                        |
+| support  | 4008 | tickets                                                              |
+| ai       | 4009 | the Claude assistant                                                 |
+
+## The website
+
+- `/` is the **Pirento Ecosystem** site; `/dashboard` is the shared dashboard (products, wallet, orders, profile).
+- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
+- Sign-in is `/login` (customers) and `/admin/login` (staff). Sessions: a 15-minute access token in memory plus a rotating refresh cookie; `lib/api/client.js` refreshes silently.
+
+## Colours and type
+
+Colours come from the **Pirento Ecosystem Consolidated Brand Guidelines** (`docs/BRAND_GUIDELINES.md`, Appendix A). The register lives in `packages/shared/src/data/brand.js`, and the CSS tokens in `apps/web/src/styles/index.css`. Text on an accent is picked by measured contrast (`textOn`), and a test keeps every pair at WCAG AA. Layout, motion and type follow `docs/DESIGN_SYSTEM.md`.
+
+## Quality gates
+
+`npm test` (unit tests next to the code), `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`. CI runs all of them.
