@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {decrypt, encrypt, keyFrom} from './cipher.js';
+import {decrypt, encrypt, keyFrom} from './crypto.js';
 
 const key = keyFrom('test-key');
 

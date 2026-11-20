@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {checkoutQuestions, validateIntake} from './orders.js';
+import {checkoutQuestions, validateIntake} from './rules.js';
 
 const valid = (product, slug) =>
   Object.fromEntries(

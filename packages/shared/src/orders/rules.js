@@ -1,4 +1,4 @@
-import {intakeQuestions} from './data/intake.js';
+import {intakeQuestions} from '../data/intake.js';
 
 // Order life cycle. Staff move an order forward; cancelling a paid order refunds it.
 export const ORDER_STEPS = [

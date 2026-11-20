@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SERVICES, getService, PRODUCTS} from './index.js';
+import {SERVICES, getService, PRODUCTS} from '../index.js';
 
 test('every service has a unique slug and a known product', () => {
   const slugs = SERVICES.map((s) => s.slug);

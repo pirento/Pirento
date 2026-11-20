@@ -1,8 +1,8 @@
-import {LEGAL_SERVICES} from './data/legalCatalogue.js';
-import {LEGAL_PRICING} from './data/legalPricing.js';
-import {STATIC_SERVICE_PRICES} from './data/servicePricing.js';
-import {GREEN_DRIVES} from './data/greenDrives.js';
-import {GIFT_BOXES} from './data/giftBoxes.js';
+import {LEGAL_SERVICES} from '../data/legalCatalogue.js';
+import {LEGAL_PRICING} from '../data/legalPricing.js';
+import {STATIC_SERVICE_PRICES} from '../data/servicePricing.js';
+import {GREEN_DRIVES} from '../data/greenDrives.js';
+import {GIFT_BOXES} from '../data/giftBoxes.js';
 
 // One flat list of every sellable service. Prices are in rupees and are only
 // ever read on the server; the browser never sends a price.

@@ -213,6 +213,25 @@ check(
   'consent required',
   (await call('/identity/submit', {method: 'POST', token: user, body: {consent: false}})).status === 400,
 );
+check(
+  'video KYC required before submit',
+  /video/i.test(
+    (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).error?.message ?? '',
+  ),
+);
+const challenge = (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data;
+check('4-digit KYC challenge', /^\d{4}$/.test(challenge?.challenge ?? ''), challenge);
+check(
+  'same challenge on reload',
+  (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data?.challenge === challenge.challenge,
+);
+const fakeVideo = Buffer.alloc(4096, 7); // the service stores bytes; it does not decode video
+const upload = await fetch(B + '/identity/kyc/video', {
+  method: 'POST',
+  headers: {authorization: `Bearer ${user}`, 'content-type': 'video/webm'},
+  body: fakeVideo,
+});
+check('KYC video uploaded', upload.status === 201 && (await upload.json()).data?.kyc?.size === 4096);
 const app1 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
 check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma', app1);
 check('locked after submit', (await put('contact', steps.contact)).status === 409);
@@ -239,9 +258,22 @@ check(
   again2?.status === 'submitted' && !again2.reason && again2.fullName === 'Asha Rani Verma',
   again2,
 );
+const played = await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}});
+check(
+  'staff can play the KYC video',
+  played.status === 200 && Buffer.from(await played.arrayBuffer()).equals(fakeVideo),
+);
+check(
+  'customer cannot play KYC videos',
+  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${user}`}})).status === 403,
+);
 const appr = (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
   .data;
 check('approved with 10-digit ID', /^[1-9]\d{9}$/.test(appr?.bharatId ?? ''), appr);
+check(
+  'KYC video deleted once approved',
+  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}})).status === 404,
+);
 check(
   'no double approve',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).status ===

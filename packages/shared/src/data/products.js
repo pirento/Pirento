@@ -1,22 +1,18 @@
+import {PRODUCT_COLOURS, textOn} from './brand.js';
+
 // The ten Pirento products. Every line here describes what the product does
 // today and what it does not do yet. Keep it that way: no numbers or claims
 // that are not true.
-
-const INK = '#0f2620';
-const WHITE = '#ffffff';
-const BLACK = '#000000'; // for the two brand colours where ink falls just under 4.5:1
 
 const signIn = {
   title: 'Sign in with email',
   body: 'A 6-digit code, no password. One account works on every Pirento site.',
 };
 
-// Each product's own site: brand colour (from the original Pirento products), the
-// text colour that reads on it, its status pill, how it works, and its questions.
+// Each product's own site: its status pill, how it works, and its questions.
+// Colours come from the brand register (data/brand.js), not from here.
 const SITE = {
   legal: {
-    color: '#1D84FF',
-    onColor: BLACK,
     pill: 'Accepting clients',
     steps: [
       {title: 'Pick a service', body: 'Every service shows its price and usual time before you start.'},
@@ -40,8 +36,6 @@ const SITE = {
     ],
   },
   black: {
-    color: '#0E6BA8',
-    onColor: WHITE,
     pill: 'Filing season open',
     steps: [
       {title: 'Choose the filing', body: 'GST, ITR, TDS, accounting or documents, each with a fixed price.'},
@@ -61,8 +55,6 @@ const SITE = {
     ],
   },
   green: {
-    color: '#0ADB94',
-    onColor: INK,
     pill: 'Drives open',
     steps: [
       {title: 'Pick a drive', body: 'Three plantation drives, each with its price per tree.'},
@@ -79,8 +71,6 @@ const SITE = {
     ],
   },
   intern: {
-    color: '#00B4D8',
-    onColor: INK,
     pill: 'Exams open',
     tracks: ['General', 'Web development', 'Data science', 'Marketing', 'Design'],
     steps: [
@@ -98,8 +88,6 @@ const SITE = {
     ],
   },
   ai: {
-    color: '#E71AFF',
-    onColor: INK,
     pill: 'Assistant online',
     examples: [
       'I want to start a company with two friends. What do I need?',
@@ -120,8 +108,6 @@ const SITE = {
     ],
   },
   vault: {
-    color: '#7C3AED',
-    onColor: WHITE,
     pill: 'Encrypted at rest',
     steps: [
       signIn,
@@ -138,8 +124,6 @@ const SITE = {
     ],
   },
   one: {
-    color: '#FF5722',
-    onColor: INK,
     pill: 'Partners welcome',
     steps: [
       signIn,
@@ -159,8 +143,6 @@ const SITE = {
     ],
   },
   capital: {
-    color: '#DBAC72',
-    onColor: INK,
     pill: 'Waitlist open',
     steps: [
       {title: 'Plan the loan', body: 'Try any amount, rate and term in the EMI calculator.'},
@@ -173,8 +155,6 @@ const SITE = {
     ],
   },
   'bharat-id': {
-    color: '#F1C700',
-    onColor: INK,
     pill: 'Applications open',
     steps: [
       signIn,
@@ -195,8 +175,6 @@ const SITE = {
     ],
   },
   giftox: {
-    color: '#FF1066',
-    onColor: BLACK,
     pill: 'Gifting open',
     steps: [
       {title: 'Pick a box', body: 'Six boxes, each with its contents and price.'},
@@ -357,6 +335,9 @@ export const PRODUCTS = [
     caveat: 'Delivery dates, inventory and corporate partnerships are not guaranteed.',
     status: 'now',
   },
-].map((p) => ({...p, ...SITE[p.slug]}));
+].map((p) => {
+  const {dark, accent} = PRODUCT_COLOURS[p.slug];
+  return {...p, ...SITE[p.slug], color: accent, dark, onColor: textOn(accent, dark)};
+});
 
 export const getProduct = (slug) => PRODUCTS.find((p) => p.slug === slug) ?? null;

@@ -25,6 +25,7 @@ jobs:
         env:
           SUPERADMIN_EMAILS: boss@example.com
           RATE_LIMIT_OTP: '500'
+          OTP_RESEND_SECONDS: '0'
         run: |
           npm run dev > dev.log 2>&1 &
           for i in $(seq 1 60); do

@@ -1,4 +1,4 @@
-import {INDIAN_STATES} from './data/intake.js';
+import {INDIAN_STATES} from '../data/intake.js';
 import {verhoeffValid} from './bharatId.js';
 
 // The Bharat ID application, step by step. One definition drives the form in

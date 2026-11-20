@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {validateSection} from './identityForm.js';
+import {validateSection} from './form.js';
 import {verhoeffCheckDigit} from './bharatId.js';
 
 const aadhaar = (body) => body + verhoeffCheckDigit(body);
