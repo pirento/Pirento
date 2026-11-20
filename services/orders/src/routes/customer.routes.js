@@ -1,3 +1,4 @@
+// Placing, listing, reading and cancelling your own orders.
 import {Router} from 'express';
 import {z} from 'zod';
 import {validateIntake} from '@pirento/shared';
@@ -9,7 +10,6 @@ import {Partner} from '../models/Partner.js';
 import {findAccessible, findOwn, nextOrderNo} from '../lib/orders.js';
 import {redeem, releaseCoupon} from '../lib/coupons.js';
 
-// Placing, listing, reading and cancelling your own orders.
 export const customerRoutes = Router();
 customerRoutes.use(requireAuth);
 

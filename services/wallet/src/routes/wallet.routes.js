@@ -1,3 +1,4 @@
+// The signed-in person's wallet: balance, history, and (for now) test top-ups.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, requireAuth, validate} from '@pirento/shared/server';
@@ -7,7 +8,6 @@ import {Transaction} from '../models/Transaction.js';
 import {move} from '../lib/move.js';
 import {toPaise} from '../lib/money.js';
 
-// The signed-in person's wallet: balance, history, and (for now) test top-ups.
 export const walletRoutes = Router();
 walletRoutes.use(requireAuth);
 

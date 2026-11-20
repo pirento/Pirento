@@ -1,3 +1,4 @@
+// Connecting a service to its own database and starting it.
 import mongoose from 'mongoose';
 
 /** Connects to the service's own database (if it has one) and starts listening. */

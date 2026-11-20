@@ -1,3 +1,4 @@
+// Saved passwords. Listing never includes the secret; it is opened one at a time.
 import {Router} from 'express';
 import {z} from 'zod';
 import {decrypt, encrypt, validate} from '@pirento/shared/server';
@@ -5,7 +6,6 @@ import {config} from '../config.js';
 import {Credential} from '../models/Credential.js';
 import {findOwned} from './owned.js';
 
-// Saved passwords. Listing never includes the secret; it is opened one at a time.
 export const credentialRoutes = Router();
 
 credentialRoutes.get('/credentials', async (req, res) => {

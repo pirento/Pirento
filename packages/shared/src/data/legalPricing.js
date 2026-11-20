@@ -1,3 +1,4 @@
+// Pirento Legal's prices, in rupees, per category and service.
 export const LEGAL_PRICING = {
   // ── Business Setup & Registration ──  anchors: pvt ltd ₹1,999 · OPC ₹1,799
   'nidhi-company': {price: 4999, deliveryTime: '15-20 days', model: 'fixed'},

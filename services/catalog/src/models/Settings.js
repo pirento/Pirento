@@ -1,6 +1,6 @@
+// The site settings a superadmin can change without a deploy. One document, _id 'site'.
 import mongoose from 'mongoose';
 
-// The site settings a superadmin can change without a deploy. One document, _id 'site'.
 export const Settings = mongoose.model(
   'Settings',
   new mongoose.Schema({

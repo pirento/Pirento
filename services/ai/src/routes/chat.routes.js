@@ -1,3 +1,4 @@
+// Saved chats, and sending a message to the assistant.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, isId, notFound, validate} from '@pirento/shared/server';
@@ -7,7 +8,6 @@ import {DAILY_LIMIT} from '../lib/prompt.js';
 import {streamReply} from '../lib/claude.js';
 import {questionsToday} from '../lib/usage.js';
 
-// Saved chats, and sending a message to the assistant.
 export const chatRoutes = Router();
 
 const findOwnChat = async (req) => {

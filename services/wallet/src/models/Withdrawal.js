@@ -1,3 +1,4 @@
+// A request to take wallet money out to a UPI ID.
 import mongoose from 'mongoose';
 
 /**

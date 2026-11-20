@@ -1,10 +1,10 @@
+// Routes that need no sign-in.
 import {Router} from 'express';
 import {ApiError, notFound} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
 import {markPaid} from '../lib/orders.js';
 import {razorpayConfig, webhookSignatureOk} from '../lib/razorpay.js';
 
-// Routes that need no sign-in.
 export const publicRoutes = Router();
 
 /** Tells the browser whether card/UPI payments are switched on. */

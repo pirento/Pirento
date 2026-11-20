@@ -1,3 +1,4 @@
+// The team's side: numbers, the work queue, and moving orders along.
 import {Router} from 'express';
 import {z} from 'zod';
 import {STAFF_TRANSITIONS} from '@pirento/shared';
@@ -9,7 +10,6 @@ import {completionCode, findAccessible, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 import {releaseCoupon} from '../lib/coupons.js';
 
-// The team's side: numbers, the work queue, and moving orders along.
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.orders));
 const DAY = 86_400_000;

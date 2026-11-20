@@ -1,7 +1,7 @@
+// Who is signed in, for every component: {user, ready, signIn, signOut, setUser}.
 import {createContext, useContext, useEffect, useState} from 'react';
 import {flag, hasFlag, refresh, setAccessToken} from './client';
 
-// Who is signed in, for every component: {user, ready, signIn, signOut, setUser}.
 const SessionContext = createContext(null);
 
 export function SessionProvider({children}) {

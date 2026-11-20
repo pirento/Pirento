@@ -1,3 +1,4 @@
+// An order: one service, its price, its answers and its timeline.
 import mongoose from 'mongoose';
 
 /**

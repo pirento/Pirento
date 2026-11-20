@@ -1,10 +1,9 @@
-import {INDIAN_STATES} from '../data/intake.js';
-import {verhoeffValid} from './bharatId.js';
-
 // The Bharat ID application, step by step. One definition drives the form in
 // the browser and the checks on the server, so they can never disagree.
 // Sensitive numbers are reduced before they are stored: Aadhaar and the bank
 // account keep only their last four digits.
+import {INDIAN_STATES} from '../data/intake.js';
+import {verhoeffValid} from './bharatId.js';
 
 const MOBILE = '^[6-9]\\d{9}$';
 const NAME = "^[\\p{L} .'-]{2,80}$";

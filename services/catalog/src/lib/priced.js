@@ -1,3 +1,4 @@
+// Services with the admin's price changes applied.
 import {getService} from '@pirento/shared';
 
 /** A service with its admin override applied: a new price, or off sale (price null). */

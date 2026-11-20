@@ -1,3 +1,4 @@
+// Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 import {Router} from 'express';
 import {z} from 'zod';
 import {ACCESS, ApiError, STAFF, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
@@ -11,7 +12,6 @@ import {STAFF_ID} from './door.routes.js';
 import {forgetUser} from '../lib/forget.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 
-// Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 export const adminRoutes = Router();
 adminRoutes.use('/admin', requireAuth);
 const superOnly = requireRole('superadmin');

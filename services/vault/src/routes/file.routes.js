@@ -1,10 +1,10 @@
+// Upload, list, download and delete files.
 import express, {Router} from 'express';
 import {ApiError, badInput, decrypt, encrypt} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
 
-// Upload, list, download and delete files.
 export const fileRoutes = Router();
 
 fileRoutes.get('/files', async (req, res) => {

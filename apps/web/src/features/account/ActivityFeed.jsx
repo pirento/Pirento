@@ -39,43 +39,26 @@ function events({orders = [], wallet, tickets = []}) {
 
 export function ActivityFeed({data}) {
   const list = events(data);
+  if (list.length === 0)
+    return <p className="text-muted">Nothing yet. Your orders, payments and requests will show here.</p>;
   return (
-    <section
-      id="activity"
-      aria-labelledby="activity-h"
-      className="scroll-mt-24 rounded-[22px] border border-rule p-6 md:p-7"
-      data-reveal
-    >
-      <div className="flex items-baseline justify-between">
-        <h2 id="activity-h" className="text-xl">
-          Activity
-        </h2>
-        <Link to="/legal/services" className="text-sm text-muted underline-offset-4 hover:underline">
-          New order
-        </Link>
-      </div>
-      {list.length === 0 ? (
-        <p className="mt-4 text-sm text-muted">Nothing yet. Your orders, payments and requests will show here.</p>
-      ) : (
-        <ol className="relative mt-6 border-l border-rule">
-          {list.map((e) => (
-            <li key={e.key} className="relative pb-5 pl-6 last:pb-0">
-              <span
-                aria-hidden
-                className="absolute top-1.5 -left-[5px] size-[9px] rounded-full border border-paper bg-ink"
-                style={e.dot ? {background: e.dot} : undefined}
-              />
-              <Link to={e.to} className="group block">
-                <span className="flex flex-wrap items-baseline justify-between gap-x-4">
-                  <span className="font-medium group-hover:underline">{e.title}</span>
-                  <span className="text-xs text-muted tabular-nums">{when(e.at)}</span>
-                </span>
-                {e.note && <span className="block text-sm text-muted">{e.note}</span>}
-              </Link>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
+    <ol className="relative border-l border-rule">
+      {list.map((e) => (
+        <li key={e.key} className="relative pb-6 pl-6 last:pb-0" data-reveal>
+          <span
+            aria-hidden
+            className="absolute top-1.5 -left-[5px] size-[9px] rounded-full border border-paper bg-ink"
+            style={e.dot ? {background: e.dot} : undefined}
+          />
+          <Link to={e.to} className="group block">
+            <span className="flex flex-wrap items-baseline justify-between gap-x-4">
+              <span className="font-medium group-hover:underline">{e.title}</span>
+              <span className="text-xs text-muted tabular-nums">{when(e.at)}</span>
+            </span>
+            {e.note && <span className="block text-sm text-muted">{e.note}</span>}
+          </Link>
+        </li>
+      ))}
+    </ol>
   );
 }

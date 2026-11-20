@@ -1,6 +1,6 @@
+// A customer asking for their account to be deleted. A superadmin approves or rejects it.
 import mongoose from 'mongoose';
 
-// A customer asking for their account to be deleted. A superadmin approves or rejects it.
 export const DeletionRequest = mongoose.model(
   'DeletionRequest',
   new mongoose.Schema(

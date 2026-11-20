@@ -1,3 +1,4 @@
+// Who is calling: tokens, staff roles, and which role may work which admin area.
 import jwt from 'jsonwebtoken';
 import {env} from './env.js';
 import {ApiError} from './errors.js';

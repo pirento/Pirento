@@ -1,3 +1,4 @@
+// An admin's change to one service's price, kept apart from the base catalogue.
 import mongoose from 'mongoose';
 
 /**

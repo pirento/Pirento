@@ -1,3 +1,4 @@
+// The customer's side: ask to withdraw, and see past requests.
 import {Router} from 'express';
 import {z} from 'zod';
 import {conflict, requireAuth, validate} from '@pirento/shared/server';
@@ -5,7 +6,6 @@ import {Withdrawal} from '../models/Withdrawal.js';
 import {move} from '../lib/move.js';
 import {toPaise} from '../lib/money.js';
 
-// The customer's side: ask to withdraw, and see past requests.
 export const withdrawalRoutes = Router();
 withdrawalRoutes.use('/withdrawals', requireAuth);
 

@@ -1,10 +1,10 @@
+// Called by the auth service: forget a deleted account, and find who holds an issued Bharat ID.
 import {Router} from 'express';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
 
-// Called by the auth service: forget a deleted account, and find who holds an issued Bharat ID.
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
 

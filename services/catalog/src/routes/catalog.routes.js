@@ -1,10 +1,10 @@
+// Products and prices from packages/shared, with admin price changes applied to single services.
 import {Router} from 'express';
 import {LEGAL_CATALOGUE, PRODUCTS, getProduct, servicesFor} from '@pirento/shared';
 import {notFound} from '@pirento/shared/server';
 import {overrideMap} from '../models/PriceOverride.js';
 import {pricedService, withOverride} from '../lib/priced.js';
 
-// Products and prices from packages/shared, with admin price changes applied to single services.
 export const catalogRoutes = Router();
 
 catalogRoutes.get('/products', (_req, res) => res.json({data: PRODUCTS}));

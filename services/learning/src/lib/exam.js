@@ -1,3 +1,4 @@
+// The final exam: picking questions, hiding answers from the browser, and marking.
 import {EXAM_RULES} from '@pirento/shared';
 
 export const EXAM_MINUTES = EXAM_RULES.minutes;

@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-
 // A saved password. The label and username are plain so the list can show them;
 // the password itself is sealed and only opened by its own route.
+import mongoose from 'mongoose';
+
 export const Credential = mongoose.model(
   'Credential',
   new mongoose.Schema(

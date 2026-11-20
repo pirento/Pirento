@@ -1,3 +1,4 @@
+// Sign-in sessions: short access tokens, and refresh tokens kept in an httpOnly cookie.
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import {ApiError, jwtSecret} from '@pirento/shared/server';

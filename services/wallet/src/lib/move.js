@@ -1,3 +1,4 @@
+// Every change to a wallet balance goes through here, in paise.
 import {ApiError} from '@pirento/shared/server';
 import {Wallet} from '../models/Wallet.js';
 import {Transaction} from '../models/Transaction.js';

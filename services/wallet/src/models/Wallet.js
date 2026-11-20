@@ -1,6 +1,6 @@
+// One balance per account, in paise (whole numbers), so no amount is ever a float.
 import mongoose from 'mongoose';
 
-// One balance per account, in paise (whole numbers), so no amount is ever a float.
 export const Wallet = mongoose.model(
   'Wallet',
   new mongoose.Schema({

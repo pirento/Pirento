@@ -1,8 +1,8 @@
+// One client for the whole service; the SDK reads ANTHROPIC_API_KEY itself.
 import Anthropic from '@anthropic-ai/sdk';
 import {config} from '../config.js';
 import {buildRequest} from './prompt.js';
 
-// One client for the whole service; the SDK reads ANTHROPIC_API_KEY itself.
 const client = config.enabled ? new Anthropic() : null;
 
 /**

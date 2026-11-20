@@ -1,6 +1,6 @@
+// Someone applying to an opening. One application per person per opening.
 import mongoose from 'mongoose';
 
-// Someone applying to an opening. One application per person per opening.
 const schema = new mongoose.Schema(
   {
     openingId: {type: String, required: true, index: true},

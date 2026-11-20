@@ -1,3 +1,4 @@
+// Open to anyone: the Intern tracks, and checking a certificate.
 import {Router} from 'express';
 import {TRACKS} from '@pirento/shared/exam';
 import {notFound} from '@pirento/shared/server';

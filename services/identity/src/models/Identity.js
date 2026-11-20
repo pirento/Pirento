@@ -1,3 +1,4 @@
+// A Bharat ID application, from first draft to an issued ID.
 import mongoose from 'mongoose';
 
 export const STATUSES = ['draft', 'submitted', 'approved', 'rejected'];

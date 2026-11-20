@@ -1,7 +1,8 @@
+// Razorpay: creating its orders and checking its signatures.
+// Read lazily so tests and dev can run without keys. No keys = Razorpay off.
 import crypto from 'node:crypto';
 import {safeEqual} from '@pirento/shared/server';
 
-// Read lazily so tests and dev can run without keys. No keys = Razorpay off.
 export const razorpayConfig = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;

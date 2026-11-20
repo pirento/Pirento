@@ -1,6 +1,6 @@
+// A long-lived refresh token, stored only as a hash and deleted on use.
 import mongoose from 'mongoose';
 
-// A long-lived refresh token, stored only as a hash and deleted on use.
 export const RefreshToken = mongoose.model(
   'RefreshToken',
   new mongoose.Schema({

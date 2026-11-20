@@ -1,6 +1,6 @@
+// An internship or job posted by the team on the Pirento Intern site.
 import mongoose from 'mongoose';
 
-// An internship or job posted by the team on the Pirento Intern site.
 export const Opening = mongoose.model(
   'Opening',
   new mongoose.Schema(

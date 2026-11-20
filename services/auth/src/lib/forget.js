@@ -1,3 +1,4 @@
+// Deleting an account across every service.
 import {callService, conflict} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {endAllSessions} from './session.js';

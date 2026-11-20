@@ -1,3 +1,4 @@
+// Which site a path belongs to (Pirento or one product), and painting the page in its colours.
 import {useLayoutEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import {getProduct, getService} from '@pirento/shared';

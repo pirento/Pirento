@@ -1,3 +1,4 @@
+// A discount code set up in admin.
 import mongoose from 'mongoose';
 
 /**

@@ -1,3 +1,4 @@
+// Called by other services (orders, and auth when an account is deleted) only, never by a browser.
 import {Router} from 'express';
 import {z} from 'zod';
 import {conflict, requireInternal, validate} from '@pirento/shared/server';
@@ -5,7 +6,6 @@ import {move} from '../lib/move.js';
 import {Wallet} from '../models/Wallet.js';
 import {Withdrawal} from '../models/Withdrawal.js';
 
-// Called by other services (orders, and auth when an account is deleted) only, never by a browser.
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
 

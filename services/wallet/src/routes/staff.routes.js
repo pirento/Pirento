@@ -1,3 +1,4 @@
+// Finance: the ledger, one person's wallet, adjustments and withdrawals.
 import {Router} from 'express';
 import crypto from 'node:crypto';
 import {z} from 'zod';
@@ -18,7 +19,6 @@ import {toPaise} from '../lib/money.js';
 import {Transaction} from '../models/Transaction.js';
 import {Wallet} from '../models/Wallet.js';
 
-// Finance: the ledger, one person's wallet, adjustments and withdrawals.
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.payments, 'support'));
 

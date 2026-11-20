@@ -1,3 +1,4 @@
+// Paying for an order: from the wallet, or by card/UPI through Razorpay.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, conflict, requireAuth, validate} from '@pirento/shared/server';
@@ -6,7 +7,6 @@ import {findOwn, markPaid} from '../lib/orders.js';
 import {debitForOrder, voidOrderDebit} from '../lib/wallet.js';
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig} from '../lib/razorpay.js';
 
-// Paying for an order: from the wallet, or by card/UPI through Razorpay.
 export const paymentRoutes = Router();
 paymentRoutes.use('/:id/pay', requireAuth);
 

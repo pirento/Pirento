@@ -1,6 +1,5 @@
-import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
-
 // All site copy lives here; components only render it.
+import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
 
 export const brand = {
   name: 'Pirento',

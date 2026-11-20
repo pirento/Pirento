@@ -1,3 +1,4 @@
+// Discount codes: checking one at checkout, counting its use, and giving the use back.
 import {ApiError} from '@pirento/shared/server';
 import {Coupon} from '../models/Coupon.js';
 

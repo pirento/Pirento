@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-
 // One sitting of the final exam. The question order is fixed at the start, and
 // only the first submit counts.
+import mongoose from 'mongoose';
+
 export const Attempt = mongoose.model(
   'Attempt',
   new mongoose.Schema({

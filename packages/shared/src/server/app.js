@@ -1,3 +1,4 @@
+// The Express app every service starts from: JSON, security headers, rate limits, errors.
 import express from 'express';
 import helmet from 'helmet';
 import {ApiError} from './errors.js';

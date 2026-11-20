@@ -1,3 +1,4 @@
+// A support ticket and its conversation.
 import mongoose from 'mongoose';
 
 /**

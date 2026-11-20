@@ -1,8 +1,8 @@
+// The team's queue. Default: tickets waiting on us, oldest first.
 import {Router} from 'express';
 import {ACCESS, requireRole} from '@pirento/shared/server';
 import {TICKET_STATUSES, Ticket} from '../models/Ticket.js';
 
-// The team's queue. Default: tickets waiting on us, oldest first.
 export const staffRoutes = Router();
 
 staffRoutes.get('/staff/queue', requireRole(...ACCESS.support), async (req, res) => {

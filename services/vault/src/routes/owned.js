@@ -1,3 +1,4 @@
+// Loading a vault item only for its owner.
 import {isId, notFound} from '@pirento/shared/server';
 
 /** The caller's own document by URL id; someone else's reads as not found. */

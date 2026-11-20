@@ -1,6 +1,7 @@
+// An account: customer or staff, how they sign in, and which products a staffer works on.
+// support: tickets and users · finance: payments, partners, orders · staff: operations · superadmin: all.
 import mongoose from 'mongoose';
 
-// support: tickets and users · finance: payments, partners, orders · staff: operations · superadmin: all.
 export const ROLES = ['customer', 'support', 'finance', 'staff', 'superadmin'];
 
 // One account for the whole ecosystem. Every other service refers to it by _id.

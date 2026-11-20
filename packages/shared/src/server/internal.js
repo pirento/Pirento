@@ -1,9 +1,9 @@
+// Services talk to each other on /internal/* routes, signed with a shared key.
+// The gateway refuses those paths from outside, and the key is a second lock.
 import crypto from 'node:crypto';
 import {env} from './env.js';
 import {ApiError} from './errors.js';
 
-// Services talk to each other on /internal/* routes, signed with a shared key.
-// The gateway refuses those paths from outside, and the key is a second lock.
 const internalKey = () => env('INTERNAL_KEY', 'dev-only-internal-key');
 
 /** Constant-time string comparison, for keys and signatures. */

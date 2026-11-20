@@ -1,9 +1,9 @@
+// Opening a ticket, reading it, replying and closing.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
 import {Ticket} from '../models/Ticket.js';
 
-// Opening a ticket, reading it, replying and closing.
 export const ticketRoutes = Router();
 
 const messageBody = z.string().trim().min(2, 'Write a message').max(4000);

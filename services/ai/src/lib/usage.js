@@ -1,3 +1,4 @@
+// The fair-use count: questions asked in the last 24 hours.
 import {Chat} from '../models/Chat.js';
 
 /** How many questions this person asked in the last 24 hours, across all chats. */

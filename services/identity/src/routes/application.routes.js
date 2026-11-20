@@ -1,3 +1,4 @@
+// The applicant's side: fill the steps, record the video, submit.
 import express, {Router} from 'express';
 import {z} from 'zod';
 import {ID_SECTIONS, validateSection} from '@pirento/shared';
@@ -7,7 +8,6 @@ import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
 import {challengeValid, newChallenge} from '../lib/challenge.js';
 
-// The applicant's side: fill the steps, record the video, submit.
 export const applicationRoutes = Router();
 applicationRoutes.use(['/me', '/draft', '/kyc', '/submit'], requireAuth);
 

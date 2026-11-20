@@ -1,3 +1,4 @@
+// Taking the exam. The answer key never leaves this service.
 import {Router} from 'express';
 import {z} from 'zod';
 import {TRACKS, bankForSlug} from '@pirento/shared/exam';
@@ -8,7 +9,6 @@ import {Certificate} from '../models/Certificate.js';
 import {EXAM_MINUTES, publicQuestions, score, withinTime} from '../lib/exam.js';
 import {newCertificateCode, publicCertificate, shuffled, trackName} from '../lib/certificate.js';
 
-// Taking the exam. The answer key never leaves this service.
 export const examRoutes = Router();
 examRoutes.use(requireAuth);
 

@@ -1,3 +1,4 @@
+// Finding orders the caller may see or act on, and moving them to paid.
 import crypto from 'node:crypto';
 import {canUse, isId, nextSeq, notFound, productScope} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';

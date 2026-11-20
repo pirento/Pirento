@@ -1,3 +1,4 @@
+// Price changes made in admin. The website merges them in; the orders service charges by them.
 import {Router} from 'express';
 import {z} from 'zod';
 import {getService} from '@pirento/shared';
@@ -5,7 +6,6 @@ import {ACCESS, audit, notFound, requireAuth, requireInternal, requireRole, vali
 import {PriceOverride, overrideMap} from '../models/PriceOverride.js';
 import {pricedService} from '../lib/priced.js';
 
-// Price changes made in admin. The website merges them in; the orders service charges by them.
 export const priceRoutes = Router();
 
 priceRoutes.get('/prices', async (_req, res) => res.json({data: await overrideMap()}));

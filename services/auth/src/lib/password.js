@@ -1,8 +1,8 @@
+// Staff passwords, hashed with scrypt (built into Node, so no native module to install).
+// Stored as "scrypt$<salt>$<hash>", both base64url.
 import crypto from 'node:crypto';
 import {promisify} from 'node:util';
 
-// Staff passwords, hashed with scrypt (built into Node, so no native module to install).
-// Stored as "scrypt$<salt>$<hash>", both base64url.
 const scrypt = promisify(crypto.scrypt);
 const KEYLEN = 64;
 

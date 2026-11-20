@@ -1,10 +1,10 @@
+// Keeping a session alive, and ending it.
 import {Router} from 'express';
 import {ApiError} from '@pirento/shared/server';
 import {RefreshToken} from '../models/RefreshToken.js';
 import {User} from '../models/User.js';
 import {issueSession, readRefreshCookie, setRefreshCookie, sha256} from '../lib/session.js';
 
-// Keeping a session alive, and ending it.
 export const sessionRoutes = Router();
 
 sessionRoutes.post('/refresh', async (req, res) => {

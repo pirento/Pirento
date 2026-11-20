@@ -1,3 +1,4 @@
+// Runs on every page change: keeps a partner code, resets the scroll and fades the new page in.
 import {useEffect} from 'react';
 import {useLocation} from 'react-router-dom';
 import gsap from 'gsap';

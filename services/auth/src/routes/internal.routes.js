@@ -1,9 +1,9 @@
+// Called by other services only: they report staff actions here.
 import {Router} from 'express';
 import {z} from 'zod';
 import {requireInternal, validate} from '@pirento/shared/server';
 import {AuditLog} from '../models/AuditLog.js';
 
-// Called by other services only: they report staff actions here.
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
 

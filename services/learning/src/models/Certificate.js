@@ -1,3 +1,4 @@
+// A Pirento Intern certificate, checked publicly by its code.
 import mongoose from 'mongoose';
 
 const schema = new mongoose.Schema({

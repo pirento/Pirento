@@ -1,3 +1,4 @@
+// Intern certificates: their public codes and what anyone may see of them.
 import crypto from 'node:crypto';
 import {TRACKS} from '@pirento/shared/exam';
 
