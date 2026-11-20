@@ -1,10 +1,9 @@
 // The sign-in page frame: a side panel that says whose door this is, and the form, which comes first on phones.
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
-import {PRODUCTS} from '@pirento/shared';
 
 /**
- * `side` = {eyebrow, quote, points: [{title, body}], Icon, showProducts}.
+ * `side` = {eyebrow, quote, line, Icon}: only this site's own words, nothing about other products.
  * The page's one <h1> is in the form column (children), so this panel uses no heading.
  */
 export function AuthShell({side, home, homeLabel, children, innerRef}) {
@@ -27,31 +26,11 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
             <Icon aria-hidden className="size-6" />
           </span>
           <p className="mt-10 max-w-md font-display text-[clamp(2rem,3vw,2.75rem)] leading-[1.1]">{side.quote}</p>
-          <ul className="mt-12 space-y-6 border-l border-inverse-rule pl-6">
-            {side.points.map((p) => (
-              <li key={p.title}>
-                <p className="font-medium">{p.title}</p>
-                <p className="mt-1 text-sm text-muted">{p.body}</p>
-              </li>
-            ))}
-          </ul>
+          <p className="mt-6 max-w-sm text-muted">{side.line}</p>
         </div>
 
         <div className="relative">
-          {side.showProducts && (
-            <>
-              <p className="text-xs text-muted">One Pirento account also opens</p>
-              <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs">
-                {PRODUCTS.map((p) => (
-                  <li key={p.slug} className="flex items-center gap-1.5">
-                    <span aria-hidden className="size-2 rounded-[2px]" style={{background: p.color}} />
-                    {p.short}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-          <p className="mt-8 text-xs text-muted">© {new Date().getFullYear()} Pirento Ecosystem Pvt. Ltd.</p>
+          <p className="text-xs text-muted">© {new Date().getFullYear()} Pirento Ecosystem Pvt. Ltd.</p>
         </div>
       </aside>
 

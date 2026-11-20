@@ -93,7 +93,7 @@ export function CustomerSignIn({title, product, onSignedIn, onNamed, onSkip}) {
 
   const heading = {enter: title, code: 'Check your email', name: 'One last thing'}[step];
   const sub = {
-    enter: 'One account for every Pirento product. New here? Signing in creates it.',
+    enter: 'New here? Signing in creates your account.',
     code: (
       <>
         We sent a 6-digit code to <span className="text-ink">{sent?.sentTo ?? value}</span>. It works for 10 minutes.

@@ -1,6 +1,6 @@
 // Sign-in pages: /login for everyone (in the colours of the site you came from), /admin/login for staff.
 import {useRef} from 'react';
-import {Link, Navigate, useNavigate, useSearchParams} from 'react-router-dom';
+import {Navigate, useNavigate, useSearchParams} from 'react-router-dom';
 import {api} from '../../lib/api/client';
 import {useSession} from '../../lib/api/session';
 import {usePageMotion} from '../../lib/motion';
@@ -42,16 +42,16 @@ export function Login({staff = false}) {
     navigate(next);
   };
 
-  // Each door wears its own story: a product site shows that product, staff see the console.
+  // Each door shows only its own site: a product's sign-in shows that product alone. The staff door is
+  // reached only at /admin/login; customer pages never link to it.
   const story = staff ? login.staff : product ? null : login.ecosystem;
   const side = story
-    ? {...story, Icon: staff ? ShieldCheck : LayoutGrid, showProducts: !staff}
+    ? {...story, Icon: staff ? ShieldCheck : LayoutGrid}
     : {
         eyebrow: product.name,
         quote: product.quote,
-        points: product.highlights,
+        line: product.overview,
         Icon: PRODUCT_ICONS[product.slug],
-        showProducts: true,
       };
   const home = staff || !product ? '/' : `/${product.slug}`;
 
@@ -71,12 +71,6 @@ export function Login({staff = false}) {
           }}
         />
       )}
-      <p className="mt-10 border-t border-rule pt-6 text-sm text-muted">
-        {staff ? 'Not on the Pirento team? ' : 'Pirento team? '}
-        <Link to={staff ? '/login' : '/admin/login'} className="text-ink underline underline-offset-4">
-          {staff ? 'Customer sign in' : 'Staff sign in'}
-        </Link>
-      </p>
     </AuthShell>
   );
 }

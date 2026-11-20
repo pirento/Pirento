@@ -131,26 +131,17 @@ export const home = {
   },
 };
 
-// The sign-in pages. Product sites use their own quote and highlights from packages/shared instead.
+// The sign-in pages. Product sites use their own quote and overview from packages/shared instead.
 export const login = {
   ecosystem: {
     eyebrow: 'Pirento Ecosystem',
     quote: 'One account. Every record in one place.',
-    points: [
-      {title: 'One sign-in', body: 'The same account opens all ten Pirento products.'},
-      {title: 'One wallet', body: 'Pay Legal, Black, Green and Giftox from one balance.'},
-      {title: 'One identity', body: 'Your Bharat ID, reviewed once, works everywhere.'},
-    ],
+    line: 'Sign in once to use your orders, wallet and ID.',
   },
   staff: {
     eyebrow: 'Pirento Admin',
     quote: 'The console for the Pirento team.',
-    // Each line is something the staff door really does (services/auth/src/routes/door.routes.js).
-    points: [
-      {title: 'Issued sign-ins only', body: 'A superadmin gives you a staff ID and a first password.'},
-      {title: 'Wrong tries slow down', body: 'Each wrong password doubles the wait, up to a minute.'},
-      {title: 'Everything is logged', body: 'Failed sign-ins and every staff action go to the audit trail.'},
-    ],
+    line: 'Staff ID and password only. Every sign-in attempt is logged.',
   },
 };
 
