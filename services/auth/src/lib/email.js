@@ -37,3 +37,19 @@ export async function sendOtpEmail(to, code, brand, via = mailer()) {
   const {subject, text, html} = renderOtpEmail({code, brand});
   await via.sendMail({from: process.env.EMAIL_FROM ?? 'Pirento <no-reply@pirento.com>', to, subject, text, html});
 }
+
+/** A short notice in the same frame as the code email (e.g. "your user ID is …"). */
+export function renderNoticeEmail({brand, label, big, note}) {
+  const subject = `${label}: ${big}`;
+  const text = `${label}: ${big}\n\n${note}\n\nPirento Ecosystem Pvt. Ltd.`;
+  const html = renderOtpEmail({code: big, brand})
+    .html.replace('Sign-in code', escape(label))
+    .replace(/It works for 10 minutes\.[^<]*/, escape(note));
+  return {subject, text, html};
+}
+
+export async function sendNoticeEmail(to, notice, via = mailer()) {
+  const {subject, text, html} = renderNoticeEmail(notice);
+  if (!via) return console.log(`Email to ${to}: ${text} (no SMTP_URL, so not sent)`);
+  await via.sendMail({from: process.env.EMAIL_FROM ?? 'Pirento <no-reply@pirento.com>', to, subject, text, html});
+}

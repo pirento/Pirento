@@ -10,7 +10,10 @@ import {getProduct, getService} from '@pirento/shared';
 export function productFromPath(pathname, search = '') {
   const [a, b] = pathname.split('/').filter(Boolean);
   if (a === 'services' || a === 'checkout') return getProduct(getService(b ?? '')?.product ?? '');
-  if (a === 'login') return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
+  // Sign-in, sign-up and recovery pages wear the colours of the site you came from (?next=/legal/…).
+  if (['login', 'register', 'forgot-password', 'forgot-user-id'].includes(a)) {
+    return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
+  }
   if (a === 'products' && b) return getProduct(b);
   return getProduct(a ?? '');
 }

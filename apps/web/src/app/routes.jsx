@@ -20,6 +20,18 @@ export const ROUTES = [
   // Signing in and the shared account
   {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
   {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/register', layout: 'auth', Page: page(() => import('../features/auth/RegisterPage'), 'Register')},
+  {
+    path: '/forgot-password',
+    layout: 'auth',
+    Page: page(() => import('../features/auth/ForgotPasswordPage'), 'ForgotPassword'),
+  },
+  {
+    path: '/forgot-user-id',
+    layout: 'auth',
+    Page: page(() => import('../features/auth/ForgotUserIdPage'), 'ForgotUserId'),
+  },
+  {path: '/terms', Page: page(() => import('../features/ecosystem/TermsPage'), 'Terms')},
   {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
   {path: '/account', layout: 'app', Page: page(() => import('../features/account/AccountPage'), 'Account')},
   {path: '/wallet', layout: 'app', Page: page(() => import('../features/account/WalletPage'), 'Wallet')},

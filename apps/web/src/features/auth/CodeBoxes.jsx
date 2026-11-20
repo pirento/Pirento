@@ -1,7 +1,7 @@
 // Six boxes for a 6-digit code: typing moves on, backspace moves back, pasting fills them all.
 import {useRef} from 'react';
 
-export function CodeBoxes({value, onChange, onComplete, error, disabled}) {
+export function CodeBoxes({value, onChange, onComplete, error, disabled, label = '6-digit code', hint}) {
   const boxes = useRef([]);
   const digits = Array.from({length: 6}, (_, i) => value[i] ?? '');
 
@@ -34,7 +34,10 @@ export function CodeBoxes({value, onChange, onComplete, error, disabled}) {
 
   return (
     <fieldset>
-      <legend className="text-sm font-medium">6-digit code</legend>
+      <legend className="text-sm font-medium">
+        {label}
+        {hint && <span className="font-normal text-muted"> · {hint}</span>}
+      </legend>
       <div className="mt-2 grid grid-cols-6 gap-2">
         {digits.map((d, i) => (
           <input

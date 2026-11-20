@@ -65,7 +65,8 @@ export async function api(path, {method = 'GET', body} = {}) {
     // The gateway's rate limit answers in plain text, so name it here.
     const fallback =
       res.status === 429 ? 'Too many requests. Wait a minute and try again.' : 'Could not reach Pirento. Try again.';
-    throw new Error(json.error?.message ?? fallback);
+    // The code lets a page react to a known case (e.g. NO_ACCOUNT → offer sign-up).
+    throw Object.assign(new Error(json.error?.message ?? fallback), {code: json.error?.code, status: res.status});
   }
   return json.data;
 }

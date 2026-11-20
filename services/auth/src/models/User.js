@@ -20,12 +20,19 @@ export const User = mongoose.model(
       passwordHash: {type: String, select: false},
       // Set the first time someone signs in with Google, so a later email change does not lose the link.
       googleId: {type: String, unique: true, sparse: true},
+      // Customers: a verified mobile (+91…), a user ID of their choice (or their email), and when they accepted the terms.
+      phone: {type: String, unique: true, sparse: true},
+      username: {type: String, unique: true, sparse: true, lowercase: true, trim: true},
+      termsAcceptedAt: Date,
+      termsVersion: String,
     },
     {
       timestamps: true,
       // Belt and braces: even a document loaded with +passwordHash never serialises it.
       toJSON: {
         transform: (_doc, ret) => {
+          // Only whether a password exists goes out (meaningful where the hash was loaded, as /me does).
+          ret.hasPassword = Boolean(ret.passwordHash);
           delete ret.passwordHash;
           return ret;
         },

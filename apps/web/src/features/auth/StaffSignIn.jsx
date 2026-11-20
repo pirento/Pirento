@@ -1,14 +1,14 @@
 // The staff door: the staff ID and password a superadmin issued you.
 import {useState} from 'react';
-import {Eye, EyeOff, Lock} from 'lucide-react';
+import {Lock} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {api} from '../../lib/api/client';
+import {PasswordField} from './PasswordField';
 
 export function StaffSignIn({onSignedIn}) {
   const [staffId, setStaffId] = useState('');
   const [password, setPassword] = useState('');
-  const [show, setShow] = useState(false);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -41,26 +41,14 @@ export function StaffSignIn({onSignedIn}) {
           value={staffId}
           onChange={(e) => setStaffId(e.target.value)}
         />
-        <div className="relative">
-          <Field
-            label="Password"
-            type={show ? 'text' : 'password'}
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            error={error}
-          />
-          <button
-            type="button"
-            onClick={() => setShow(!show)}
-            aria-label={show ? 'Hide password' : 'Show password'}
-            aria-pressed={show}
-            className="absolute top-9 right-3 flex size-9 items-center justify-center rounded-full text-muted hover:text-ink"
-          >
-            {show ? <EyeOff aria-hidden className="size-4" /> : <Eye aria-hidden className="size-4" />}
-          </button>
-        </div>
+        <PasswordField
+          label="Password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          error={error}
+        />
       </div>
       <Button
         type="submit"

@@ -21,7 +21,9 @@ async function call(path, {method = 'GET', body, token, headers = {}} = {}) {
 }
 async function login(email) {
   const {data} = await call('/auth/otp/request', {method: 'POST', body: {email}});
-  return (await call('/auth/otp/verify', {method: 'POST', body: {email, code: data.devCode}})).data.token;
+  // acceptTerms: a first email sign-in creates the account, which needs the terms accepted.
+  return (await call('/auth/otp/verify', {method: 'POST', body: {email, code: data.devCode, acceptTerms: true}})).data
+    .token;
 }
 const intake = {
   phone: '9876500000',
@@ -402,7 +404,7 @@ async function loginWithCookie(email) {
   const r = await fetch(B + '/auth/otp/verify', {
     method: 'POST',
     headers: {'content-type': 'application/json'},
-    body: JSON.stringify({email, code: data.devCode}),
+    body: JSON.stringify({email, code: data.devCode, acceptTerms: true}),
   });
   const cookie = r.headers.get('set-cookie')?.split(';')[0];
   return {token: (await r.json()).data.token, cookie};
@@ -857,7 +859,12 @@ check(
 
 // ── Sign-in methods: Bharat ID, staff door, providers ───────────────────
 const providers = (await call('/auth/providers')).data;
-check('providers', providers?.email && providers.bharatId && providers.mobile === false, providers);
+// Mobile is on outside production (codes show on screen) and in production only with SMS_WEBHOOK_URL.
+check(
+  'providers',
+  providers?.email && providers.bharatId && providers.password && typeof providers.mobile === 'boolean',
+  providers,
+);
 check(
   'Google off without a client id',
   (await call('/auth/google', {method: 'POST', body: {idToken: 'x'.repeat(30)}})).status === 404,
@@ -969,6 +976,159 @@ check(
     (r) => r.target === sid,
   ),
 );
+
+// ── Accounts: sign-up, user ID + password, mobile, forgot password / user ID ──
+{
+  const stranger = `nobody${Date.now()}@example.com`;
+  const sc = (await call('/auth/otp/request', {method: 'POST', body: {email: stranger}})).data;
+  const no = await call('/auth/otp/verify', {method: 'POST', body: {email: stranger, code: sc.devCode}});
+  check(
+    'email code does not create an account without the terms',
+    no.status === 404 && no.error.code === 'NO_ACCOUNT',
+    no,
+  );
+
+  const n = Date.now().toString().slice(-8);
+  const mobile = `9${n.padStart(9, '0')}`;
+  const regEmail = `reg${n}@example.com`;
+  check(
+    'sign-up refuses a bad mobile',
+    (await call('/auth/register/start', {method: 'POST', body: {name: 'Asha', email: regEmail, phone: '12345'}}))
+      .status === 400,
+  );
+  const start = (
+    await call('/auth/register/start', {method: 'POST', body: {name: 'Asha Verma', email: regEmail, phone: mobile}})
+  ).data;
+  check(
+    'sign-up sends both codes',
+    start?.devCodes?.email && start.devCodes.phone && /•••/.test(start.sentTo.phone),
+    start,
+  );
+  const badCodes = await call('/auth/register/verify', {
+    method: 'POST',
+    body: {name: 'Asha Verma', email: regEmail, phone: mobile, emailCode: start.devCodes.email, phoneCode: '000000'},
+  });
+  check('sign-up needs the right mobile code', badCodes.status === 400);
+  const again = (
+    await call('/auth/register/start', {method: 'POST', body: {name: 'Asha Verma', email: regEmail, phone: mobile}})
+  ).data;
+  const {ticket} =
+    (
+      await call('/auth/register/verify', {
+        method: 'POST',
+        body: {
+          name: 'Asha Verma',
+          email: regEmail,
+          phone: mobile,
+          emailCode: again.devCodes.email,
+          phoneCode: again.devCodes.phone,
+        },
+      })
+    ).data ?? {};
+  check('both codes give a ticket', Boolean(ticket));
+  const uname = `asha${n}`;
+  check('user ID is free', (await call(`/auth/register/username/${uname}`)).data?.free === true);
+  check(
+    'terms must be accepted',
+    (await call('/auth/register', {method: 'POST', body: {ticket, username: uname, password: 'goodpass123'}}))
+      .status === 400,
+  );
+  check(
+    'weak password refused',
+    (
+      await call('/auth/register', {
+        method: 'POST',
+        body: {ticket, username: uname, password: 'short', acceptTerms: true},
+      })
+    ).status === 400,
+  );
+  const made = (
+    await call('/auth/register', {
+      method: 'POST',
+      body: {ticket, username: uname, password: 'goodpass123', acceptTerms: true},
+    })
+  ).data;
+  check(
+    'account created and signed in',
+    made?.user?.username === uname && made.user.phone === `+91${mobile}` && made.user.termsVersion,
+    made,
+  );
+  check('no password hash goes out', !JSON.stringify(made).includes('scrypt'));
+  check(
+    'email taken now',
+    (await call('/auth/register/start', {method: 'POST', body: {name: 'X Y', email: regEmail, phone: '9123456789'}}))
+      .error?.code === 'EMAIL_TAKEN',
+  );
+
+  const byId = (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'goodpass123'}}))
+    .data;
+  check('sign in with user ID + password', byId?.user?.email === regEmail);
+  const byMail = (
+    await call('/auth/password/login', {method: 'POST', body: {login: regEmail.toUpperCase(), password: 'goodpass123'}})
+  ).data;
+  check('sign in with email + password', byMail?.user?.username === uname);
+  const wrongPw = await call('/auth/password/login', {
+    method: 'POST',
+    body: {login: `ghost${n}`, password: 'whatever123'},
+  });
+  check(
+    'unknown user ID answers like a wrong password',
+    wrongPw.status === 401 && wrongPw.error.message === 'Wrong user ID or password',
+  );
+
+  const pr = (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: `+91 ${mobile}`}})).data;
+  check('mobile code to a masked number', pr?.sent && pr.sentTo.endsWith(mobile.slice(-4)), pr);
+  const byPhone = (await call('/auth/otp/phone/verify', {method: 'POST', body: {phone: mobile, code: pr.devCode}}))
+    .data;
+  check('sign in with mobile code', byPhone?.user?.username === uname);
+  check(
+    'unknown mobile has no account',
+    (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: '9000000001'}})).error?.code === 'NO_ACCOUNT',
+  );
+
+  const fp = (await call('/auth/password/forgot', {method: 'POST', body: {login: uname}})).data;
+  check('forgot password sends a code to the email', fp?.sent && fp.sentTo.includes('•••'), fp);
+  const reset = (
+    await call('/auth/password/reset', {
+      method: 'POST',
+      body: {login: uname, code: fp.devCode, password: 'newpass4567'},
+    })
+  ).data;
+  check('reset password signs in', reset?.user?.username === uname);
+  check(
+    'old password stops working',
+    (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'goodpass123'}})).status ===
+      401,
+  );
+  await new Promise((r) => setTimeout(r, 1100)); // the wrong try above slowed this account for a second
+  check(
+    'new password works',
+    Boolean(
+      (await call('/auth/password/login', {method: 'POST', body: {login: uname, password: 'newpass4567'}})).data?.token,
+    ),
+  );
+  check(
+    'forgot user ID answers the same for anyone',
+    (await call('/auth/username/forgot', {method: 'POST', body: {contact: `+91${mobile}`}})).data?.sent &&
+      (await call('/auth/username/forgot', {method: 'POST', body: {contact: 'nobody@example.com'}})).data?.sent,
+  );
+
+  // An account made by email code can set its first password and pick a user ID.
+  const codeOnly = await login(`codeonly${n}@example.com`);
+  check(
+    'first password needs no current one',
+    (await call('/auth/me/password', {method: 'PATCH', token: codeOnly, body: {next: 'firstpass123'}})).data?.changed,
+  );
+  check(
+    'pick a user ID once',
+    (await call('/auth/me/username', {method: 'PATCH', token: codeOnly, body: {username: `co${n}`}})).data?.username ===
+      `co${n}`,
+  );
+  check(
+    'user ID set only once',
+    (await call('/auth/me/username', {method: 'PATCH', token: codeOnly, body: {username: `co2${n}`}})).status === 409,
+  );
+}
 
 // ── Account deletion ────────────────────────────────────────────────────
 const leaver = await loginWithCookie(`leaver${Date.now()}@example.com`);

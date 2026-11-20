@@ -19,3 +19,4 @@ export {ID_SECTIONS, RELATIONS, validateSection} from './identity/form.js';
 export {emi} from './money/emi.js';
 export {EXAM_RULES, VAULT_LIMITS} from './data/examRules.js';
 export {GREEN_DRIVES} from './data/greenDrives.js';
+export {TERMS_VERSION, MIN_PASSWORD, toPhone, maskPhone, isUsername, passwordProblem} from './account/rules.js';

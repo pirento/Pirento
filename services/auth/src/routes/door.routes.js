@@ -1,6 +1,7 @@
 // The other ways in: the staff door (staff ID + password), Google, and which methods this install offers.
 import {Router} from 'express';
 import {z} from 'zod';
+import {TERMS_VERSION} from '@pirento/shared';
 import {ApiError, STAFF, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {AuditLog} from '../models/AuditLog.js';
@@ -9,14 +10,17 @@ import {clearFailures, recordFailure, waitFor} from '../lib/backoff.js';
 import {verifyGoogleIdToken} from '../lib/google.js';
 import {verifyPassword} from '../lib/password.js';
 import {issueSession} from '../lib/session.js';
+import {phoneCodesOn} from '../lib/sms.js';
 
 export const doorRoutes = Router();
 
 export const STAFF_ID = /^[a-z0-9][a-z0-9._-]{2,39}$/;
 
-/** What the sign-in page may offer. Mobile needs an SMS provider, which is not set up. */
+/** What the sign-in page may offer. Mobile needs an SMS provider in production (SMS_WEBHOOK_URL). */
 doorRoutes.get('/providers', (_req, res) => {
-  res.json({data: {email: true, bharatId: true, google: config.googleClientId || null, mobile: false}});
+  res.json({
+    data: {email: true, bharatId: true, password: true, google: config.googleClientId || null, mobile: phoneCodesOn()},
+  });
 });
 
 doorRoutes.post(
@@ -48,14 +52,34 @@ doorRoutes.post(
   },
 );
 
-doorRoutes.post('/google', validate(z.object({idToken: z.string().min(20).max(4000)})), async (req, res) => {
-  if (!config.googleClientId) throw new ApiError(404, 'GOOGLE_OFF', 'Google sign-in is not set up');
-  const profile = await verifyGoogleIdToken(req.body.idToken, config.googleClientId);
-  // Same Google account → same Pirento account; otherwise the verified email links them.
-  let user = (await User.findOne({googleId: profile.googleId})) ?? (await User.findOne({email: profile.email}));
-  if (!user) user = new User({email: profile.email, name: profile.name.slice(0, 80), role: 'customer'});
-  user.googleId = profile.googleId;
-  if (config.superadminEmails().includes(user.email)) user.role = 'superadmin';
-  await user.save();
-  await issueSession(res, user);
-});
+doorRoutes.post(
+  '/google',
+  validate(z.object({idToken: z.string().min(20).max(4000), acceptTerms: z.literal(true).optional()})),
+  async (req, res) => {
+    if (!config.googleClientId) throw new ApiError(404, 'GOOGLE_OFF', 'Google sign-in is not set up');
+    const profile = await verifyGoogleIdToken(req.body.idToken, config.googleClientId);
+    // Same Google account → same Pirento account; otherwise the verified email links them.
+    let user = (await User.findOne({googleId: profile.googleId})) ?? (await User.findOne({email: profile.email}));
+    if (!user) {
+      // A new account needs the terms accepted (the sign-up page sends it; the sign-in page does not).
+      if (!req.body.acceptTerms) {
+        throw new ApiError(
+          404,
+          'NO_ACCOUNT',
+          'No Pirento account uses this Google account yet. Create an account to continue.',
+        );
+      }
+      user = new User({
+        email: profile.email,
+        name: profile.name.slice(0, 80),
+        role: 'customer',
+        termsAcceptedAt: new Date(),
+        termsVersion: TERMS_VERSION,
+      });
+    }
+    user.googleId = profile.googleId;
+    if (config.superadminEmails().includes(user.email)) user.role = 'superadmin';
+    await user.save();
+    await issueSession(res, user);
+  },
+);

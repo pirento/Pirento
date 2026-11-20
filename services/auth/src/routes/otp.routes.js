@@ -1,11 +1,11 @@
-// Sign-in by emailed code: with your email, or with your Bharat ID (the code goes to that ID's email).
+// Sign-in by code: with your mobile (texted), your email, or your Bharat ID (the code goes to that ID's email).
 import {Router} from 'express';
 import {z} from 'zod';
-import {getProduct, isBharatId} from '@pirento/shared';
+import {TERMS_VERSION, getProduct, isBharatId, maskPhone, toPhone} from '@pirento/shared';
 import {ApiError, callService, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {User} from '../models/User.js';
-import {checkCode, maskEmail, sendCode} from '../lib/otp.js';
+import {checkCode, maskEmail, phoneKey, sendCode, sendPhoneCode} from '../lib/otp.js';
 import {issueSession} from '../lib/session.js';
 
 export const otpRoutes = Router();
@@ -28,15 +28,58 @@ otpRoutes.post(
   },
 );
 
-otpRoutes.post('/otp/verify', validate(z.object({email, code})), async (req, res) => {
-  await checkCode(req.body.email, req.body.code);
-  // First sign-in creates the account. Bootstrap emails are always superadmin.
-  const isBootstrap = config.superadminEmails().includes(req.body.email);
-  const user = await User.findOneAndUpdate(
-    {email: req.body.email},
-    isBootstrap ? {$set: {role: 'superadmin'}} : {$setOnInsert: {role: 'customer'}},
-    {upsert: true, new: true},
+const noAccount = () =>
+  new ApiError(404, 'NO_ACCOUNT', 'No Pirento account uses this yet. Create an account to continue.');
+
+otpRoutes.post(
+  '/otp/verify',
+  validate(z.object({email, code, acceptTerms: z.literal(true).optional()})),
+  async (req, res) => {
+    // Check the account first, so a stranger's email does not burn a good code on a refusal.
+    const isBootstrap = config.superadminEmails().includes(req.body.email);
+    const existing = await User.exists({email: req.body.email});
+    // A new account needs the terms accepted; bootstrap superadmins are set up by the operator.
+    if (!existing && !isBootstrap && !req.body.acceptTerms) throw noAccount();
+    await checkCode(req.body.email, req.body.code);
+    const user = await User.findOneAndUpdate(
+      {email: req.body.email},
+      {
+        ...(isBootstrap ? {$set: {role: 'superadmin'}} : {}),
+        $setOnInsert: {
+          ...(isBootstrap ? {} : {role: 'customer'}),
+          termsAcceptedAt: new Date(),
+          termsVersion: TERMS_VERSION,
+        },
+      },
+      {upsert: true, new: true},
+    );
+    await issueSession(res, user);
+  },
+);
+
+const phone = z
+  .string()
+  .max(20)
+  .transform(
+    (v, ctx) =>
+      toPhone(v) ?? (ctx.addIssue({code: 'custom', message: 'Enter a 10-digit Indian mobile number'}), z.NEVER),
   );
+
+/** Mobile sign-in is for accounts that already have this number, verified at sign-up. */
+otpRoutes.post(
+  '/otp/phone/request',
+  validate(z.object({phone, product: z.string().max(20).optional()})),
+  async (req, res) => {
+    if (!(await User.exists({phone: req.body.phone}))) throw noAccount();
+    const sent = await sendPhoneCode(req.body.phone, brandOf(req.body.product));
+    res.json({data: {...sent, sentTo: maskPhone(req.body.phone)}});
+  },
+);
+
+otpRoutes.post('/otp/phone/verify', validate(z.object({phone, code})), async (req, res) => {
+  const user = await User.findOne({phone: req.body.phone});
+  if (!user) throw noAccount();
+  await checkCode(phoneKey(req.body.phone), req.body.code);
   await issueSession(res, user);
 });
 

@@ -32,7 +32,8 @@ Notes for AI-assisted work on this repo. Read README.md first.
 
 - **Comments:** each file starts with one line saying what it is for; comment the why, not the what.
 - **Tests:** run the e2e stack with `SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0`.
-- **Sign-in:** codes go through `lib/otp.js` in the auth service; the staff door answers every failure with the same message. Never return `passwordHash` (it is `select: false` and stripped in `toJSON`).
+- **Accounts:** mobile, user ID and password rules live once in `packages/shared/src/account/rules.js` (browser and auth service both use them). A new account always records `termsAcceptedAt` and `TERMS_VERSION`; change `TERMS_VERSION` when `/terms` changes.
+- **Sign-in:** codes (email and SMS) go through `lib/otp.js` in the auth service; the staff door answers every failure with the same message. Never return `passwordHash` (it is `select: false` and stripped in `toJSON`).
 
 ## Check before pushing
 

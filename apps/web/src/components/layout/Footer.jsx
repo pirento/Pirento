@@ -92,6 +92,9 @@ export function Footer() {
             © {new Date().getFullYear()} {brand.legalName}
           </span>
           <span>CIN {brand.cin}</span>
+          <Link to="/terms" className="hover:text-on-inverse">
+            Terms and Conditions
+          </Link>
         </p>
       </div>
     </footer>

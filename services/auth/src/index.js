@@ -7,10 +7,11 @@ import {meRoutes} from './routes/me.routes.js';
 import {adminRoutes} from './routes/admin.routes.js';
 import {internalRoutes} from './routes/internal.routes.js';
 import {doorRoutes} from './routes/door.routes.js';
+import {accountRoutes} from './routes/account.routes.js';
 import {seedSuperadmin} from './lib/seed.js';
 
 const app = createApp('auth');
-app.use(otpRoutes, doorRoutes, sessionRoutes, meRoutes, adminRoutes, internalRoutes);
+app.use(otpRoutes, doorRoutes, accountRoutes, sessionRoutes, meRoutes, adminRoutes, internalRoutes);
 
 await start(finish(app), {name: 'auth', port: config.port, mongoUri: config.mongoUri});
 await seedSuperadmin();

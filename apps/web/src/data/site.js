@@ -145,6 +145,61 @@ export const login = {
   },
 };
 
+// The Terms and Conditions at /terms. Sections 1–5 come from the earlier Pirento site; 6 and 7 describe how
+// accounts here actually work. Bump TERMS_VERSION (packages/shared/src/account/rules.js) whenever this changes.
+export const terms = {
+  updated: '20 November 2026',
+  sections: [
+    {
+      title: 'Agreement to terms',
+      body: [
+        'These Terms and Conditions are a legally binding agreement between you, whether personally or on behalf of an entity ("you"), and Pirento Ecosystem Pvt. Ltd. ("Pirento", "we", "us" or "our"), about your access to and use of our websites and any related media, mobile website or app (together, the "Site").',
+      ],
+    },
+    {
+      title: 'Intellectual property',
+      body: [
+        'Unless stated otherwise, the Site is our property. Its source code, databases, functions, software, designs, audio, video, text, photographs and graphics (the "Content") and the trademarks, service marks and logos on it (the "Marks") are owned or controlled by us or licensed to us, and are protected by copyright and trademark laws.',
+      ],
+    },
+    {
+      title: 'What you confirm',
+      list: [
+        'All the information you give when you create an account is true, accurate, current and complete.',
+        'You will keep that information accurate and update it when it changes.',
+        'You have the legal capacity to agree to these terms, and you will follow them.',
+        'You will not use the Site through automated or non-human means such as bots or scripts.',
+      ],
+    },
+    {
+      title: 'Prohibited activities',
+      body: [
+        'You may not use the Site for any purpose other than the one we make it available for. The Site may not be used for commercial work except where we specifically endorse or approve it.',
+      ],
+    },
+    {
+      title: 'Your account and its security',
+      list: [
+        'You sign in with a one-time code sent to your mobile or email, through your Bharat ID, or with your user ID and password.',
+        'Keep your password and codes to yourself. Pirento staff will never ask you for them.',
+        'You are responsible for what happens under your account until you tell us it has been misused.',
+      ],
+    },
+    {
+      title: 'Closing your account',
+      body: [
+        'You can ask us to delete your account from your dashboard. Once approved, we remove your profile and the personal data each product keeps; orders and payments stay on record without your name, for accounts and tax records. An account holding wallet money is closed only after the money is withdrawn.',
+      ],
+    },
+    {
+      title: 'Governing law',
+      body: [
+        'These terms are governed by the laws of India. You and Pirento agree that the courts of India have exclusive jurisdiction over any dispute arising from them.',
+      ],
+    },
+  ],
+};
+
 // The ecosystem dashboard: quick actions and the first things worth doing.
 export const dashboard = {
   actions: [
