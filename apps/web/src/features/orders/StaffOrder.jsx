@@ -1,0 +1,182 @@
+// One order in the staff queue, with its actions.
+import {useState} from 'react';
+import {STAFF_TRANSITIONS, checkoutQuestions, statusLabel} from '@pirento/shared';
+import {Button} from '../../components/ui/Button';
+import {Field} from '../../components/ui/Field';
+import {Tag} from '../../components/ui/Tag';
+import {qty} from './helpers';
+import {api} from '../../lib/api/client';
+import {formatDate, inr} from '../../lib/format';
+import {useSession} from '../../lib/api/session';
+import {useApi} from '../../lib/api/useApi';
+
+const ACTION = {in_progress: 'Start work', completed: 'Mark completed', cancelled: 'Cancel'};
+export const FILTERS = [
+  {label: 'Open', value: ''},
+  {label: 'Mine', value: 'mine=1'},
+  {label: 'Paid', value: 'paid'},
+  {label: 'In progress', value: 'in_progress'},
+  {label: 'Unpaid', value: 'pending_payment'},
+  {label: 'Completed', value: 'completed'},
+  {label: 'Cancelled', value: 'cancelled'},
+];
+
+export function StaffOrder({order, onChange}) {
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const questions = checkoutQuestions(order.product, order.serviceSlug);
+  const act = async (status) => {
+    if (status === 'cancelled' && !confirm(`Cancel order #${order.orderNo}? A wallet payment is refunded.`)) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/orders/staff/${order._id}`, {method: 'PATCH', body: {status, note}});
+      setNote('');
+      onChange();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const send = async (path, body, done) => {
+    setBusy(true);
+    setError('');
+    try {
+      await api(`/orders/staff/${order._id}/${path}`, {method: path === 'assign' ? 'PATCH' : 'POST', body});
+      done?.();
+      onChange();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const refundPending = order.status === 'cancelled' && order.payment?.method === 'wallet' && !order.payment.refunded;
+  const actions = refundPending ? ['cancelled'] : STAFF_TRANSITIONS[order.status];
+
+  return (
+    <details className="group border-b border-rule">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
+        <span>
+          <span className="block font-medium">
+            #{order.orderNo} · {order.serviceName}
+            {qty(order)}
+          </span>
+          <span className="text-sm text-muted">
+            {order.email} · {formatDate(order.createdAt)}
+            {order.assignee && ` · with ${order.assignee.email}`}
+            {order.coupon && ` · ${order.coupon}`}
+          </span>
+        </span>
+        <span className="flex items-center gap-3">
+          <Tag tone={order.status === 'paid' ? 'accent' : 'rule'}>{statusLabel(order.status)}</Tag>
+          <span className="tabular-nums">{inr(order.amount / 100)}</span>
+        </span>
+      </summary>
+      <div className="grid gap-8 pb-8 md:grid-cols-2">
+        <dl className="space-y-3 text-sm">
+          {questions
+            .filter((q) => order.intake[q.id])
+            .map((q) => (
+              <div key={q.id}>
+                <dt className="text-muted">{q.label}</dt>
+                <dd>{order.intake[q.id]}</dd>
+              </div>
+            ))}
+          {order.payment?.method && (
+            <div>
+              <dt className="text-muted">Payment</dt>
+              <dd>
+                {order.payment.method}
+                {order.payment.razorpayPaymentId && ` · ${order.payment.razorpayPaymentId}`}
+                {order.payment.refunded && ' · refunded'}
+              </dd>
+            </div>
+          )}
+        </dl>
+        <div className="space-y-6">
+          <Assign order={order} busy={busy} onAssign={(assignee) => send('assign', {assignee})} />
+          {actions.length > 0 && (
+            <div>
+              <Field
+                label="Note for the customer (optional)"
+                value={note}
+                maxLength={300}
+                onChange={(e) => setNote(e.target.value)}
+                error={error}
+              />
+              <div className="mt-4 flex flex-wrap gap-2">
+                {actions.map((s) => (
+                  <Button
+                    key={s}
+                    onClick={() => act(s)}
+                    variant={s === 'cancelled' ? 'outline' : 'primary'}
+                    disabled={busy}
+                    icon={null}
+                  >
+                    {refundPending ? 'Retry refund' : ACTION[s]}
+                  </Button>
+                ))}
+                <Button
+                  variant="outline"
+                  icon={null}
+                  disabled={busy || note.trim().length < 2}
+                  onClick={() => send('message', {note}, () => setNote(''))}
+                >
+                  Send note only
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+/** Pill tabs + list, shared by every staff queue. */
+
+/** Who is working this order: take it, hand it back, or (superadmin) give it to someone. */
+function Assign({order, busy, onAssign}) {
+  const {user} = useSession();
+  const isSuper = user?.role === 'superadmin';
+  const team = useApi(isSuper ? '/auth/admin/team' : null);
+  const me = {id: user?._id, email: user?.email};
+  const mine = order.assignee?.id === me.id;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-sm">
+      <span className="text-muted">Working on it:</span>
+      <span>{order.assignee?.email ?? 'nobody yet'}</span>
+      {isSuper ? (
+        <>
+          <label className="sr-only" htmlFor={`as-${order._id}`}>
+            Assign to
+          </label>
+          <select
+            id={`as-${order._id}`}
+            value={order.assignee?.id ?? ''}
+            disabled={busy}
+            onChange={(e) => {
+              const t = team.data?.find((m) => m._id === e.target.value);
+              onAssign(t ? {id: t._id, email: t.email} : null);
+            }}
+            className="rounded-full border border-rule bg-paper px-3 py-1.5"
+          >
+            <option value="">Nobody</option>
+            {team.data?.map((m) => (
+              <option key={m._id} value={m._id}>
+                {m.email}
+              </option>
+            ))}
+          </select>
+        </>
+      ) : (
+        <Button variant="outline" icon={null} disabled={busy} onClick={() => onAssign(mine ? null : me)}>
+          {mine ? 'Hand back' : 'Take it'}
+        </Button>
+      )}
+    </div>
+  );
+}

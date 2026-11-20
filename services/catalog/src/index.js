@@ -1,0 +1,10 @@
+// Catalog service: products, the legal catalogue and service prices (from packages/shared), plus site settings.
+import {createApp, finish, start} from '@pirento/shared/server';
+import {config} from './config.js';
+import {catalogRoutes} from './routes/catalog.routes.js';
+import {settingsRoutes} from './routes/settings.routes.js';
+
+const app = createApp('catalog');
+app.use(settingsRoutes, catalogRoutes);
+
+start(finish(app), {name: 'catalog', port: config.port, mongoUri: config.mongoUri});

@@ -1,0 +1,51 @@
+// Giftox gift boxes. Price is per box, in rupees.
+export const GIFT_BOXES = [
+  {
+    boxId: 'welcome-kit',
+    name: 'Employee Welcome Kit',
+    category: 'Welcome',
+    price: 1499,
+    description: 'Branded notebook, bottle, tee, and a handwritten welcome card.',
+    items: ['Notebook', 'Steel bottle', 'Cotton tee', 'Welcome card'],
+  },
+  {
+    boxId: 'festive-deluxe',
+    name: 'Festive Deluxe Hamper',
+    category: 'Festive',
+    price: 2499,
+    description: 'Premium dry fruits, artisanal sweets, and a scented candle.',
+    items: ['Dry fruit box', 'Assorted sweets', 'Scented candle', 'Greeting card'],
+  },
+  {
+    boxId: 'client-appreciation',
+    name: 'Client Appreciation Set',
+    category: 'Appreciation',
+    price: 3999,
+    description: 'Leather organiser, premium pen, and gourmet coffee.',
+    items: ['Leather organiser', 'Premium pen', 'Gourmet coffee', 'Thank-you note'],
+  },
+  {
+    boxId: 'corporate-signature',
+    name: 'Corporate Signature Box',
+    category: 'Corporate',
+    price: 5999,
+    description: 'Fully brandable executive hamper for VIP clients.',
+    items: ['Executive diary', 'Wireless charger', 'Premium chocolates', 'Custom branding'],
+  },
+  {
+    boxId: 'milestone-trophy',
+    name: 'Milestone Recognition Kit',
+    category: 'Appreciation',
+    price: 2999,
+    description: 'Engraved trophy, certificate, and celebration treats.',
+    items: ['Engraved trophy', 'Certificate', 'Celebration treats'],
+  },
+  {
+    boxId: 'diwali-collection',
+    name: 'Diwali Collection',
+    category: 'Festive',
+    price: 1999,
+    description: 'Eco-friendly diyas, sweets, and a prosperity card.',
+    items: ['Eco diyas', 'Traditional sweets', 'Prosperity card'],
+  },
+];

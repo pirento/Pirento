@@ -1,0 +1,131 @@
+# Full stack: docker compose up --build  →  https://$DOMAIN (or http://localhost:4000 on the server itself)
+x-service: &service
+  build: .
+  restart: unless-stopped
+  environment: &env
+    JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+    INTERNAL_KEY: ${INTERNAL_KEY:?set INTERNAL_KEY in .env}
+    SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
+    AUTH_URL: http://auth:4001 # staff actions are written to its audit trail
+
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    ports: ['127.0.0.1:27017:27017']
+    volumes: [mongo-data:/data/db]
+
+  auth:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: auth
+      MONGO_URI: mongodb://mongo:27017/pirento_auth
+      SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
+      EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
+      # Account deletion asks these services to forget the person, and checks the wallet first.
+      WALLET_URL: http://wallet:4002
+      IDENTITY_URL: http://identity:4005
+      VAULT_URL: http://vault:4007
+      AI_URL: http://ai:4009
+      LEARNING_URL: http://learning:4006
+    depends_on: [mongo]
+
+  wallet:
+    <<: *service
+    environment: {<<: *env, SERVICE: wallet, MONGO_URI: mongodb://mongo:27017/pirento_wallet}
+    depends_on: [mongo]
+
+  catalog:
+    <<: *service
+    environment: {<<: *env, SERVICE: catalog, MONGO_URI: mongodb://mongo:27017/pirento_catalog}
+    depends_on: [mongo]
+
+  orders:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: orders
+      MONGO_URI: mongodb://mongo:27017/pirento_orders
+      WALLET_URL: http://wallet:4002
+      CATALOG_URL: http://catalog:4003 # paused checkouts
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
+    depends_on: [mongo, wallet]
+
+  identity:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: identity
+      MONGO_URI: mongodb://mongo:27017/pirento_identity
+      KYC_ENCRYPTION_KEY: ${KYC_ENCRYPTION_KEY:?set KYC_ENCRYPTION_KEY in .env}
+    depends_on: [mongo]
+
+  learning:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: learning
+      MONGO_URI: mongodb://mongo:27017/pirento_learning
+    depends_on: [mongo]
+
+  vault:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: vault
+      MONGO_URI: mongodb://mongo:27017/pirento_vault
+      VAULT_ENCRYPTION_KEY: ${VAULT_ENCRYPTION_KEY:?set VAULT_ENCRYPTION_KEY in .env}
+    depends_on: [mongo]
+
+  support:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: support
+      MONGO_URI: mongodb://mongo:27017/pirento_support
+    depends_on: [mongo]
+
+  ai:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: ai
+      MONGO_URI: mongodb://mongo:27017/pirento_ai
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    depends_on: [mongo]
+
+  gateway:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: gateway
+      WEB_DIST: /app/apps/web/dist
+      AUTH_URL: http://auth:4001
+      WALLET_URL: http://wallet:4002
+      CATALOG_URL: http://catalog:4003
+      ORDERS_URL: http://orders:4004
+      IDENTITY_URL: http://identity:4005
+      LEARNING_URL: http://learning:4006
+      VAULT_URL: http://vault:4007
+      SUPPORT_URL: http://support:4008
+      AI_URL: http://ai:4009
+    ports: ['127.0.0.1:4000:4000'] # public traffic comes through caddy
+    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support, ai]
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ['80:80', '443:443']
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [gateway]
+
+volumes:
+  mongo-data:
+  caddy-data:

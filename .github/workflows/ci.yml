@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8
+        ports: ['27017:27017']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prettier --check .
+      - run: npm test
+      - run: npm run build
+      - name: End-to-end against the running stack
+        env:
+          SUPERADMIN_EMAILS: boss@example.com
+          RATE_LIMIT_OTP: '500'
+          OTP_RESEND_SECONDS: '0'
+        run: |
+          npm run dev > dev.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:4000/health && curl -sf http://127.0.0.1:4009/health && break
+            sleep 2
+          done
+          npm run e2e
+      - if: failure()
+        run: cat dev.log
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the production image
+        run: docker build -t pirento .

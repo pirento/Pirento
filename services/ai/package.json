@@ -1,0 +1,17 @@
+{
+  "name": "@pirento/ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
+    "@pirento/shared": "*",
+    "mongoose": "^8.18.0",
+    "zod": "^4.1.5"
+  }
+}
