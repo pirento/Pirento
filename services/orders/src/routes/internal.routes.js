@@ -29,6 +29,8 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     ),
     OrderFile.deleteMany({userId}),
     Partner.deleteMany({userId}),
+    // Commission not yet in their wallet is dropped: the account is going, and a credit would reopen its wallet.
+    Order.updateMany({'commission.userId': userId, 'commission.paid': {$ne: true}}, {$unset: {commission: 1}}),
   ]);
   res.json({data: {forgotten: true}});
 });

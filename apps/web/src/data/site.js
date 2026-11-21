@@ -313,8 +313,11 @@ export const appDashboards = {
     link: {label: 'Your link', title: 'Share it / anywhere.'},
     glance: {label: 'At a glance', title: 'What your / link brought.'},
     referrals: {label: 'Referrals', title: 'Orders through / your link.', empty: 'No orders through your link yet.'},
-    // True today: partners are tracked, not paid (see Partner model).
-    commission: 'Commission payouts: Expected. Today this tracks referrals only.',
+    // The rate is set in admin → Site settings; 0 means no commission is paid yet.
+    commission: (pct) =>
+      pct > 0
+        ? `You earn ${pct}% of each order placed through your link, paid to your Pirento wallet when the order is completed. No income is guaranteed.`
+        : 'No commission is being paid right now. Today this tracks your referrals.',
   },
   'bharat-id': {
     hello: 'One identity, / checked once.',

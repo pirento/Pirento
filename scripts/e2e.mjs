@@ -681,6 +681,67 @@ check(
   pm,
 );
 
+// Commission: the rate in site settings, paid to the partner's wallet once when a referred order completes.
+await call('/catalog/staff/settings', {
+  method: 'PATCH',
+  token: boss,
+  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 10},
+});
+check('commission rate is public', (await call('/catalog/settings')).data?.commissionPct === 10);
+check(
+  'rate is capped',
+  (
+    await call('/catalog/staff/settings', {
+      method: 'PATCH',
+      token: boss,
+      body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 90},
+    })
+  ).status === 400,
+);
+{
+  const ro = (
+    await call('/orders', {
+      method: 'POST',
+      token: user,
+      body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
+    })
+  ).data;
+  await call('/wallet/topup', {method: 'POST', token: user, body: {amount: ro.amount / 100}});
+  await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: user});
+  const before = (await call('/wallet', {token: staffToken})).data.balance;
+  await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'in_progress', note: ''}});
+  const fin = (
+    await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'completed', note: ''}})
+  ).data;
+  const due = Math.floor(ro.amount / 10);
+  check(
+    'commission fixed on completion',
+    fin?.commission?.amount === due && fin.commission.pct === 10,
+    fin?.commission,
+  );
+  const after = (await call('/wallet', {token: staffToken})).data.balance;
+  check('commission lands in the partner wallet', after - before === due, {before, after, due});
+  const again = (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: boss})).data;
+  check(
+    'nothing owed, nothing paid twice',
+    again?.paid === 0 && (await call('/wallet', {token: staffToken})).data.balance === after,
+    again,
+  );
+  const row = (await call('/orders/staff/partners', {token: boss})).data?.find((p) => p.code === partner.code);
+  check('admin sees commission paid', row?.earned === due && row.owed === 0, row);
+  check(
+    'a customer cannot send commission',
+    (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: user})).status === 403,
+  );
+  const mine = (await call('/orders/partner/me', {token: staffToken})).data?.orders.find((x) => x._id === ro._id);
+  check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
+}
+await call('/catalog/staff/settings', {
+  method: 'PATCH',
+  token: boss,
+  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 0},
+});
+
 // ── Admin: coupons ──────────────────────────────────────────────────────
 const code = `E2E${Date.now().toString().slice(-6)}`;
 check(

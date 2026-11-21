@@ -1,4 +1,4 @@
-// Site settings: the announcement banner and which products' checkout is paused.
+// Site settings: the announcement banner, which products' checkout is paused, and the partner commission rate.
 import {useEffect, useState} from 'react';
 import {PRODUCTS} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
@@ -82,6 +82,26 @@ export function Settings() {
               </button>
             );
           })}
+        </div>
+      </section>
+      <section>
+        <Label n={3}>Partner commission</Label>
+        <p className="mt-4 text-sm text-muted">
+          Pirento One partners get this share of each order placed through their link, in their wallet when the order is
+          completed. 0 pays nothing. A change applies to orders completed after it.
+        </p>
+        <div className="mt-4 max-w-48">
+          <Field
+            label="Percent of the order (0 to 50)"
+            type="number"
+            min={0}
+            max={50}
+            step={0.5}
+            value={form.commissionPct ?? 0}
+            onChange={(e) =>
+              setForm((f) => ({...f, commissionPct: e.target.value === '' ? 0 : Number(e.target.value)}))
+            }
+          />
         </div>
       </section>
       <div className="flex items-center gap-4">

@@ -160,7 +160,7 @@ export const ADMIN_SECTIONS = [
     label: 'Partners',
     icon: Handshake,
     roles: MONEY,
-    intro: 'Pirento One partners and the orders their code brought in.',
+    intro: 'Pirento One partners, the orders their code brought in, and their commission.',
   },
   {
     id: 'certificates',
@@ -185,7 +185,7 @@ export const ADMIN_SECTIONS = [
     label: 'Site settings',
     icon: SlidersHorizontal,
     roles: SUPER,
-    intro: 'The announcement banner, and pausing checkout for a product.',
+    intro: 'The announcement banner, pausing checkout for a product, and the partner commission rate.',
   },
   {
     id: 'audit',

@@ -25,6 +25,7 @@ import {
 } from '@pirento/shared/server';
 import {PAID_STATUSES, config} from '../config.js';
 import {liveService} from '../lib/catalog.js';
+import {commissionFor, payCommission} from '../lib/commission.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 import {completionCode, findAccessible, nextOrderNo, questionsOf, refundCard, seesAllWork} from '../lib/orders.js';
@@ -101,6 +102,8 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
           _id: '$ref',
           orders: {$sum: 1},
           paid: {$sum: {$cond: [{$in: ['$status', PAID_STATUSES]}, '$amount', 0]}},
+          earned: {$sum: {$cond: ['$commission.paid', '$commission.amount', 0]}},
+          owed: {$sum: {$cond: ['$commission.paid', 0, {$ifNull: ['$commission.amount', 0]}]}},
         },
       },
     ]),
@@ -113,8 +116,25 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
       joinedAt: p.createdAt,
       orders: byCode[p.code]?.orders ?? 0,
       paid: byCode[p.code]?.paid ?? 0,
+      earned: byCode[p.code]?.earned ?? 0,
+      owed: byCode[p.code]?.owed ?? 0,
     })),
   });
+});
+
+/** Sends the commissions whose wallet credit failed when their order completed. Each lands once (wallet ref). */
+staffRoutes.post('/staff/partners/pay-owed', requireRole(...ACCESS.partners), async (req, res) => {
+  const owed = await Order.find({'commission.amount': {$gt: 0}, 'commission.paid': {$ne: true}}).limit(100);
+  let paid = 0;
+  for (const order of owed) {
+    try {
+      if (await payCommission(order)) paid++;
+    } catch (err) {
+      console.error(`commission for order #${order.orderNo} still owed:`, err.message);
+    }
+  }
+  audit(req, 'partner.commission_paid', `${paid} orders`, owed.length > paid ? `${owed.length - paid} still owed` : '');
+  res.json({data: {paid, left: owed.length - paid}});
 });
 
 /**
@@ -283,7 +303,12 @@ staffRoutes.patch(
     let updated = order;
     if (!retryRefund) {
       const set = {status};
-      if (status === 'completed') set.code = completionCode(order.product);
+      if (status === 'completed') {
+        set.code = completionCode(order.product);
+        // Fixed at today's rate, inside the same conditional update, so a commission is decided once.
+        const commission = await commissionFor(order);
+        if (commission) set.commission = commission;
+      }
       // Conditional on the old status, so two staff clicks cannot both apply.
       updated = await Order.findOneAndUpdate(
         {_id: order._id, status: order.status},
@@ -291,6 +316,12 @@ staffRoutes.patch(
         {new: true},
       );
       if (!updated) throw conflict('CHANGED', 'Someone else just updated this order. Reload and try again.');
+      // A failed credit stays owed on the order; finance sends it again from admin → Partners.
+      if (updated.commission) {
+        await payCommission(updated).catch((err) =>
+          console.error(`commission for order #${updated.orderNo} owed:`, err.message),
+        );
+      }
     }
 
     if (status === 'cancelled' && owed) {
