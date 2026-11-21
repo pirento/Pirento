@@ -25,7 +25,16 @@ partnerRoutes.get('/partner/me', async (req, res) => {
   // The order, never the client: no email, no checkout answers.
   const orders = await Order.find(
     {ref: partner.code},
-    {orderNo: 1, serviceName: 1, quantity: 1, status: 1, amount: 1, createdAt: 1},
+    {
+      orderNo: 1,
+      serviceName: 1,
+      quantity: 1,
+      status: 1,
+      amount: 1,
+      createdAt: 1,
+      'commission.amount': 1,
+      'commission.paid': 1,
+    },
   )
     .sort({createdAt: -1})
     .limit(200);

@@ -1,6 +1,7 @@
 // Deleting an account across every service.
 import {callService, conflict} from '@pirento/shared/server';
 import {config} from '../config.js';
+import {clearFailures} from './backoff.js';
 import {endAllSessions} from './session.js';
 
 /**
@@ -16,6 +17,7 @@ export async function forgetUser(user) {
   for (const url of config.forgetUrls())
     await callService(url, '/internal/forget', {userId: String(user._id), email: user.email});
 
+  await clearFailures([`user:${user.email}`, `user:${user.username}`, `staff:${user.staffId}`]);
   user.email = `deleted-${user._id}@deleted.invalid`;
   user.name = '';
   user.role = 'customer';

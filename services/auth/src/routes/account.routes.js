@@ -134,15 +134,15 @@ accountRoutes.post(
   validate(z.object({login: z.string().trim().toLowerCase().min(1).max(200), password: z.string().max(200)})),
   async (req, res) => {
     const key = `user:${req.body.login}`;
-    const wait = waitFor(key);
+    const wait = await waitFor(key);
     if (wait) throw new ApiError(429, 'SLOW_DOWN', `Too many wrong tries. Wait ${Math.ceil(wait / 1000)} seconds.`);
     const user = await findByLogin(req.body.login);
     // One answer for an unknown ID and a wrong password, so this form cannot be used to find accounts.
     if (!user?.passwordHash || !(await verifyPassword(req.body.password, user.passwordHash))) {
-      recordFailure(key);
+      await recordFailure(key);
       throw new ApiError(401, 'BAD_CREDENTIALS', 'Wrong user ID or password');
     }
-    clearFailures(key);
+    await clearFailures(key);
     await issueSession(res, user);
   },
 );
@@ -170,7 +170,7 @@ accountRoutes.post(
     user.passwordHash = await hashPassword(req.body.password);
     await user.save();
     await endAllSessions(user._id); // anyone signed in with the old password is signed out
-    clearFailures(`user:${req.body.login}`);
+    await clearFailures(`user:${req.body.login}`);
     await issueSession(res, user);
   },
 );

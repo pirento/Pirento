@@ -49,6 +49,8 @@ export const Order = mongoose.model(
       },
       code: {type: String, unique: true, sparse: true}, // public completion code
       ref: {type: String, index: true}, // Pirento One partner code that brought this order
+      // The partner's share, fixed when the order completes; `paid` once it reached their wallet.
+      commission: {_id: false, userId: String, pct: Number, amount: Number, paid: Boolean},
       coupon: String, // code used at checkout
       discount: {type: Number, default: 0}, // paise taken off by the coupon; amount is after it
       couponCounted: Boolean, // the coupon's use was counted for this order (once, whatever the retries)

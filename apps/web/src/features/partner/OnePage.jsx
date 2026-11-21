@@ -48,6 +48,8 @@ function ReferralList({orders}) {
               <span className="block font-medium">{o.serviceName}</span>
               <span className="text-xs text-muted">
                 #{o.orderNo} · {formatDate(o.createdAt)}
+                {o.commission?.amount > 0 &&
+                  ` · ${inr(o.commission.amount / 100)} commission${o.commission.paid ? '' : ' (on its way)'}`}
               </span>
             </span>
             <span className="flex items-center gap-3">
@@ -64,6 +66,7 @@ function ReferralList({orders}) {
 export function One({product, section}) {
   const {redirect, user} = useSignedIn();
   const me = useApi(user ? '/orders/partner/me' : null);
+  const pct = useApi('/catalog/settings').data?.commissionPct ?? 0;
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   usePageMeta({
@@ -97,7 +100,7 @@ export function One({product, section}) {
           <Button onClick={join} variant="accent" className="mt-6">
             Become a partner
           </Button>
-          <p className="mt-4 text-sm text-muted">{copy.commission}</p>
+          <p className="mt-4 text-sm text-muted">{copy.commission(pct)}</p>
         </div>
       </AppFrame>
     );
@@ -143,9 +146,13 @@ export function One({product, section}) {
             {value: String(d.orders.length), label: 'Orders with your code'},
             {value: String(settled.length), label: 'Paid'},
             {value: inr(settled.reduce((n, o) => n + o.amount, 0) / 100), label: 'Paid order value'},
+            {
+              value: inr(d.orders.reduce((n, o) => n + (o.commission?.paid ? o.commission.amount : 0), 0) / 100),
+              label: 'Commission earned',
+            },
           ]}
         />
-        <p className="mt-6 text-sm text-muted">{copy.commission}</p>
+        <p className="mt-6 text-sm text-muted">{copy.commission(pct)}</p>
       </DashSection>
     </AppFrame>
   );
