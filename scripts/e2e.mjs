@@ -2,6 +2,7 @@
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
 import {verhoeffCheckDigit} from '@pirento/shared';
+import crypto from 'node:crypto';
 
 const B = process.env.API_URL ?? 'http://127.0.0.1:4000/api';
 let ok = 0,
@@ -303,6 +304,18 @@ check(
 );
 
 // ── Intern exam ─────────────────────────────────────────────────────────
+// Two "start"s at the same moment get one attempt, not two.
+const racer = await login(`racer${Date.now()}@example.com`);
+const starts = await Promise.all(
+  [1, 2, 3].map(() =>
+    call('/learning/exam/start', {method: 'POST', token: racer, body: {track: 'design', fullName: 'Ravi Kumar'}}),
+  ),
+);
+check(
+  'parallel starts share one attempt',
+  starts.every((r) => r.status === 200) && new Set(starts.map((r) => r.data.id)).size === 1,
+  starts.map((r) => r.status),
+);
 const ex = (
   await call('/learning/exam/start', {method: 'POST', token: user, body: {track: 'design', fullName: 'Asha Verma'}})
 ).data;
@@ -913,6 +926,121 @@ const paid = (
 ).data;
 check('paid withdrawal', paid?.status === 'paid' && paid.utr === 'UTR123');
 
+// Withdrawals through RazorpayX. Runs when the stack points at a payout API (the local fake in tests):
+// RAZORPAYX_URL, RAZORPAYX_WEBHOOK_SECRET set for both the stack and this script.
+if (process.env.RAZORPAYX_WEBHOOK_SECRET) {
+  const X = process.env.RAZORPAYX_URL;
+  const balance = async () => (await call('/wallet', {token: user})).data.balance;
+  const hook = (event, entity, secret = process.env.RAZORPAYX_WEBHOOK_SECRET) => {
+    const raw = JSON.stringify({entity: 'event', event, contains: ['payout'], payload: {payout: {entity}}});
+    const sig = crypto.createHmac('sha256', secret).update(raw).digest('hex');
+    return fetch(B + '/wallet/payouts/razorpayx/webhook', {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'x-razorpay-signature': sig},
+      body: raw,
+    }).then((r) => r.status);
+  };
+  const ask = async (upi) =>
+    (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi}})).data;
+  const payout = (id) => call(`/wallet/staff/withdrawals/${id}/payout`, {method: 'POST', token: boss});
+  check('payouts are switched on', (await call('/wallet/staff/payouts/config', {token: boss})).data?.enabled === true);
+  check('support cannot send payouts', (await call('/wallet/staff/payouts/config', {token: supAgain})).status === 403);
+
+  // Sent once, however many clicks.
+  await call('/wallet/staff/adjust', {
+    method: 'POST',
+    token: boss,
+    body: {userId: userMe._id, type: 'credit', amount: 1000, reason: 'Payout tests'},
+  });
+  const start = await balance();
+  const p1 = await ask('asha@upi');
+  const countBefore = (await (await fetch(X + '/__count')).json()).payouts;
+  const clicks = await Promise.all([payout(p1._id), payout(p1._id)]);
+  const sent = clicks.find((r) => r.status === 200)?.data;
+  check(
+    'two clicks send one payout',
+    clicks.filter((r) => r.status === 200).length === 1 &&
+      clicks.filter((r) => r.status === 409).length === 1 &&
+      sent?.status === 'processing' &&
+      sent.payout?.id &&
+      (await (await fetch(X + '/__count')).json()).payouts === countBefore + 1,
+    clicks.map((r) => r.status),
+  );
+  check(
+    'a sending withdrawal still blocks a second one',
+    (await call('/wallet/withdrawals', {method: 'POST', token: user, body: {amount: 100, upi: 'other@upi'}})).status ===
+      409,
+  );
+  check(
+    'check again changes nothing while processing',
+    (await call(`/wallet/staff/withdrawals/${p1._id}/check`, {method: 'POST', token: boss})).data?.status ===
+      'processing',
+  );
+  check(
+    'an unsigned webhook is refused',
+    (await hook('payout.processed', {id: sent?.payout?.id, status: 'processed'}, 'wrong')) === 400,
+  );
+  const processed = {id: sent?.payout?.id, status: 'processed', amount: 10000, utr: 'RZPX-UTR-1', reference_id: p1._id};
+  check('a signed webhook is taken', (await hook('payout.processed', processed)) === 200);
+  await hook('payout.processed', processed); // RazorpayX may send it twice
+  const p1After = (await call('/wallet/withdrawals', {token: user})).data?.find((x) => x._id === p1._id);
+  check(
+    'processed webhook pays it, once',
+    p1After?.status === 'paid' && p1After.utr === 'RZPX-UTR-1' && (await balance()) === start - 10000,
+  );
+
+  // A clear refusal: nothing was sent, so it goes back to finance, money still held.
+  const p2 = await ask('refuse@upi');
+  const refused = (await payout(p2._id)).data;
+  check(
+    'a refused payout goes back to "to pay"',
+    refused?.status === 'requested' && /Invalid VPA/.test(refused.payout?.error ?? ''),
+    refused,
+  );
+  await call(`/wallet/staff/withdrawals/${p2._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {decision: 'rejected', reason: 'UPI ID refused'},
+  });
+  check('then rejected by hand, the money returns', (await balance()) === start - 10000);
+
+  // A reversal returns the money exactly once, even when two webhooks race.
+  const p3 = await ask('ravi@upi');
+  const p3sent = (await payout(p3._id)).data;
+  const reversed = {
+    id: p3sent?.payout?.id,
+    status: 'reversed',
+    amount: 10000,
+    reference_id: p3._id,
+    status_details: {description: 'Beneficiary bank down'},
+  };
+  await Promise.all([hook('payout.reversed', reversed), hook('payout.reversed', reversed)]);
+  const p3After = (await call('/wallet/withdrawals', {token: user})).data?.find((x) => x._id === p3._id);
+  check(
+    'a reversed payout returns the money once',
+    p3After?.status === 'rejected' && /bank down/.test(p3After.reason) && (await balance()) === start - 10000,
+    {p3After, b: await balance()},
+  );
+  check(
+    'a webhook for another amount is ignored',
+    (await hook('payout.processed', {...processed, id: 'pout_x', amount: 1})) === 200,
+  );
+
+  // A lost webhook: "check again" reads the payout and finishes it.
+  const p4 = await ask('meera@upi');
+  const p4sent = (await payout(p4._id)).data;
+  await fetch(X + '/__set', {
+    method: 'POST',
+    headers: {'content-type': 'application/json'},
+    body: JSON.stringify({id: p4sent?.payout?.id, status: 'processed', utr: 'RZPX-UTR-4'}),
+  });
+  const p4After = (await call(`/wallet/staff/withdrawals/${p4._id}/check`, {method: 'POST', token: boss})).data;
+  check(
+    'check again settles a payout whose webhook never came',
+    p4After?.status === 'paid' && p4After.utr === 'RZPX-UTR-4',
+  );
+}
+
 // ── Admin: settings ─────────────────────────────────────────────────────
 check(
   'banner link must be on-site',
@@ -1049,6 +1177,47 @@ check(
   'a used-up code is refused',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code2, intake}}))
     .error?.code === 'COUPON',
+);
+
+// A code with one use left, on two unpaid orders paid at the same moment: one pays, one is refused, no overshoot.
+const code3 = `LAST${Date.now().toString().slice(-6)}`;
+const cp3 = (
+  await call('/orders/staff/coupons', {
+    method: 'POST',
+    token: boss,
+    body: {code: code3, kind: 'flat', value: 100, maxUses: 1},
+  })
+).data;
+const placeWith = async () =>
+  (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', coupon: code3, intake}}))
+    .data;
+const [oa, ob] = [await placeWith(), await placeWith()];
+await call('/wallet/staff/adjust', {
+  method: 'POST',
+  token: boss,
+  body: {
+    userId: (await call('/auth/me', {token: user})).data._id,
+    type: 'credit',
+    amount: (oa.amount + ob.amount) / 100,
+    reason: 'Test',
+  },
+});
+const walletBefore = (await call('/wallet', {token: user})).data.balance;
+const both = await Promise.all([oa, ob].map((o) => call(`/orders/${o._id}/pay/wallet`, {method: 'POST', token: user})));
+const uses3 = (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp3._id)?.uses;
+check(
+  'a code with one use left pays one order, not two',
+  both.filter((r) => r.status === 200).length === 1 &&
+    both.find((r) => r.status !== 200)?.error?.code === 'CODE_USED_UP' &&
+    uses3 === 1 &&
+    (await call('/wallet', {token: user})).data.balance === walletBefore - oa.amount,
+  {statuses: both.map((r) => r.status), uses3},
+);
+check(
+  'retrying the paid one does not count the code again',
+  (await call(`/orders/${both.find((r) => r.status === 200).data._id}/pay/wallet`, {method: 'POST', token: user}))
+    .status === 200 &&
+    (await call('/orders/staff/coupons', {token: boss})).data?.find((c) => c._id === cp3._id)?.uses === 1,
 );
 
 // ── Sign-in methods: Bharat ID, staff door, providers ───────────────────
@@ -1354,9 +1523,13 @@ await call('/vault/credentials', {
 const leaverTicket = (
   await call('/support', {method: 'POST', token: leaver.token, body: {subject: 'My PAN', message: 'PAN ABCDE1234F'}})
 ).data;
+const asks = await Promise.all(
+  [1, 2].map(() => call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {reason: 'Done'}})),
+);
 check(
-  'ask to delete',
-  (await call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {reason: 'Done'}})).status === 201,
+  'ask to delete, once even on a double click',
+  asks.filter((r) => r.status === 201).length === 1 && asks.filter((r) => r.status === 409).length === 1,
+  asks.map((r) => r.status),
 );
 check('ask once', (await call('/auth/me/deletion', {method: 'POST', token: leaver.token, body: {}})).status === 409);
 check('staff cannot see deletions', (await call('/auth/admin/deletions', {token: staffToken})).status === 403);

@@ -1,7 +1,17 @@
 // Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 import {Router} from 'express';
 import {z} from 'zod';
-import {ACCESS, ApiError, STAFF, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {
+  ACCESS,
+  ApiError,
+  STAFF,
+  conflict,
+  isId,
+  notFound,
+  requireAuth,
+  requireRole,
+  validate,
+} from '@pirento/shared/server';
 import {PRODUCTS} from '@pirento/shared';
 import {config} from '../config.js';
 import {AuditLog} from '../models/AuditLog.js';
@@ -152,11 +162,10 @@ adminRoutes.patch(
     const doc = isId(req.params.id) && (await DeletionRequest.findById(req.params.id));
     if (!doc || doc.status !== 'requested') throw notFound('No open request with that id');
     if (req.body.decision === 'reject' && !req.body.answer) throw new ApiError(400, 'BAD_INPUT', 'Tell them why');
-    if (req.body.decision === 'approve') {
-      req.params.id = doc.userId; // targetOf reads the account id from the URL
-      await forgetUser(await targetOf(req));
-    }
-    // Conditional on 'requested', so a second click does not decide twice.
+    // Checked before claiming: a superadmin set in SUPERADMIN_EMAILS (or yourself) cannot be deleted here.
+    const target = req.body.decision === 'approve' ? await targetOf({...req, params: {id: doc.userId}}) : null;
+    // Claimed first, conditional on 'requested': a second click, a reject at the same moment, or the customer
+    // withdrawing it all lose here, so the account is forgotten at most once and only when approved.
     const done = await DeletionRequest.findOneAndUpdate(
       {_id: doc._id, status: 'requested'},
       {
@@ -169,6 +178,19 @@ adminRoutes.patch(
       },
       {new: true},
     );
+    if (!done) throw conflict('CHANGED', 'This request was already decided or withdrawn');
+    if (target) {
+      try {
+        await forgetUser(target);
+      } catch (err) {
+        // Nothing was forgotten for sure: open the request again so it can be retried.
+        await DeletionRequest.updateOne(
+          {_id: doc._id},
+          {$set: {status: 'requested'}, $unset: {decidedBy: 1, decidedAt: 1}},
+        );
+        throw err;
+      }
+    }
     await AuditLog.create({
       actorId: req.user.sub,
       actorEmail: req.user.email,

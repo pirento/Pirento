@@ -11,6 +11,7 @@ import {
   isId,
   nextSeq,
   notFound,
+  notify,
   requireAuth,
   requireRole,
   validate,
@@ -70,6 +71,15 @@ staffRoutes.patch(
       await doc.save();
     }
     audit(req, `bharat-id.${decision}`, doc.bharatId ?? String(doc._id), reason);
+    notify(doc.userId, {
+      brand: 'Bharat ID',
+      label: 'Your application',
+      big: decision === 'approve' ? doc.bharatId : 'Needs changes',
+      note:
+        decision === 'approve'
+          ? 'Your Bharat ID is issued. Open the Bharat ID dashboard to see and download your card.'
+          : `Our team could not approve it yet: ${reason}. Fix it and submit again from your dashboard.`,
+    });
     res.json({data: doc});
   },
 );

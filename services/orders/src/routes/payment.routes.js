@@ -5,18 +5,33 @@ import {ApiError, conflict, requireAuth, validate} from '@pirento/shared/server'
 import {Order} from '../models/Order.js';
 import {findOwn, markPaid, noteExtraPayment} from '../lib/orders.js';
 import {debitForOrder, voidOrderDebit} from '../lib/wallet.js';
+import {codeHasRoom, returnUse, takeUse} from '../lib/coupons.js';
 import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig} from '../lib/razorpay.js';
 
 export const paymentRoutes = Router();
 paymentRoutes.use('/:id/pay', requireAuth);
 
 const notPayable = () => conflict('NOT_PAYABLE', 'This order is already settled');
+const codeUsedUp = () =>
+  conflict('CODE_USED_UP', 'This discount code has been used up. Cancel this order and place it again without it.');
 
 paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
   const order = await findOwn(req);
+  // A retry that lands after the first try paid it gets the paid order back, not an error.
+  if (order.payment?.method === 'wallet' && order.status !== 'pending_payment' && order.status !== 'cancelled') {
+    return res.json({data: order});
+  }
   if (order.status !== 'pending_payment') throw notPayable();
 
-  await debitForOrder(order);
+  // A limited code is checked and taken in one step before any money moves; if it ran out while the
+  // order sat unpaid, nothing is charged.
+  if (!(await takeUse(order, {strict: true}))) throw codeUsedUp();
+  try {
+    await debitForOrder(order);
+  } catch (err) {
+    await returnUse(order);
+    throw err;
+  }
   const paid = await markPaid(order._id, {method: 'wallet'}, 'Paid from wallet');
   if (paid) return res.json({data: paid});
 
@@ -25,8 +40,10 @@ paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
   const now = await Order.findById(order._id);
   if (now.payment?.method === 'wallet') return res.json({data: now});
 
-  // Settled another way, or cancelled, while we were debiting: give the money back.
+  // Settled another way, or cancelled, while we were debiting: give the money back (and the code's use, if
+  // nothing paid for the order at all).
   await voidOrderDebit(order);
+  if (now.status === 'cancelled') await returnUse(order);
   throw conflict('NOT_PAYABLE', 'This order was already settled. Your wallet was refunded.');
 });
 
@@ -36,6 +53,9 @@ paymentRoutes.post('/:id/pay/razorpay', async (req, res) => {
   if (!cfg) throw new ApiError(503, 'PAYMENTS_UNAVAILABLE', 'Card and UPI payments are not switched on yet');
   let order = await findOwn(req);
   if (order.status !== 'pending_payment') throw notPayable();
+  // shortcut: a card payment cannot be stopped once it starts, so a code's last use is only checked here, not
+  // reserved; two card payments at the same moment can take it one past its limit. Reserve it if that matters.
+  if (!(await codeHasRoom(order))) throw codeUsedUp();
 
   if (!order.payment?.razorpayOrderId) {
     const rzp = await createRazorpayOrder(cfg, order.amount, `order-${order.orderNo}`);

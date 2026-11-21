@@ -1,6 +1,7 @@
-// Discount codes: checking one at checkout, and counting its use once the order is paid.
+// Discount codes: checking one at checkout, and counting its use, once, when the order is paid.
 import {ApiError} from '@pirento/shared/server';
 import {Coupon} from '../models/Coupon.js';
+import {Order} from '../models/Order.js';
 
 const refuse = (message) => new ApiError(400, 'COUPON', message);
 
@@ -23,9 +24,33 @@ export async function discountOf(code, product, amount) {
   return discountFor(await Coupon.findOne({code}), product, amount);
 }
 
+// A code with room left: no limit, or fewer uses than its limit. Read inside the update, so it is atomic.
+const ROOM = {$or: [{maxUses: 0}, {$expr: {$lt: ['$uses', '$maxUses']}}]};
+
 /**
- * Counts one use once the order is paid, so unpaid orders can never use up a limited code.
- * A payment is never refused over it: if the last use was taken while this order sat unpaid,
- * the count may go one past the limit.
+ * Takes one use of the order's code, at most once per order (a flag on the order is claimed first, so
+ * parallel retries of one payment count once). `strict` refuses when the code is used up, for a payment
+ * that has not moved money yet; after money has moved (a card payment arrived) it always counts.
+ * Returns false only when a strict take found no room.
  */
-export const countUse = (order) => (order.coupon ? Coupon.updateOne({code: order.coupon}, {$inc: {uses: 1}}) : null);
+export async function takeUse(order, {strict}) {
+  if (!order.coupon) return true;
+  const claimed = await Order.updateOne({_id: order._id, couponCounted: {$ne: true}}, {$set: {couponCounted: true}});
+  if (!claimed.modifiedCount) return true; // already counted for this order
+  const took = await Coupon.updateOne({code: order.coupon, ...(strict ? ROOM : {})}, {$inc: {uses: 1}});
+  if (took.modifiedCount) return true;
+  await Order.updateOne({_id: order._id}, {$unset: {couponCounted: 1}});
+  return false;
+}
+
+/** Hands a use back when the payment it was taken for did not go through. */
+export async function returnUse(order) {
+  if (!order.coupon) return;
+  const released = await Order.updateOne({_id: order._id, couponCounted: true}, {$unset: {couponCounted: 1}});
+  if (released.modifiedCount) await Coupon.updateOne({code: order.coupon, uses: {$gt: 0}}, {$inc: {uses: -1}});
+}
+
+/** Whether the order's code still has room, before a card payment starts. */
+export async function codeHasRoom(order) {
+  return !order.coupon || order.couponCounted || Boolean(await Coupon.exists({code: order.coupon, ...ROOM}));
+}

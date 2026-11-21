@@ -134,7 +134,8 @@ export const ADMIN_SECTIONS = [
     label: 'Withdrawals',
     icon: Banknote,
     roles: MONEY,
-    intro: 'Customers asking to take wallet money out. Send it by UPI, then mark it paid with the UTR.',
+    intro:
+      'Customers asking to take wallet money out. Send it through RazorpayX when it is set up, or by UPI yourself and mark it paid with the UTR.',
   },
   {
     id: 'coupons',

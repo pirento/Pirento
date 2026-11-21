@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import {canUse, isId, nextSeq, notFound, productScope} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
-import {countUse} from './coupons.js';
+import {takeUse} from './coupons.js';
 
 /** Six-digit order numbers, starting at 100001. */
 export const nextOrderNo = async () => (await nextSeq('order')) + 100000;
@@ -45,8 +45,8 @@ export async function markPaid(id, payment, note) {
     {$set: {status: 'paid', payment}, $push: {timeline: {status: 'paid', note}}},
     {new: true},
   );
-  // Only the payment that moved the order counts the code, so a retry never counts it twice.
-  if (paid) await countUse(paid);
+  // Counted once per order (a wallet payment took it before debiting; then this is a no-op).
+  if (paid) await takeUse(paid, {strict: false});
   return paid;
 }
 

@@ -4,6 +4,7 @@ import {ApiError, badInput, decrypt, encrypt} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
+import {giveRoom, takeRoom} from '../lib/quota.js';
 
 export const fileRoutes = Router();
 
@@ -29,21 +30,22 @@ fileRoutes.post(
     }
     if (!name || !Buffer.isBuffer(req.body) || !req.body.length) throw badInput('Choose a file to upload');
 
-    const [{used = 0} = {}] = await VaultFile.aggregate([
-      {$match: {userId: req.user.sub}},
-      {$group: {_id: null, used: {$sum: '$size'}}},
-    ]);
-    if (used + req.body.length > config.quotaBytes) {
+    if (!(await takeRoom(req.user.sub, req.body.length, config.quotaBytes))) {
       throw new ApiError(413, 'QUOTA_FULL', 'Your vault is full. Delete a file first.');
     }
-
-    const file = await VaultFile.create({
-      userId: req.user.sub,
-      name,
-      type: String(req.headers['x-file-type'] ?? '').slice(0, 100) || undefined,
-      size: req.body.length,
-      ...encrypt(config.key, req.body),
-    });
+    let file;
+    try {
+      file = await VaultFile.create({
+        userId: req.user.sub,
+        name,
+        type: String(req.headers['x-file-type'] ?? '').slice(0, 100) || undefined,
+        size: req.body.length,
+        ...encrypt(config.key, req.body),
+      });
+    } catch (err) {
+      await giveRoom(req.user.sub, req.body.length);
+      throw err;
+    }
     const {_id, size, type, createdAt} = file;
     res.status(201).json({data: {_id, name, size, type, createdAt}});
   },
@@ -61,6 +63,9 @@ fileRoutes.get('/files/:id', async (req, res) => {
 });
 
 fileRoutes.delete('/files/:id', async (req, res) => {
-  await (await findOwned(VaultFile, req, WITHOUT_BYTES)).deleteOne();
+  const file = await findOwned(VaultFile, req, WITHOUT_BYTES);
+  // Room comes back only for the request that actually removed it, so a double delete gives it back once.
+  const {deletedCount} = await VaultFile.deleteOne({_id: file._id});
+  if (deletedCount) await giveRoom(req.user.sub, file.size);
   res.json({data: {deleted: true}});
 });

@@ -6,7 +6,7 @@ import {config} from '../config.js';
 import {Chat} from '../models/Chat.js';
 import {DAILY_LIMIT} from '../lib/prompt.js';
 import {streamReply} from '../lib/claude.js';
-import {questionsToday} from '../lib/usage.js';
+import {giveBack, takeOne} from '../lib/usage.js';
 
 export const chatRoutes = Router();
 
@@ -39,7 +39,7 @@ chatRoutes.post(
   validate(z.object({content: z.string().trim().min(1, 'Write a message').max(2000)})),
   async (req, res) => {
     if (!config.enabled) throw new ApiError(503, 'AI_UNAVAILABLE', 'Pirento AI is not switched on yet');
-    if ((await questionsToday(req.user.sub)) >= DAILY_LIMIT) {
+    if (!(await takeOne(req.user.sub, DAILY_LIMIT))) {
       throw new ApiError(429, 'DAILY_LIMIT', `You can send ${DAILY_LIMIT} messages a day. Try again tomorrow.`);
     }
 
@@ -70,6 +70,7 @@ chatRoutes.post(
         // Nothing came back: drop the question too, so a failed turn never enters the history.
         chat.messages.pop();
         await chat.save();
+        await giveBack(req.user.sub);
         return res.end('Sorry, something went wrong. Please try again.');
       }
     }

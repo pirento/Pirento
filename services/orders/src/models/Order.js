@@ -43,6 +43,7 @@ export const Order = mongoose.model(
       ref: {type: String, index: true}, // Pirento One partner code that brought this order
       coupon: String, // code used at checkout
       discount: {type: Number, default: 0}, // paise taken off by the coupon; amount is after it
+      couponCounted: Boolean, // the coupon's use was counted for this order (once, whatever the retries)
       assignee: {_id: false, id: String, email: String}, // the staffer working it
       bookedBy: {_id: false, id: String, email: String}, // a staffer who placed it for the customer
     },

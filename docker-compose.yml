@@ -40,7 +40,14 @@ services:
 
   wallet:
     <<: *service
-    environment: {<<: *env, SERVICE: wallet, MONGO_URI: mongodb://mongo:27017/pirento_wallet}
+    environment:
+      <<: *env
+      SERVICE: wallet
+      MONGO_URI: mongodb://mongo:27017/pirento_wallet
+      RAZORPAYX_KEY_ID: ${RAZORPAYX_KEY_ID:-}
+      RAZORPAYX_KEY_SECRET: ${RAZORPAYX_KEY_SECRET:-}
+      RAZORPAYX_ACCOUNT_NUMBER: ${RAZORPAYX_ACCOUNT_NUMBER:-}
+      RAZORPAYX_WEBHOOK_SECRET: ${RAZORPAYX_WEBHOOK_SECRET:-}
     depends_on: [mongo]
 
   catalog:

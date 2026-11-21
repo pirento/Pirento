@@ -36,8 +36,13 @@ meRoutes.post(
     if (await DeletionRequest.exists({userId: req.user.sub, status: 'requested'})) {
       throw conflict('OPEN_REQUEST', 'Your request is already with our team');
     }
-    const doc = await DeletionRequest.create({userId: req.user.sub, email: req.user.email, reason: req.body.reason});
-    res.status(201).json({data: doc});
+    try {
+      const doc = await DeletionRequest.create({userId: req.user.sub, email: req.user.email, reason: req.body.reason});
+      res.status(201).json({data: doc});
+    } catch (err) {
+      if (err.code === 11000) throw conflict('OPEN_REQUEST', 'Your request is already with our team');
+      throw err;
+    }
   },
 );
 
