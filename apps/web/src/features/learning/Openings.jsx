@@ -37,7 +37,7 @@ function Opening({o, applied, signedIn, onApplied}) {
         {applied ? (
           <p className="text-sm">{STATUS[applied]}</p>
         ) : !signedIn ? (
-          <Button to="/login?next=/intern" variant="outline">
+          <Button to="/login?next=/intern/dashboard/openings" variant="outline">
             Sign in to apply
           </Button>
         ) : open ? (
@@ -67,23 +67,27 @@ function Opening({o, applied, signedIn, onApplied}) {
   );
 }
 
-export function Openings() {
+export function Openings({bare = false}) {
   const {user} = useSession();
   const list = useApi('/learning/openings');
   const mine = useApi(user ? '/learning/openings/mine' : null);
   if (!list.data?.length) return null;
   const appliedTo = Object.fromEntries((mine.data ?? []).map((a) => [a.openingId, a.status]));
   return (
-    <div className="mt-20">
-      <h3 className="text-2xl">Open roles</h3>
-      <p className="mt-2 text-muted">
-        Posted by the Pirento team. A certificate from the track helps;{' '}
-        <Link to="/intern/dashboard" className="underline underline-offset-4">
-          take the exam
-        </Link>
-        .
-      </p>
-      <ul className="mt-6 grid gap-4 md:grid-cols-2">
+    <div className={bare ? '' : 'mt-20'}>
+      {!bare && (
+        <>
+          <h3 className="text-2xl">Open roles</h3>
+          <p className="mt-2 text-muted">
+            Posted by the Pirento team. A certificate from the track helps;{' '}
+            <Link to="/intern/dashboard/exams" className="underline underline-offset-4">
+              take the exam
+            </Link>
+            .
+          </p>
+        </>
+      )}
+      <ul className={`grid gap-4 md:grid-cols-2 ${bare ? '' : 'mt-6'}`}>
         {list.data.map((o) => (
           <Opening key={o._id} o={o} applied={appliedTo[o._id]} signedIn={Boolean(user)} onApplied={mine.reload} />
         ))}

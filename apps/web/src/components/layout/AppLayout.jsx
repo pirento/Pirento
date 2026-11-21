@@ -20,6 +20,14 @@ import {
   UserRound,
   Wallet as WalletIcon,
   X,
+  Award,
+  ClipboardList,
+  FolderLock,
+  GraduationCap,
+  KeyRound,
+  Megaphone,
+  MessageSquare,
+  Share2,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
@@ -38,6 +46,14 @@ const SECTION_ICONS = {
   documents: FileText,
   consultations: MessagesSquare,
   wallet: WalletIcon,
+  exams: GraduationCap,
+  certificates: Award,
+  openings: Megaphone,
+  files: FolderLock,
+  passwords: KeyRound,
+  chat: MessageSquare,
+  referrals: Share2,
+  apply: ClipboardList,
 };
 
 const InApp = createContext(false);

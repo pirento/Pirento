@@ -11,6 +11,7 @@ import {OrdersDashboard} from './OrdersDashboard';
 import {ProductWallet} from './ProductWallet';
 import {Vault} from '../vault/VaultPage';
 import {usePageMeta} from '../../lib/page';
+import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
 
 const APPS = {intern: Intern, vault: Vault, ai: Ai, one: One, capital: Capital, 'bharat-id': BharatId};
 
@@ -24,8 +25,12 @@ export function ProductDashboard() {
   // Every product shows the one wallet inside its own dashboard.
   if (section === 'wallet') return <ProductWallet product={product} />;
   const App = APPS[slug];
-  // Products with one page ignore any other section in the URL and show it.
-  if (App) return section ? <Navigate to={`/${slug}/dashboard`} replace /> : <App />;
+  if (App) {
+    // An app product shows the sections in its sidebar; anything else in the URL goes to its overview.
+    const known = (productDashboards[slug] ?? SINGLE_PAGE_SECTIONS).some((s) => s.id === (section ?? 'overview'));
+    if (!known || section === 'overview') return <Navigate to={`/${slug}/dashboard`} replace />;
+    return <App product={product} section={section ?? 'overview'} />;
+  }
   return <OrdersDashboard product={product} section={section} />;
 }
 

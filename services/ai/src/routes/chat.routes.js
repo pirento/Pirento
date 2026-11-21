@@ -6,7 +6,7 @@ import {config} from '../config.js';
 import {Chat} from '../models/Chat.js';
 import {DAILY_LIMIT} from '../lib/prompt.js';
 import {streamReply} from '../lib/claude.js';
-import {giveBack, takeOne} from '../lib/usage.js';
+import {giveBack, takeOne, usedToday} from '../lib/usage.js';
 
 export const chatRoutes = Router();
 
@@ -17,6 +17,11 @@ const findOwnChat = async (req) => {
 };
 
 chatRoutes.get('/status', (_req, res) => res.json({data: {enabled: config.enabled, dailyLimit: DAILY_LIMIT}}));
+
+/** Messages sent today and the daily allowance, for the meter on the AI dashboard. */
+chatRoutes.get('/usage', async (req, res) => {
+  res.json({data: {used: await usedToday(req.user.sub), limit: DAILY_LIMIT}});
+});
 
 chatRoutes.get('/chats', async (req, res) => {
   res.json({data: await Chat.find({userId: req.user.sub}, {messages: 0}).sort({updatedAt: -1}).limit(50)});

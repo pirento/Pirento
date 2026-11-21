@@ -1,62 +1,77 @@
-// Bharat ID dashboard: the application, its review status, or the issued card.
-import {useRef, useState} from 'react';
-import {Clock} from 'lucide-react';
-import {PageHero} from '../../components/PageHero';
-import {Section} from '../../components/ui/Heading';
+// Bharat ID dashboard: where the application stands (and the card once issued), and the application itself.
+import {useState} from 'react';
+import {Link} from 'react-router-dom';
+import {Check, Clock} from 'lucide-react';
+import {DashSection} from '../../components/ui/DashSection';
 import {Tag} from '../../components/ui/Tag';
+import {appDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
+import {AppFrame} from '../products/AppFrame';
 import {IdCard} from './IdCard';
 import {SectionSummary} from './SectionSummary';
 import {Wizard} from './Wizard';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
-import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 
-export function BharatId() {
+const copy = appDashboards['bharat-id'];
+
+/** How far along the application is, as an index into copy.steps (fill, video, submit, review, issued). */
+function stepOf(doc) {
+  if (!doc) return 0;
+  if (doc.status === 'approved') return 5;
+  if (doc.status === 'submitted') return 3;
+  return doc.kyc?.recordedAt ? 2 : doc.sections && Object.keys(doc.sections).length ? 1 : 0;
+}
+
+function Timeline({at}) {
+  return (
+    <ol className="grid gap-3 sm:grid-cols-5">
+      {copy.steps.map((label, i) => {
+        const done = i < at;
+        const now = i === at;
+        return (
+          <li
+            key={label}
+            className={`flex items-center gap-3 rounded-[14px] border p-4 text-sm ${now ? 'border-ink' : 'border-rule'}`}
+            aria-current={now ? 'step' : undefined}
+          >
+            <span
+              className={`flex size-7 shrink-0 items-center justify-center rounded-full border text-xs ${done ? 'border-ink bg-ink text-paper' : 'border-rule'}`}
+            >
+              {done ? <Check aria-hidden className="size-3.5" /> : i + 1}
+            </span>
+            <span className={done || now ? '' : 'text-muted'}>{label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+export function BharatId({product, section}) {
   const {redirect, user} = useSignedIn();
   const {user: me} = useSession();
   const res = useApi(user ? '/identity/me' : null);
   const [fresh, setFresh] = useState(null);
-  const ref = useRef(null);
-  usePageMotion(ref, [res.loading]);
   usePageMeta({
     title: 'Bharat ID — apply',
     description: 'Apply for your Bharat ID: seven short steps and a short video.',
   });
   if (redirect) return redirect;
   const doc = fresh ?? res.data;
+  const frame = {product, section, ready: !res.loading};
 
-  return (
-    <div ref={ref}>
-      <PageHero
-        label="Bharat ID · Dashboard"
-        title="One identity, / checked once."
-        hl="checked once."
-        intro="Seven short steps, a 20-second video, then review. Your progress is saved after each step, so you can stop and come back."
-      />
-      <Section className="pt-0! md:pt-0!">
-        {res.loading ? null : doc?.status === 'approved' ? (
-          <IdCard doc={doc} />
-        ) : doc?.status === 'submitted' ? (
-          <div className="max-w-3xl space-y-6">
-            <div className="flex items-start gap-4 rounded-[22px] border border-rule p-8">
-              <Clock aria-hidden className="mt-1 size-5" />
-              <div>
-                <Tag tone="accent">In review</Tag>
-                <p className="body mt-4">
-                  Submitted on {formatDate(doc.submittedAt)}. Our team checks your details by hand; your ID appears here
-                  once it is approved.
-                </p>
-              </div>
-            </div>
-            <SectionSummary sections={doc.sections} email={me?.email} kyc={doc.kyc ?? null} />
-          </div>
+  if (section === 'apply') {
+    return (
+      <AppFrame {...frame} title={copy.apply.title} intro={copy.intro}>
+        {res.loading ? null : doc?.status === 'approved' || doc?.status === 'submitted' ? (
+          <SectionSummary sections={doc.sections} email={me?.email} kyc={doc.kyc ?? null} />
         ) : (
           <>
             {doc?.status === 'rejected' && (
-              <div role="status" className="mb-10 max-w-3xl rounded-[22px] border border-accent p-6">
+              <div role="status" className="max-w-3xl rounded-[22px] border border-accent p-6">
                 <p className="font-medium">Your application needs a change</p>
                 <p className="body mt-2">
                   <strong>Reason:</strong> {doc.reason}. Fix the step, then submit again from the last step.
@@ -66,9 +81,67 @@ export function BharatId() {
             <Wizard key={doc?.status ?? 'new'} doc={doc} email={me?.email} onChange={setFresh} />
           </>
         )}
-      </Section>
-    </div>
+      </AppFrame>
+    );
+  }
+
+  // Overview
+  const at = stepOf(doc);
+  return (
+    <AppFrame {...frame} title={copy.hello} intro={copy.intro}>
+      {doc?.status === 'approved' && (
+        <DashSection n={1} id="card" label={copy.card.label} title={copy.card.title}>
+          <IdCard doc={doc} />
+        </DashSection>
+      )}
+      <DashSection
+        n={doc?.status === 'approved' ? 2 : 1}
+        id="status"
+        label={copy.status.label}
+        title={copy.status.title}
+      >
+        {!res.loading && (
+          <>
+            <Timeline at={at} />
+            <div className="mt-8 max-w-3xl">
+              {doc?.status === 'submitted' && (
+                <p className="flex items-start gap-3">
+                  <Clock aria-hidden className="mt-1 size-5 shrink-0" />
+                  <span className="body">
+                    <Tag tone="accent">In review</Tag> Submitted on {formatDate(doc.submittedAt)}. Our team checks your
+                    details by hand; your ID appears here once it is approved, and we email you.
+                  </span>
+                </p>
+              )}
+              {doc?.status === 'rejected' && (
+                <p className="body">
+                  <strong>Needs a change:</strong> {doc.reason}.{' '}
+                  <Link to="/bharat-id/dashboard/apply" className="text-ink underline underline-offset-4">
+                    Fix it and submit again
+                  </Link>
+                </p>
+              )}
+              {doc?.status === 'approved' && (
+                <p className="body">
+                  Issued on {formatDate(doc.issuedAt)}. Anyone you share your ID with can check it on{' '}
+                  <Link to={`/verify/${doc.bharatId}`} className="text-ink underline underline-offset-4">
+                    its verify page
+                  </Link>
+                  .
+                </p>
+              )}
+              {(!doc || doc.status === 'draft') && (
+                <Link
+                  to="/bharat-id/dashboard/apply"
+                  className="inline-flex rounded-full bg-accent px-6 py-3 text-sm font-medium text-on-accent"
+                >
+                  {at === 0 ? 'Start your application' : 'Continue your application'}
+                </Link>
+              )}
+            </div>
+          </>
+        )}
+      </DashSection>
+    </AppFrame>
   );
 }
-
-// ── Staff review ─────────────────────────────────────────────────────────

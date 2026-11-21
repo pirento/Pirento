@@ -5,6 +5,7 @@ import {decrypt, encrypt, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Credential} from '../models/Credential.js';
 import {findOwned} from './owned.js';
+import {healthOf} from '../lib/health.js';
 
 export const credentialRoutes = Router();
 
@@ -32,6 +33,15 @@ credentialRoutes.post(
     res.status(201).json({data: {_id: saved._id, label, username}});
   },
 );
+
+/** Which saved passwords are weak or reused. Decrypted here, judged here; only the verdicts leave. */
+credentialRoutes.get('/credentials/health', async (req, res) => {
+  const saved = await Credential.find({userId: req.user.sub});
+  const items = healthOf(saved.map((c) => ({_id: c._id, password: decrypt(config.key, c.secret).toString()})));
+  res.set('cache-control', 'no-store').json({
+    data: {items, weak: items.filter((i) => i.weak).length, reused: items.filter((i) => i.reused).length},
+  });
+});
 
 credentialRoutes.get('/credentials/:id/secret', async (req, res) => {
   const credential = await findOwned(Credential, req);

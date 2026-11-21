@@ -21,3 +21,5 @@ export async function takeOne(userId, limit) {
 
 /** Gives a message back when no reply came, so a failure never costs the customer. */
 export const giveBack = (userId) => Usage.updateOne({userId, day: today(), n: {$gt: 0}}, {$inc: {n: -1}});
+
+export const usedToday = async (userId) => (await Usage.findOne({userId, day: today()}))?.n ?? 0;

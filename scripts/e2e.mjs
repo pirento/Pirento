@@ -399,6 +399,36 @@ check(
   (await call(`/vault/credentials/${cred._id}/secret`, {token: user})).data?.password === 'p@ss',
 );
 check('delete file', (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).data?.deleted);
+check(
+  'a file deleted twice gives its space back once',
+  (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).status === 404,
+);
+await call('/vault/credentials', {
+  method: 'POST',
+  token: user,
+  body: {label: 'Mail', username: 'asha', password: 'p@ss'},
+});
+await call('/vault/credentials', {
+  method: 'POST',
+  token: user,
+  body: {label: 'Shop', username: 'asha', password: 'Monsoon-Train-42'},
+});
+const health = await call('/vault/credentials/health', {token: user});
+check(
+  'password health: weak and reused, never the password',
+  health.data?.weak === 2 &&
+    health.data.reused === 2 &&
+    health.data.items.length === 3 &&
+    !JSON.stringify(health).includes('p@ss') &&
+    !JSON.stringify(health).includes('Monsoon'),
+  health.data,
+);
+check(
+  'health is per person',
+  (await call('/vault/credentials/health', {token: boss})).data?.items.every((i) => i._id !== cred._id),
+);
+const usage = (await call('/ai/usage', {token: user})).data;
+check('AI usage meter', usage?.limit === 30 && usage.used === 0, usage);
 
 // ── Support ─────────────────────────────────────────────────────────────
 const t = (

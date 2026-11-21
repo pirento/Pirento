@@ -1,19 +1,67 @@
-// Pirento One dashboard: partner code and referred orders.
+// Pirento One dashboard: join, the partner link and what it brought, and every referred order.
 import {useState} from 'react';
 import {Check, Copy} from 'lucide-react';
 import {statusLabel} from '@pirento/shared';
-import {PageHero} from '../../components/PageHero';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
-import {Label, Section} from '../../components/ui/Heading';
+import {DashSection} from '../../components/ui/DashSection';
 import {Tag} from '../../components/ui/Tag';
+import {appDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
+import {AppFrame} from '../products/AppFrame';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
 
-export function One() {
+const copy = appDashboards.one;
+const PAID = ['paid', 'in_progress', 'completed'];
+const FILTERS = [
+  {id: 'all', label: 'All', test: () => true},
+  {id: 'paid', label: 'Paid', test: (o) => PAID.includes(o.status)},
+  {id: 'unpaid', label: 'Not paid yet', test: (o) => o.status === 'pending_payment'},
+];
+
+function ReferralList({orders}) {
+  const [filter, setFilter] = useState('all');
+  const shown = orders.filter(FILTERS.find((f) => f.id === filter).test);
+  return (
+    <>
+      <div role="tablist" aria-label="Filter" className="no-scrollbar flex gap-2 overflow-x-auto">
+        {FILTERS.map((f) => (
+          <button
+            key={f.id}
+            role="tab"
+            aria-selected={filter === f.id}
+            onClick={() => setFilter(f.id)}
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm ${filter === f.id ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {shown.length === 0 && <p className="mt-6 text-muted">{copy.referrals.empty}</p>}
+      <ul className="mt-6 border-t border-rule">
+        {shown.map((o) => (
+          <li key={o._id} className="flex flex-wrap items-center justify-between gap-4 border-b border-rule py-4">
+            <span className="min-w-0">
+              <span className="block font-medium">{o.serviceName}</span>
+              <span className="text-xs text-muted">
+                #{o.orderNo} · {formatDate(o.createdAt)}
+              </span>
+            </span>
+            <span className="flex items-center gap-3">
+              <Tag tone={PAID.includes(o.status) ? 'accent' : 'rule'}>{statusLabel(o.status)}</Tag>
+              <span className="tabular-nums">{inr(o.amount / 100)}</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+export function One({product, section}) {
   const {redirect, user} = useSignedIn();
   const me = useApi(user ? '/orders/partner/me' : null);
   const [copied, setCopied] = useState(false);
@@ -34,81 +82,71 @@ export function One() {
     }
   };
   const d = me.data;
-  const link = d && `https://pirento.com/?ref=${d.code}`;
-  const settled = d?.orders.filter((o) => ['paid', 'in_progress', 'completed'].includes(o.status)) ?? [];
+  const frame = {product, section, ready: !me.loading};
 
-  return (
-    <div>
-      <PageHero
-        label="Pirento One · Dashboard"
-        title="Share Pirento. / See what it brings."
-        intro="Get a partner code. Every order a client places through your link shows up here."
-      />
-      <Section className="pt-0! md:pt-0!">
-        {me.loading ? null : !d ? (
-          <div className="max-w-2xl rounded-[22px] border border-rule p-8">
-            <p className="body">Joining is free. You get a code and a link to share.</p>
-            {error && (
-              <p role="alert" className="mt-4 text-sm">
-                ⚠ {error}
-              </p>
-            )}
-            <Button onClick={join} variant="accent" className="mt-6">
-              Become a partner
-            </Button>
-            <p className="mt-4 text-sm text-muted">
-              Commission payout is not available yet. Today this tracks referrals only.
+  if (!me.loading && !d) {
+    return (
+      <AppFrame {...frame} title={copy.hello} intro={copy.intro}>
+        <div className="max-w-2xl rounded-[22px] border border-rule p-8" data-reveal>
+          <p className="body">Joining is free. You get a code and a link to share.</p>
+          {error && (
+            <p role="alert" className="mt-4 text-sm">
+              ⚠ {error}
             </p>
+          )}
+          <Button onClick={join} variant="accent" className="mt-6">
+            Become a partner
+          </Button>
+          <p className="mt-4 text-sm text-muted">{copy.commission}</p>
+        </div>
+      </AppFrame>
+    );
+  }
+  if (!d) return <AppFrame {...frame} title={copy.hello} />;
+
+  if (section === 'referrals') {
+    return (
+      <AppFrame {...frame} title={copy.referrals.title}>
+        <ReferralList orders={d.orders} />
+      </AppFrame>
+    );
+  }
+
+  const link = `${window.location.origin}/?ref=${d.code}`;
+  const settled = d.orders.filter((o) => PAID.includes(o.status));
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard blocked: the link is on screen to copy by hand.
+    }
+  };
+  return (
+    <AppFrame {...frame} title={copy.hello} intro={copy.intro}>
+      <DashSection n={1} id="link" label={copy.link.label} title={copy.link.title}>
+        <div className="flex flex-wrap items-end justify-between gap-6 rounded-[22px] border border-accent p-6 md:p-8">
+          <div className="min-w-0">
+            <p className="display text-3xl">{d.code}</p>
+            <p className="mt-2 break-all text-sm text-muted">{link}</p>
           </div>
-        ) : (
-          <>
-            <div className="flex max-w-3xl flex-wrap items-end justify-between gap-6 rounded-[22px] border border-accent p-8">
-              <div className="min-w-0">
-                <Label n={1}>Your link</Label>
-                <p className="display mt-4 text-3xl">{d.code}</p>
-                <p className="mt-2 truncate text-sm text-muted">{link}</p>
-              </div>
-              <Button
-                variant="outline"
-                icon={copied ? Check : Copy}
-                onClick={() =>
-                  navigator.clipboard.writeText(link).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 1800);
-                  })
-                }
-              >
-                {copied ? 'Copied' : 'Copy link'}
-              </Button>
-            </div>
-            <div className="mt-10">
-              <StatsRow
-                stats={[
-                  {value: String(d.orders.length), label: 'orders with your code'},
-                  {value: String(settled.length), label: 'paid'},
-                  {value: inr(settled.reduce((n, o) => n + o.amount, 0) / 100), label: 'paid order value'},
-                ]}
-              />
-            </div>
-            <ul className="mt-10 max-w-3xl">
-              {d.orders.map((o) => (
-                <li key={o._id} className="flex items-center justify-between gap-4 border-b border-rule py-4">
-                  <span>
-                    <span className="block font-medium">{o.serviceName}</span>
-                    <span className="text-xs text-muted">
-                      #{o.orderNo} · {formatDate(o.createdAt)}
-                    </span>
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <Tag>{statusLabel(o.status)}</Tag>
-                    <span className="tabular-nums">{inr(o.amount / 100)}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </>
-        )}
-      </Section>
-    </div>
+          <Button variant="outline" icon={copied ? Check : Copy} onClick={copyLink}>
+            {copied ? 'Copied' : 'Copy link'}
+          </Button>
+        </div>
+      </DashSection>
+      <DashSection n={2} id="glance" label={copy.glance.label} title={copy.glance.title}>
+        <StatsRow
+          compact
+          stats={[
+            {value: String(d.orders.length), label: 'Orders with your code'},
+            {value: String(settled.length), label: 'Paid'},
+            {value: inr(settled.reduce((n, o) => n + o.amount, 0) / 100), label: 'Paid order value'},
+          ]}
+        />
+        <p className="mt-6 text-sm text-muted">{copy.commission}</p>
+      </DashSection>
+    </AppFrame>
   );
 }
