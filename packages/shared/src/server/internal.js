@@ -29,6 +29,17 @@ export function audit(req, action, target, detail = '') {
   );
 }
 
+/**
+ * Emails a customer a short notice (sent by the auth service, which knows their address).
+ * Never fails the request that caused it: a lost email is logged, not thrown.
+ */
+export function notify(userId, {brand = 'Pirento', label, big, note}) {
+  const row = {userId: String(userId), brand, label, big, note};
+  return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/notify', row).catch((err) =>
+    console.error('notice lost', label, err.message),
+  );
+}
+
 /** POST to another service's /internal route. Throws that service's error if it refuses. */
 export async function callService(baseUrl, path, body) {
   const res = await fetch(baseUrl + path, {

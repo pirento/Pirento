@@ -46,8 +46,12 @@ export function Files() {
   };
   const remove = async (f) => {
     if (!confirm(`Delete ${f.name}? This cannot be undone.`)) return;
-    await api(`/vault/files/${f._id}`, {method: 'DELETE'});
-    files.reload();
+    try {
+      await api(`/vault/files/${f._id}`, {method: 'DELETE'});
+      files.reload();
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const d = files.data;
 

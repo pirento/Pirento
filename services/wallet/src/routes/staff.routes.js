@@ -9,6 +9,7 @@ import {
   conflict,
   isId,
   notFound,
+  notify,
   requireAuth,
   requireRole,
   validate,
@@ -103,6 +104,14 @@ staffRoutes.patch(
       await move(doc.userId, 'credit', doc.amount, `Withdrawal returned: ${reason}`, `wd-${doc._id}-back`);
     }
     audit(req, `withdrawal.${decision}`, doc.email, decision === 'paid' ? `UTR ${utr}` : reason);
+    notify(doc.userId, {
+      label: 'Withdrawal',
+      big: decision === 'paid' ? 'Sent' : 'Returned to your wallet',
+      note:
+        decision === 'paid'
+          ? `We sent ₹${(doc.amount / 100).toLocaleString('en-IN')} to your account. Bank reference (UTR): ${utr}.`
+          : `We could not send it: ${reason}. The amount is back in your wallet.`,
+    });
     res.json({data: doc});
   },
 );

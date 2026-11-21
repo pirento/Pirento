@@ -29,6 +29,7 @@ export const SECTIONS = {
       path="/orders/staff/queue"
       filters={FILTERS}
       byProduct={{}}
+      search="Order number, email or service"
       render={(o, reload) => <StaffOrder key={o._id} order={o} onChange={reload} />}
     />
   ),

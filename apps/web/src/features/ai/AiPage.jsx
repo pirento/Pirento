@@ -30,13 +30,21 @@ export function Ai() {
   const open = async (id) => {
     setError('');
     setChatId(id);
-    setMessages(id ? (await api(`/ai/chats/${id}`)).messages : []);
+    try {
+      setMessages(id ? (await api(`/ai/chats/${id}`)).messages : []);
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const remove = async (id) => {
     if (!confirm('Delete this chat?')) return;
-    await api(`/ai/chats/${id}`, {method: 'DELETE'});
-    if (id === chatId) open(null);
-    chats.reload();
+    try {
+      await api(`/ai/chats/${id}`, {method: 'DELETE'});
+      if (id === chatId) open(null);
+      chats.reload();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const send = async (e) => {

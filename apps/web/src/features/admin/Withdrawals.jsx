@@ -15,8 +15,15 @@ const FILTERS = [
 function Row({w, onChange}) {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
   const decide = async (decision) => {
+    const ask =
+      decision === 'paid'
+        ? `Mark ${inr(w.amount / 100)} to ${w.upi} as sent, UTR ${text}?`
+        : `Return ${inr(w.amount / 100)} to ${w.email}'s wallet?`;
+    if (text.trim() && !confirm(ask)) return;
     setError('');
+    setBusy(true);
     try {
       await api(`/wallet/staff/withdrawals/${w._id}`, {
         method: 'PATCH',
@@ -25,6 +32,8 @@ function Row({w, onChange}) {
       onChange();
     } catch (err) {
       setError(err.message);
+    } finally {
+      setBusy(false);
     }
   };
   return (
@@ -60,10 +69,10 @@ function Row({w, onChange}) {
             placeholder="UTR or reason"
             className="w-44 rounded-full border border-rule bg-paper px-4 py-2 text-sm outline-none focus:border-ink"
           />
-          <Button variant="accent" icon={null} onClick={() => decide('paid')}>
+          <Button variant="accent" icon={null} disabled={busy} onClick={() => decide('paid')}>
             Mark paid
           </Button>
-          <Button variant="outline" icon={null} onClick={() => decide('rejected')}>
+          <Button variant="outline" icon={null} disabled={busy} onClick={() => decide('rejected')}>
             Return
           </Button>
         </div>

@@ -37,6 +37,7 @@ export const TicketQueue = () => (
       {label: 'Closed', value: 'closed'},
     ]}
     byProduct={{none: 'Account and wallet'}}
+    search="Ticket number, email or subject"
     render={(t) => <TicketRow key={t._id} t={t} />}
   />
 );

@@ -94,8 +94,12 @@ function NewCoupon({onDone}) {
 export function Coupons() {
   const list = useApi('/orders/staff/coupons');
   const toggle = async (c) => {
-    await api(`/orders/staff/coupons/${c._id}`, {method: 'PATCH', body: {active: !c.active}});
-    list.reload();
+    try {
+      await api(`/orders/staff/coupons/${c._id}`, {method: 'PATCH', body: {active: !c.active}});
+      list.reload();
+    } catch (err) {
+      alert(err.message);
+    }
   };
   return (
     <div className="space-y-8">

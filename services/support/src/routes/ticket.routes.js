@@ -1,8 +1,8 @@
 // Opening a ticket, reading it, replying and closing.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
-import {PRODUCTS} from '@pirento/shared';
+import {ApiError, audit, canUse, isId, nextSeq, notFound, notify, validate} from '@pirento/shared/server';
+import {PRODUCTS, getProduct} from '@pirento/shared';
 import {PRIORITIES, Ticket} from '../models/Ticket.js';
 
 export const ticketRoutes = Router();
@@ -69,7 +69,15 @@ ticketRoutes.post('/:id/messages', validate(z.object({body: messageBody})), asyn
     {$push: {messages: {from, body: req.body.body}}, $set: {status: from === 'staff' ? 'answered' : 'open'}},
     {new: true},
   );
-  if (from === 'staff') audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
+  if (from === 'staff') {
+    audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
+    notify(ticket.userId, {
+      brand: getProduct(ticket.product ?? '')?.name,
+      label: `Support request #${ticket.ticketNo}`,
+      big: 'New reply',
+      note: `The team answered "${ticket.subject}". Open Support in your dashboard to read it and reply.`,
+    });
+  }
   res.json({data: forCaller(req, updated)});
 });
 

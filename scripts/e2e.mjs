@@ -89,6 +89,15 @@ check(
     .status === 404,
 );
 check('internal blocked (case)', (await call('/wallet/INTERNAL/credit', {method: 'POST', body: {}})).status === 404);
+check(
+  'notices cannot be sent from outside',
+  (
+    await call('/auth/internal/notify', {
+      method: 'POST',
+      body: {userId: 'x', brand: 'b', label: 'l', big: 'b', note: 'n'},
+    })
+  ).status === 404,
+);
 check('razorpay off', (await call(`/orders/${o._id}/pay/razorpay`, {method: 'POST', token: user})).status === 503);
 check(
   'webhook bad signature',
@@ -472,6 +481,14 @@ check(
 );
 const gstPrice = (await call('/catalog/prices')).data?.['gst-registration']?.price ?? 999;
 check('a booking is priced by the server', booked?.amount === gstPrice * 100 && booked.bookedBy?.email);
+const foundOrder = (await call(`/orders/staff/queue?q=${booked?.orderNo}`, {token: staffToken})).data ?? [];
+check('find an order by number, any status', foundOrder.length === 1 && foundOrder[0].status === 'pending_payment');
+check(
+  'find orders by customer email',
+  ((await call(`/orders/staff/queue?q=${encodeURIComponent(customerMe.email)}`, {token: boss})).data ?? []).every(
+    (o) => o.email === customerMe.email,
+  ),
+);
 check(
   'the customer sees the booking and the note',
   (await call(`/orders/${booked?._id}`, {token: user})).data?.messages?.[0]?.body === 'As discussed on the call',
@@ -776,6 +793,16 @@ check(
 );
 const legalOrders = (await call('/orders/staff/queue?status=pending_payment&product=legal', {token: boss})).data;
 check('orders filter by product', Array.isArray(legalOrders) && legalOrders.every((o) => o.product === 'legal'));
+const byNumber = (await call(`/support/staff/queue?q=${urgent?.ticketNo}`, {token: boss})).data ?? [];
+check('find a ticket by number', byNumber.length === 1 && byNumber[0]._id === urgent?._id);
+check(
+  'find tickets by subject words',
+  ((await call('/support/staff/queue?q=cannot%20sign', {token: boss})).data ?? []).some((t) => t._id === urgent?._id),
+);
+check(
+  'search is not a regex',
+  (await call('/support/staff/queue?q=.*', {token: boss})).data?.every((t) => /\.\*/.test(t.subject + t.email)),
+);
 const supAgain = (await loginWithCookie(supUser.email)).token;
 const supMe = (await call('/auth/me', {token: supAgain})).data;
 const withNote = (

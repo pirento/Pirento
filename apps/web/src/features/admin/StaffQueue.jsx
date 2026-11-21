@@ -5,12 +5,18 @@ import {useApi} from '../../lib/api/useApi';
 import {useSession} from '../../lib/api/session';
 
 // `byProduct` turns on the product picker; its `none` label, if given, adds requests tied to no product.
-export function StaffQueue({path, filters, render, byProduct}) {
+// `search` is the search box's placeholder; a search looks across every status, so the pills step aside.
+export function StaffQueue({path, filters, render, byProduct, search}) {
   const {user} = useSession();
   const [filter, setFilter] = useState(filters[0].value);
   const [product, setProduct] = useState('');
+  const [q, setQ] = useState('');
+  const term = q.trim();
   // A filter is a status, or a ready query such as "mine=1".
-  const query = [filter && (filter.includes('=') ? filter : `status=${filter}`), product && `product=${product}`]
+  const query = [
+    term ? `q=${encodeURIComponent(term)}` : filter && (filter.includes('=') ? filter : `status=${filter}`),
+    product && `product=${product}`,
+  ]
     .filter(Boolean)
     .join('&');
   const queue = useApi(`${path}${query ? `?${query}` : ''}`);
@@ -19,6 +25,18 @@ export function StaffQueue({path, filters, render, byProduct}) {
   const choices = scoped ? PRODUCTS.filter((p) => user.products.includes(p.slug)) : PRODUCTS;
   return (
     <>
+      {search && (
+        <label className="mt-8 block max-w-md">
+          <span className="sr-only">Search</span>
+          <input
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={search}
+            className="block w-full rounded-full border border-rule bg-paper px-5 py-2.5 text-sm outline-none focus:border-ink"
+          />
+        </label>
+      )}
       {byProduct && choices.length > 1 && (
         <label className="mt-8 flex max-w-xs items-center gap-3 text-sm">
           <span className="shrink-0 text-muted">Product</span>
@@ -42,9 +60,12 @@ export function StaffQueue({path, filters, render, byProduct}) {
           <button
             key={f.label}
             role="tab"
-            aria-selected={filter === f.value}
-            onClick={() => setFilter(f.value)}
-            className={`shrink-0 rounded-full border px-4 py-2 text-sm ${filter === f.value ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+            aria-selected={!term && filter === f.value}
+            onClick={() => {
+              setFilter(f.value);
+              setQ('');
+            }}
+            className={`shrink-0 rounded-full border px-4 py-2 text-sm ${!term && filter === f.value ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
           >
             {f.label}
           </button>

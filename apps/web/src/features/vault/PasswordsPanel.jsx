@@ -26,17 +26,29 @@ export function Passwords() {
   };
   const reveal = async (c) => {
     if (shown[c._id]) return setShown((s) => ({...s, [c._id]: undefined}));
-    const {password} = await api(`/vault/credentials/${c._id}/secret`);
-    setShown((s) => ({...s, [c._id]: password}));
+    try {
+      const {password} = await api(`/vault/credentials/${c._id}/secret`);
+      setShown((s) => ({...s, [c._id]: password}));
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const copy = async (c) => {
-    const {password} = await api(`/vault/credentials/${c._id}/secret`);
-    await navigator.clipboard.writeText(password);
+    try {
+      const {password} = await api(`/vault/credentials/${c._id}/secret`);
+      await navigator.clipboard.writeText(password);
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const remove = async (c) => {
     if (!confirm(`Delete ${c.label}?`)) return;
-    await api(`/vault/credentials/${c._id}`, {method: 'DELETE'});
-    list.reload();
+    try {
+      await api(`/vault/credentials/${c._id}`, {method: 'DELETE'});
+      list.reload();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
 // The team's side: numbers, the work queue, and moving orders along.
 import {Router} from 'express';
 import {z} from 'zod';
-import {STAFF_TRANSITIONS, validateIntake} from '@pirento/shared';
+import {STAFF_TRANSITIONS, getProduct, statusLabel, validateIntake} from '@pirento/shared';
 import {
   ACCESS,
   ApiError,
@@ -9,9 +9,11 @@ import {
   badInput,
   callService,
   conflict,
+  notify,
   productScope,
   requireAuth,
   requireRole,
+  searchFilter,
   validate,
 } from '@pirento/shared/server';
 import {PAID_STATUSES, config} from '../config.js';
@@ -24,6 +26,10 @@ import {refundOrder} from '../lib/wallet.js';
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.orders));
 const DAY = 86_400_000;
+
+/** Emails the customer about their order, in that product's name. */
+const tell = (order, big, note) =>
+  notify(order.userId, {brand: getProduct(order.product)?.name, label: `Order #${order.orderNo}`, big, note});
 
 /** The filter that keeps product-scoped staff to their products. */
 const scoped = (req, filter = {}) => {
@@ -111,7 +117,10 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
 staffRoutes.get('/staff/queue', async (req, res) => {
   const status =
     typeof req.query.status === 'string' && req.query.status in STAFF_TRANSITIONS ? req.query.status : null;
-  const filter = scoped(req, status ? {status} : {status: {$in: ['paid', 'in_progress']}});
+  // A search (?q=100031, an email, a service) looks across every status unless one is asked for.
+  const search = searchFilter(req.query.q, 'orderNo', ['email', 'serviceName']);
+  const filter = scoped(req, status ? {status} : search ? {} : {status: {$in: ['paid', 'in_progress']}});
+  if (search) filter.$and = [search];
   // One product's orders (?product=legal), never outside the staffer's own products.
   const scope = productScope(req);
   if (typeof req.query.product === 'string' && (!scope || scope.includes(req.query.product))) {
@@ -168,6 +177,11 @@ staffRoutes.post(
       ...(req.body.note ? {messages: [{from: 'team', body: req.body.note, by: req.user.email}]} : {}),
     });
     audit(req, 'order.book', `#${order.orderNo}`, `${service.slug} for ${customer.email}`);
+    tell(
+      order,
+      'Ready to pay',
+      `Our team booked ${service.name} for you. Pay for it from your dashboard to get started.`,
+    );
     res.status(201).json({data: order});
   },
 );
@@ -216,6 +230,7 @@ staffRoutes.post(
       {new: true},
     );
     audit(req, 'order.message', `#${order.orderNo}`, req.body.note);
+    tell(order, 'New message', `The team wrote about ${order.serviceName}: "${req.body.note.slice(0, 300)}"`);
     res.json({data: updated});
   },
 );
@@ -256,6 +271,13 @@ staffRoutes.patch(
       );
     }
     audit(req, `order.${status}`, `#${order.orderNo}`, note);
+    if (!retryRefund) {
+      tell(
+        order,
+        statusLabel(status),
+        `${order.serviceName}${note ? `: ${note}` : ''}. Open your dashboard for the details.`,
+      );
+    }
     // shortcut: a Razorpay-paid cancellation is refunded by hand in the Razorpay dashboard; automate with its refunds API.
     res.json({data: updated});
   },
