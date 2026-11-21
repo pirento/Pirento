@@ -186,6 +186,32 @@ const g = await call('/orders', {
   },
 });
 check('green priced per tree', g.data?.amount === 99000 && g.data.quantity === 10, g);
+
+// The planting record: only on paid work, checked like checkout answers, and the customer sees it.
+const plant = (id, details) => call(`/orders/staff/${id}/fulfilment`, {method: 'PATCH', token: boss, body: {details}});
+const planted = {site: 'Kishangarh, Ajmer', plantedOn: '2026-11-20', lat: '26.5916', lng: '74.8543'};
+check('no planting record before payment', (await plant(g.data?._id, planted)).status === 409);
+await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 990}});
+await call(`/orders/${g.data?._id}/pay/wallet`, {method: 'POST', token: user});
+check(
+  'a bad planting date is refused',
+  (await plant(g.data?._id, {...planted, plantedOn: '20-11-2026'})).status === 400,
+);
+check('legal work has no delivery record', (await plant(o._id, planted)).status === 400);
+check(
+  'customers cannot write the record',
+  (await call(`/orders/staff/${g.data?._id}/fulfilment`, {method: 'PATCH', token: user, body: {details: planted}}))
+    .status === 403,
+);
+await plant(g.data?._id, planted);
+const seen = (await call(`/orders/${g.data?._id}`, {token: user})).data;
+check(
+  'the customer sees where the trees went in',
+  seen?.fulfilment?.site === planted.site &&
+    seen.fulfilment.lat === planted.lat &&
+    seen.fulfilment.by === 'boss@example.com',
+  seen?.fulfilment,
+);
 check(
   'quantity capped',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', quantity: 2, intake}}))
@@ -1037,6 +1063,8 @@ if (RZP) {
 // and a payment that lands on a settled order is refunded by itself.
 if (RZP) {
   const RX = process.env.RAZORPAY_URL;
+  // Payment ids are unique in Razorpay; these are too, so a rerun against the same stand-in starts clean.
+  const [card1, card2] = [1, 2].map((n) => `pay_card${n}_${Date.now()}`);
   const sign = (secret, data) => crypto.createHmac('sha256', secret).update(data).digest('hex');
   const refundsMade = async () => (await (await fetch(RX + '/__count')).json()).refunds;
   const payHook = (event, payload) => {
@@ -1054,11 +1082,11 @@ if (RZP) {
   const co = (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}}))
     .data;
   const opened = (await call(`/orders/${co._id}/pay/razorpay`, {method: 'POST', token: user})).data;
-  const pay = {razorpay_order_id: opened?.razorpayOrderId, razorpay_payment_id: 'pay_card1'};
+  const pay = {razorpay_order_id: opened?.razorpayOrderId, razorpay_payment_id: card1};
   const paid = await call(`/orders/${co._id}/pay/razorpay/verify`, {
     method: 'POST',
     token: user,
-    body: {...pay, razorpay_signature: sign(RZP, `${pay.razorpay_order_id}|pay_card1`)},
+    body: {...pay, razorpay_signature: sign(RZP, `${pay.razorpay_order_id}|${card1}`)},
   });
   check('a card payment pays the order', paid.data?.status === 'paid', paid);
   const before = await refundsMade();
@@ -1077,9 +1105,9 @@ if (RZP) {
     {clicks: clicks.map((r) => r.status), payment: now?.payment},
   );
 
-  await fetch(RX + '/__unrefund', {method: 'POST', body: JSON.stringify({payment: 'pay_card1'})});
+  await fetch(RX + '/__unrefund', {method: 'POST', body: JSON.stringify({payment: card1})});
   await payHook('refund.failed', {
-    refund: {entity: {id: now?.payment.refundId, payment_id: 'pay_card1', status: 'failed'}},
+    refund: {entity: {id: now?.payment.refundId, payment_id: card1, status: 'failed'}},
   });
   now = await read(co._id);
   check(
@@ -1095,7 +1123,7 @@ if (RZP) {
     {retry: retry.status, payment: now?.payment},
   );
 
-  const extra = {id: 'pay_card2', order_id: opened?.razorpayOrderId, amount: co.amount};
+  const extra = {id: card2, order_id: opened?.razorpayOrderId, amount: co.amount};
   await Promise.all([
     payHook('payment.captured', {payment: {entity: extra}}),
     payHook('payment.captured', {payment: {entity: extra}}),
@@ -1104,7 +1132,7 @@ if (RZP) {
   check(
     'a payment on a settled order is refunded by itself, once',
     now?.payment.extraRefunded?.length === 1 &&
-      now.payment.extraRefunded[0] === 'pay_card2' &&
+      now.payment.extraRefunded[0] === card2 &&
       (await refundsMade()) === before + 3,
     now?.payment,
   );

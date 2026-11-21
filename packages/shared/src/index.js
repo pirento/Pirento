@@ -9,7 +9,15 @@ export {LEGAL_CATALOGUE, legalServiceSlug} from './data/legalCatalogue.js';
 export {SERVICES, getService, servicesFor} from './catalog/services.js';
 
 // Orders: life cycle and checkout questions
-export {ORDER_STEPS, STAFF_TRANSITIONS, statusLabel, checkoutQuestions, validateIntake} from './orders/rules.js';
+export {
+  ORDER_STEPS,
+  STAFF_TRANSITIONS,
+  FULFILMENT,
+  statusLabel,
+  checkoutQuestions,
+  validateIntake,
+  validateFulfilment,
+} from './orders/rules.js';
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';

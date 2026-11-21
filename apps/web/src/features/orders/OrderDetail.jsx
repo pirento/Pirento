@@ -12,6 +12,7 @@ import {useSignedIn} from '../auth/useSignedIn';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {OrderConversation, customerSend} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
+import {FulfilmentRecord} from './Fulfilment';
 import {PayPanel} from './PayPanel';
 import {Timeline} from './Timeline';
 import {hasReceipt} from './receipts';
@@ -118,6 +119,7 @@ export function OrderDetail() {
               </div>
             </div>
           )}
+          <FulfilmentRecord order={order} className="rounded-[22px] border border-accent p-6 md:p-8" />
           {questions.length > 0 && (
             <dl className="rounded-[22px] border border-rule p-6 md:p-8" data-reveal>
               <p className="eyebrow">Your answers</p>

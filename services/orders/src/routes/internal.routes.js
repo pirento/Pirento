@@ -13,7 +13,11 @@ internalRoutes.use('/internal', requireInternal);
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
   await Promise.all([
-    Order.updateMany({userId}, {$set: {email: `deleted-${userId}@deleted.invalid`, intake: {}}}),
+    // A courier tracking number leads to their address, so it goes with the answers.
+    Order.updateMany(
+      {userId},
+      {$set: {email: `deleted-${userId}@deleted.invalid`, intake: {}}, $unset: {'fulfilment.tracking': 1}},
+    ),
     // What they wrote to the team goes too; the team's side of the conversation stays as a record of the work.
     Order.updateMany(
       {userId},

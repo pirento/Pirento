@@ -7,6 +7,7 @@ import {Tag} from '../../components/ui/Tag';
 import {qty} from './helpers';
 import {OrderConversation} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
+import {FulfilmentForm, FulfilmentRecord, takesFulfilment} from './Fulfilment';
 import {api} from '../../lib/api/client';
 import {formatDate, inr} from '../../lib/format';
 import {useSession} from '../../lib/api/session';
@@ -107,6 +108,12 @@ export function StaffOrder({order, onChange}) {
         </dl>
         <div className="space-y-6">
           <Assign order={order} busy={busy} onAssign={(assignee) => send('assign', {assignee})} />
+          {/* A cancelled order keeps its record to read, but takes no new one. */}
+          {takesFulfilment(order) ? (
+            <FulfilmentForm key={order.fulfilment?.at} order={order} onSaved={onChange} />
+          ) : (
+            <FulfilmentRecord order={order} className="text-sm" />
+          )}
           {actions.length > 0 && (
             <div>
               <Field

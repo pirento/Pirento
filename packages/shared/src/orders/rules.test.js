@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {checkoutQuestions, validateIntake} from './rules.js';
+import {checkoutQuestions, validateFulfilment, validateIntake} from './rules.js';
 
 const valid = (product, slug) =>
   Object.fromEntries(
@@ -29,4 +29,17 @@ test('gift orders need a recipient, address and valid PIN', () => {
   assert.equal(validateIntake('giftox', 'giftox-welcome-kit', {...base, pincode: '110001'}).error, undefined);
   assert.match(validateIntake('giftox', 'giftox-welcome-kit', {...base, address: ''}).error, /Delivery address/);
   assert.match(validateIntake('giftox', 'giftox-welcome-kit', {...base, pincode: '012345'}).error, /pin code/i);
+});
+
+test('delivery records: Green needs a real date and coordinates, Giftox a courier and tracking number', () => {
+  const green = {site: 'Ajmer', plantedOn: '2026-11-20', lat: '26.4499', lng: '74.6399'};
+  assert.deepEqual(validateFulfilment('green', {...green, extra: 'x'}), {answers: green});
+  assert.ok(validateFulfilment('green', {...green, plantedOn: '2026-13-01'}).error);
+  assert.ok(validateFulfilment('green', {...green, lat: 'north'}).error);
+  assert.equal(
+    validateFulfilment('giftox', {courier: 'Delhivery', tracking: 'AWB 1'}).error,
+    'Enter a valid tracking number (AWB)',
+  );
+  assert.ok(validateFulfilment('giftox', {courier: 'Delhivery', tracking: 'DL1234'}).answers);
+  assert.ok(validateFulfilment('legal', {}).error);
 });

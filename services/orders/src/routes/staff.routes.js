@@ -1,7 +1,14 @@
 // The team's side: numbers, the work queue, and moving orders along.
 import {Router} from 'express';
 import {z} from 'zod';
-import {STAFF_TRANSITIONS, getProduct, statusLabel, validateIntake} from '@pirento/shared';
+import {
+  FULFILMENT,
+  STAFF_TRANSITIONS,
+  getProduct,
+  statusLabel,
+  validateFulfilment,
+  validateIntake,
+} from '@pirento/shared';
 import {
   ACCESS,
   ApiError,
@@ -214,6 +221,28 @@ staffRoutes.patch(
       new: true,
     });
     audit(req, 'order.assign', `#${order.orderNo}`, assignee?.email ?? 'unassigned');
+    res.json({data: updated});
+  },
+);
+
+/** The delivery record of a Green or Giftox order: where the trees went in, or which courier has the box. */
+staffRoutes.patch(
+  '/staff/:id/fulfilment',
+  validate(z.object({details: z.record(z.string(), z.string().max(500))})),
+  async (req, res) => {
+    const order = await findAccessible(req);
+    const {answers, error} = validateFulfilment(order.product, req.body.details);
+    if (error) throw badInput(error);
+    // Only paid work that is still live; conditional, so a cancel in between wins.
+    const updated = await Order.findOneAndUpdate(
+      {_id: order._id, status: {$in: ['paid', 'in_progress', 'completed']}},
+      {$set: {fulfilment: {...answers, by: req.user.email, at: new Date()}}},
+      {new: true},
+    );
+    if (!updated) throw conflict('NOT_LIVE', 'Record a delivery only on a paid order that is not cancelled');
+    audit(req, 'order.fulfilment', `#${order.orderNo}`, Object.values(answers).join(' · '));
+    const spec = FULFILMENT[order.product];
+    tell(order, spec.title, spec.note(order, answers));
     res.json({data: updated});
   },
 );

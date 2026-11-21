@@ -1,4 +1,5 @@
-// The one button: pill shape, fill wipe on hover, magnetic on mouse.
+// The one button: pill shape, fill wipe on hover, magnetic on mouse. Its hover group is named (group/btn) so a
+// hovered parent that is itself a `group` (an open order row, a card) does not fill every button inside it.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
@@ -19,18 +20,18 @@ export function Button({to, href, variant = 'primary', icon: Icon = ArrowUpRight
     ref.current.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * 0.18}px, ${(e.clientY - r.top - r.height / 2) * 0.25}px)`;
   };
   const onLeave = () => (ref.current.style.transform = '');
-  const cls = `group relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-6 py-3.5 text-[0.95rem] font-medium transition-[color,border-color,transform] duration-500 ease-ui disabled:opacity-50 ${variants[variant]} ${className}`;
+  const cls = `group/btn relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-6 py-3.5 text-[0.95rem] font-medium transition-[color,border-color,transform] duration-500 ease-ui disabled:opacity-50 ${variants[variant]} ${className}`;
   const inner = (
     <>
       <span
         aria-hidden
-        className="absolute inset-0 translate-y-full rounded-full bg-(--wipe) transition-transform duration-500 ease-ui group-hover:translate-y-0"
+        className="absolute inset-0 translate-y-full rounded-full bg-(--wipe) transition-transform duration-500 ease-ui group-hover/btn:translate-y-0"
       />
       <span className="relative">{children}</span>
       {Icon && (
         <Icon
           aria-hidden
-          className="relative size-4 transition-transform duration-500 ease-ui group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+          className="relative size-4 transition-transform duration-500 ease-ui group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5"
         />
       )}
     </>
