@@ -23,6 +23,7 @@ export const ACCESS = {
   pricing: ['finance', 'superadmin'],
   accounts: ['superadmin'], // deletion requests, site settings
   openings: ['staff', 'superadmin'],
+  booking: ['staff', 'superadmin'], // placing an order for a customer
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');

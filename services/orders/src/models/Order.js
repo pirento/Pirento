@@ -44,6 +44,7 @@ export const Order = mongoose.model(
       coupon: String, // code used at checkout
       discount: {type: Number, default: 0}, // paise taken off by the coupon; amount is after it
       assignee: {_id: false, id: String, email: String}, // the staffer working it
+      bookedBy: {_id: false, id: String, email: String}, // a staffer who placed it for the customer
     },
     {timestamps: true},
   ),

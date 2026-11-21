@@ -1,8 +1,9 @@
-// Called by other services only: they report staff actions here.
+// Called by other services only: they report staff actions here, and look up an account by id.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {isId, requireInternal, validate} from '@pirento/shared/server';
 import {AuditLog} from '../models/AuditLog.js';
+import {User} from '../models/User.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -23,3 +24,9 @@ internalRoutes.post(
     res.json({data: {ok: true}});
   },
 );
+
+/** One account's id, email, role and whether it is suspended; null when there is none. Staff book orders this way. */
+internalRoutes.post('/internal/user', validate(z.object({id: z.string().max(40)})), async (req, res) => {
+  const user = isId(req.body.id) && (await User.findById(req.body.id));
+  res.json({data: user ? {id: String(user._id), email: user.email, role: user.role, suspended: user.suspended} : null});
+});

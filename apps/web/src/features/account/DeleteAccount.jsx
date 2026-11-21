@@ -53,6 +53,7 @@ export function DeleteAccount() {
                 without your name, for accounts and tax records. Withdraw any wallet money first.
               </p>
               <TextArea
+                required={false}
                 label="Why are you leaving? (optional)"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}

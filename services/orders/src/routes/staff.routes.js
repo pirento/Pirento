@@ -1,12 +1,24 @@
 // The team's side: numbers, the work queue, and moving orders along.
 import {Router} from 'express';
 import {z} from 'zod';
-import {STAFF_TRANSITIONS} from '@pirento/shared';
-import {ACCESS, audit, conflict, productScope, requireAuth, requireRole, validate} from '@pirento/shared/server';
-import {PAID_STATUSES} from '../config.js';
+import {STAFF_TRANSITIONS, validateIntake} from '@pirento/shared';
+import {
+  ACCESS,
+  ApiError,
+  audit,
+  badInput,
+  callService,
+  conflict,
+  productScope,
+  requireAuth,
+  requireRole,
+  validate,
+} from '@pirento/shared/server';
+import {PAID_STATUSES, config} from '../config.js';
+import {liveService} from '../lib/catalog.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {completionCode, findAccessible, seesAllWork} from '../lib/orders.js';
+import {completionCode, findAccessible, nextOrderNo, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
 export const staffRoutes = Router();
@@ -109,6 +121,56 @@ staffRoutes.get('/staff/queue', async (req, res) => {
   else if (!seesAllWork(req)) filter.$or = [{'assignee.id': req.user.sub}, {'assignee.id': {$exists: false}}];
   res.json({data: await Order.find(filter).sort({createdAt: 1}).limit(200)});
 });
+
+/**
+ * Book a service for a customer (on a call, at the desk). The order lands unpaid in their dashboard and they pay
+ * it there: no money moves here, the price is the catalogue's, and the answers pass the same checks as checkout.
+ */
+staffRoutes.post(
+  '/staff/book',
+  requireRole(...ACCESS.booking),
+  validate(
+    z.object({
+      userId: z.string().max(40),
+      serviceSlug: z.string().max(80),
+      intake: z.record(z.string(), z.string()).default({}),
+      note: z.string().trim().max(500).default(''),
+    }),
+  ),
+  async (req, res) => {
+    const service = await liveService(req.body.serviceSlug);
+    if (!service?.price) throw new ApiError(400, 'NOT_FOR_SALE', 'This service cannot be bought online yet');
+    const scope = productScope(req);
+    if (scope && !scope.includes(service.product)) throw badInput('That product is not one you work on');
+    const settings = await callService(config.catalogUrl, '/internal/settings', {}).catch(() => null);
+    if (settings?.paused.includes(service.product)) {
+      throw new ApiError(503, 'PAUSED', 'Orders for this product are paused for now');
+    }
+    const customer = await callService(config.authUrl, '/internal/user', {id: req.body.userId});
+    if (!customer || customer.role !== 'customer' || customer.suspended) {
+      throw badInput('Choose an active customer account');
+    }
+    const {answers, error} = validateIntake(service.product, service.slug, req.body.intake);
+    if (error) throw badInput(error);
+
+    const order = await Order.create({
+      orderNo: await nextOrderNo(),
+      userId: customer.id,
+      email: customer.email,
+      product: service.product,
+      serviceSlug: service.slug,
+      serviceName: service.name,
+      quantity: 1,
+      amount: service.price * 100,
+      intake: answers,
+      bookedBy: {id: req.user.sub, email: req.user.email},
+      timeline: [{status: 'pending_payment', note: 'Booked for you by the Pirento team'}],
+      ...(req.body.note ? {messages: [{from: 'team', body: req.body.note, by: req.user.email}]} : {}),
+    });
+    audit(req, 'order.book', `#${order.orderNo}`, `${service.slug} for ${customer.email}`);
+    res.status(201).json({data: order});
+  },
+);
 
 /** Open work per staffer, for the team page. */
 staffRoutes.get('/staff/workload', requireRole('superadmin'), async (_req, res) => {

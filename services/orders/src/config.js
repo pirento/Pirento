@@ -5,6 +5,7 @@ export const config = {
   mongoUri: env('MONGO_URI', 'mongodb://127.0.0.1:27017/pirento_orders'),
   walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
   catalogUrl: env('CATALOG_URL', 'http://127.0.0.1:4003'),
+  authUrl: env('AUTH_URL', 'http://127.0.0.1:4001'), // who a staff booking is for
   /** Encrypts the documents attached to orders. Changing it makes stored documents unreadable. */
   fileKey: keyFrom(env('ORDERS_FILE_KEY', 'dev-only-orders-file-key')),
   // shortcut: documents live inside MongoDB documents (16 MB cap each); move them to S3 before raising these.

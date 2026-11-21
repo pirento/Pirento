@@ -42,7 +42,12 @@ function Opening({o, applied, signedIn, onApplied}) {
           </Button>
         ) : open ? (
           <form onSubmit={apply} className="space-y-3">
-            <TextArea label="Why you? (optional, a few lines)" value={note} onChange={(e) => setNote(e.target.value)} />
+            <TextArea
+              required={false}
+              label="Why you? (optional, a few lines)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
             {error && (
               <p role="alert" className="text-sm">
                 ⚠ {error}

@@ -5,7 +5,9 @@ import {
   BadgeCheck,
   Banknote,
   Briefcase,
+  ClipboardList,
   CreditCard,
+  FilePlus2,
   GraduationCap,
   Handshake,
   Inbox,
@@ -37,6 +39,22 @@ export const ADMIN_SECTIONS = [
     icon: LayoutDashboard,
     roles: ALL_STAFF,
     intro: 'What needs doing now. Finance and superadmins also see the numbers for the whole ecosystem.',
+  },
+  {
+    id: 'my-work',
+    group: 'Work',
+    label: 'My work',
+    icon: ClipboardList,
+    roles: ['support', 'staff', 'superadmin'],
+    intro: 'Everything assigned to you: the orders you are working on and the tickets waiting on you.',
+  },
+  {
+    id: 'book',
+    group: 'Work',
+    label: 'Book a service',
+    icon: FilePlus2,
+    roles: OPS, // ACCESS.booking
+    intro: 'Place an order for a customer, say after a call. It waits in their dashboard and they pay it there.',
   },
   {
     id: 'orders',

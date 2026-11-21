@@ -19,6 +19,20 @@ const superOnly = requireRole('superadmin');
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DAY = 86_400_000;
 
+/** Active customers matching an email or name, for booking an order on someone's behalf. Ten at most, few fields. */
+adminRoutes.get('/admin/customers', requireRole(...ACCESS.booking), async (req, res) => {
+  const q = String(req.query.q ?? '')
+    .trim()
+    .slice(0, 80);
+  if (q.length < 3) return res.json({data: []});
+  const match = {$regex: escapeRegex(q), $options: 'i'};
+  const people = await User.find(
+    {role: 'customer', suspended: {$ne: true}, $or: [{email: match}, {name: match}]},
+    {email: 1, name: 1},
+  ).limit(10);
+  res.json({data: people});
+});
+
 adminRoutes.get('/admin/users', requireRole(...ACCESS.users), async (req, res) => {
   const q = String(req.query.q ?? '')
     .trim()

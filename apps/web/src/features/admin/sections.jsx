@@ -12,6 +12,8 @@ import {Coupons} from './Coupons';
 import {Team} from './Team';
 import {Waitlist} from './Waitlist';
 import {Deletions} from './Deletions';
+import {MyWork} from './MyWork';
+import {BookService} from './BookService';
 import {Settings} from './Settings';
 import {Openings} from './Openings';
 import {IdentityQueue} from '../identity/IdentityQueue';
@@ -20,6 +22,8 @@ import {TicketQueue} from '../support/TicketQueue';
 
 export const SECTIONS = {
   overview: Overview,
+  'my-work': MyWork,
+  book: BookService,
   orders: () => (
     <StaffQueue
       path="/orders/staff/queue"

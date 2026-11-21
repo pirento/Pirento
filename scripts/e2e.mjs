@@ -446,6 +446,46 @@ check('new staff sees the queue', (await call('/orders/staff/queue', {token: sta
 const stats = (await call('/orders/staff/stats', {token: boss})).data;
 check('order stats', stats?.revenue > 0 && stats.byStatus.completed >= 1, stats);
 
+// ── Admin: booking a service for a customer ────────────────────────────
+const customerMe = (await call('/auth/me', {token: user})).data;
+const bookFor = customerMe.email.slice(0, 8);
+check(
+  'operations can find a customer to book for',
+  ((await call(`/auth/admin/customers?q=${encodeURIComponent(bookFor)}`, {token: staffToken})).data ?? []).some(
+    (c) => c._id === customerMe._id && c.passwordHash === undefined && c.role === undefined,
+  ),
+);
+check('customers cannot search customers', (await call('/auth/admin/customers?q=exam', {token: user})).status === 403);
+const book = (token, body) => call('/orders/staff/book', {method: 'POST', token, body});
+const bookedRes = await book(staffToken, {
+  userId: customerMe._id,
+  serviceSlug: 'gst-registration',
+  intake,
+  note: 'As discussed on the call',
+  amount: 1,
+});
+const booked = bookedRes.data;
+check(
+  'staff book a service for a customer',
+  bookedRes.status === 201 && booked.status === 'pending_payment' && booked.userId === customerMe._id,
+  bookedRes,
+);
+const gstPrice = (await call('/catalog/prices')).data?.['gst-registration']?.price ?? 999;
+check('a booking is priced by the server', booked?.amount === gstPrice * 100 && booked.bookedBy?.email);
+check(
+  'the customer sees the booking and the note',
+  (await call(`/orders/${booked?._id}`, {token: user})).data?.messages?.[0]?.body === 'As discussed on the call',
+);
+check(
+  'booking checks the answers',
+  (await book(staffToken, {userId: customerMe._id, serviceSlug: 'gst-registration'})).status === 400,
+);
+check(
+  'booking needs a customer account',
+  (await book(staffToken, {userId: bossId, serviceSlug: 'gst-registration', intake})).status === 400,
+);
+check('customers cannot book', (await book(user, {})).status === 403);
+
 // ── Admin: staff roles, panels, suspension, audit trail ─────────────────
 const sup = await loginWithCookie(`support${Date.now()}@example.com`);
 const supUser = (await call(`/auth/admin/users?q=${encodeURIComponent('support')}`, {token: boss})).data.users[0];
