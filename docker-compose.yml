@@ -34,11 +34,23 @@ services:
       VAULT_URL: http://vault:4007
       AI_URL: http://ai:4009
       LEARNING_URL: http://learning:4006
+      ORDERS_URL: http://orders:4004
+      SUPPORT_URL: http://support:4008
     depends_on: [mongo]
 
   wallet:
     <<: *service
-    environment: {<<: *env, SERVICE: wallet, MONGO_URI: mongodb://mongo:27017/pirento_wallet}
+    environment:
+      <<: *env
+      SERVICE: wallet
+      MONGO_URI: mongodb://mongo:27017/pirento_wallet
+      RAZORPAYX_KEY_ID: ${RAZORPAYX_KEY_ID:-}
+      RAZORPAYX_KEY_SECRET: ${RAZORPAYX_KEY_SECRET:-}
+      RAZORPAYX_ACCOUNT_NUMBER: ${RAZORPAYX_ACCOUNT_NUMBER:-}
+      RAZORPAYX_WEBHOOK_SECRET: ${RAZORPAYX_WEBHOOK_SECRET:-}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-} # card/UPI wallet top-ups
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}
     depends_on: [mongo]
 
   catalog:
@@ -54,6 +66,7 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_orders
       WALLET_URL: http://wallet:4002
       CATALOG_URL: http://catalog:4003 # paused checkouts
+      ORDERS_FILE_KEY: ${ORDERS_FILE_KEY:?set ORDERS_FILE_KEY in .env}
       RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
       RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
       RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-}

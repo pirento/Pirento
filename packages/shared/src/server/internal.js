@@ -1,9 +1,9 @@
+// Services talk to each other on /internal/* routes, signed with a shared key.
+// The gateway refuses those paths from outside, and the key is a second lock.
 import crypto from 'node:crypto';
 import {env} from './env.js';
 import {ApiError} from './errors.js';
 
-// Services talk to each other on /internal/* routes, signed with a shared key.
-// The gateway refuses those paths from outside, and the key is a second lock.
 const internalKey = () => env('INTERNAL_KEY', 'dev-only-internal-key');
 
 /** Constant-time string comparison, for keys and signatures. */
@@ -26,6 +26,17 @@ export function audit(req, action, target, detail = '') {
   const row = {actorId: req.user.sub, actorEmail: req.user.email, action, target: String(target), detail};
   return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/audit', row).catch((err) =>
     console.error('audit lost', action, err.message),
+  );
+}
+
+/**
+ * Emails a customer a short notice (sent by the auth service, which knows their address).
+ * Never fails the request that caused it: a lost email is logged, not thrown.
+ */
+export function notify(userId, {brand = 'Pirento', label, big, note}) {
+  const row = {userId: String(userId), brand, label, big, note};
+  return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/notify', row).catch((err) =>
+    console.error('notice lost', label, err.message),
   );
 }
 

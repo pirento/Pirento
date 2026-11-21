@@ -1,3 +1,4 @@
+// A support ticket and its conversation.
 import mongoose from 'mongoose';
 
 /**
@@ -5,6 +6,7 @@ import mongoose from 'mongoose';
  * open: waiting on our team · answered: waiting on the customer · closed
  */
 export const TICKET_STATUSES = ['open', 'answered', 'closed'];
+export const PRIORITIES = ['low', 'medium', 'high'];
 
 export const Ticket = mongoose.model(
   'Ticket',
@@ -15,6 +17,10 @@ export const Ticket = mongoose.model(
       email: {type: String, required: true},
       subject: {type: String, required: true, maxlength: 120},
       orderNo: Number,
+      // Which product it came from (its slug), or none for the account and wallet: one support desk for all.
+      product: {type: String, index: true},
+      // Set by the customer (quick topics suggest one); the team's queue puts high first.
+      priority: {type: String, enum: PRIORITIES, default: 'medium'},
       status: {type: String, enum: TICKET_STATUSES, default: 'open', index: true},
       messages: [
         {

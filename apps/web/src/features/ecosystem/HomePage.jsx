@@ -2,7 +2,7 @@
 // one-account pillars, how it works, Legal, numbers.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
-import {LEGAL_CATALOGUE, PRODUCTS} from '@pirento/shared';
+import {PRODUCTS} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {Faq, StatsRow, Steps} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
@@ -15,9 +15,11 @@ import {ProductGroups} from './ProductGroups';
 import {ServiceSearch} from '../products/widgets/ServiceSearch';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {useLegalAreas} from '../../lib/prices';
 
 export function Home() {
   const ref = useRef(null);
+  const areas = useLegalAreas();
   usePageMotion(ref);
   usePageMeta({title: 'Pirento Ecosystem — one account for legal, tax, identity and more'});
 
@@ -82,14 +84,14 @@ export function Home() {
           </div>
           <div className="min-w-0 lg:col-span-5">
             <ul className="grid gap-x-6 border-t border-rule sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              {LEGAL_CATALOGUE.map((c, i) => (
+              {areas.map((c) => (
                 <li key={c.title} data-reveal>
                   <Link
-                    to={`/legal/services#cat-${i}`}
+                    to={`/legal/services#${c.anchor}`}
                     className="flex items-baseline justify-between gap-4 border-b border-rule py-3.5 hover:text-ink"
                   >
                     <span>{c.title}</span>
-                    <span className="text-sm text-muted tabular-nums">{c.services.length}</span>
+                    <span className="text-sm text-muted tabular-nums">{c.count}</span>
                   </Link>
                 </li>
               ))}

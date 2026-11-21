@@ -1,3 +1,4 @@
+// Discount codes: a customer checks one at checkout; finance creates and switches them off.
 import {Router} from 'express';
 import {z} from 'zod';
 import {PRODUCTS} from '@pirento/shared';
@@ -7,7 +8,6 @@ import {Coupon} from '../models/Coupon.js';
 import {Order} from '../models/Order.js';
 import {discountFor} from '../lib/coupons.js';
 
-// Discount codes: a customer checks one at checkout; finance creates and switches them off.
 export const couponRoutes = Router();
 
 couponRoutes.get('/coupons/:code', requireAuth, async (req, res) => {

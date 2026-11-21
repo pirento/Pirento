@@ -4,7 +4,14 @@ import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
   Home,
+  ArrowLeftRight,
+  Briefcase,
+  RefreshCw,
+  FileText,
+  MessagesSquare,
   LayoutDashboard,
+  Receipt,
+  ShoppingBag,
   LifeBuoy,
   LogOut,
   Menu,
@@ -13,14 +20,41 @@ import {
   UserRound,
   Wallet as WalletIcon,
   X,
+  Award,
+  ClipboardList,
+  FolderLock,
+  GraduationCap,
+  KeyRound,
+  Megaphone,
+  MessageSquare,
+  Share2,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
-import {PRODUCTS} from '@pirento/shared';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
+import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
+
+const SECTION_ICONS = {
+  overview: LayoutDashboard,
+  orders: ShoppingBag,
+  receipts: Receipt,
+  services: Briefcase,
+  help: LifeBuoy,
+  documents: FileText,
+  consultations: MessagesSquare,
+  wallet: WalletIcon,
+  exams: GraduationCap,
+  certificates: Award,
+  openings: Megaphone,
+  files: FolderLock,
+  passwords: KeyRound,
+  chat: MessageSquare,
+  referrals: Share2,
+  apply: ClipboardList,
+};
 
 const InApp = createContext(false);
 /** True inside the app shell; PageHero uses it to render a compact header. */
@@ -32,7 +66,8 @@ function useAppNav() {
   const {user} = useSession();
   const product = useProductSite();
 
-  if (pathname.startsWith('/admin')) {
+  // Staff always get the admin sidebar, also on pages both sides use (a ticket, an order).
+  if (pathname.startsWith('/admin') || isStaffRole(user?.role)) {
     return {
       title: 'Pirento Admin',
       // One sidebar group per section group (Work, People, Money…), keeping their order.
@@ -42,43 +77,57 @@ function useAppNav() {
       })),
     };
   }
-  const products = {
-    label: 'Products',
-    items: PRODUCTS.map((p) => ({label: p.name, to: `/${p.slug}/dashboard`, dot: p.color})),
-  };
+  // A product's dashboard is its own app: only its sections, never the other products. Wallet and Support
+  // appear in every product, but there is one wallet and one support desk behind them.
   if (product) {
+    const sections = productDashboards[product.slug] ?? SINGLE_PAGE_SECTIONS;
     return {
       title: product.name,
       groups: [
         {
           label: product.short,
           items: [
-            {label: 'Dashboard', to: `/${product.slug}/dashboard`, icon: LayoutDashboard},
-            {label: `${product.short} home`, to: `/${product.slug}`, icon: Home},
+            ...sections.map((s, i) => ({
+              label: s.label,
+              to: s.support
+                ? `/support?product=${product.slug}`
+                : i === 0
+                  ? `/${product.slug}/dashboard`
+                  : `/${product.slug}/dashboard/${s.id}`,
+              icon: SECTION_ICONS[s.icon],
+            })),
+            {label: `${product.short} website`, to: `/${product.slug}`, icon: Home},
           ],
         },
-        products,
       ],
     };
   }
+  // The Pirento dashboard is the account's own place: money, records, support and settings for every product.
+  // It does not list the products; each one is reached from its own site and keeps its own dashboard.
   return {
     title: 'Pirento Ecosystem',
     groups: [
       {
         label: 'Account',
         items: [
-          {label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard},
+          {label: 'Overview', to: '/dashboard', icon: LayoutDashboard},
+          {label: 'Payments', to: '/payments', icon: ArrowLeftRight},
+          {label: 'Receipts', to: '/receipts', icon: Receipt},
+          {label: 'Orders', to: '/orders', icon: ShoppingBag},
+          {label: 'Subscriptions', to: '/subscriptions', icon: RefreshCw},
           {label: 'Wallet', to: '/wallet', icon: WalletIcon},
+          {label: 'Support', to: '/support', icon: LifeBuoy},
           {label: 'Account', to: '/account', icon: UserRound},
         ],
       },
-      products,
     ],
   };
 }
 
 function Sidebar({onNavigate}) {
   const {user, signOut} = useSession();
+  const staff = isStaffRole(user?.role);
+  const inAdmin = useLocation().pathname.startsWith('/admin');
   const {title, groups} = useAppNav();
   const product = useProductSite();
   const {pathname} = useLocation();
@@ -158,10 +207,9 @@ function Sidebar({onNavigate}) {
 
       <div className="mt-6 space-y-1 border-t border-rule pt-4 text-sm">
         {[
-          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: true},
-          {label: 'Admin', to: '/admin', icon: ShieldCheck, show: isStaffRole(user?.role)},
-          {label: 'Support', to: '/support', icon: LifeBuoy, show: true},
-          {label: 'Verify a code', to: '/verify', icon: Search, show: true},
+          // Staff only: the way back to the admin from a shared page, and to the public site.
+          {label: 'Admin', to: '/admin', icon: ShieldCheck, show: staff && !inAdmin},
+          {label: 'Pirento website', to: '/', icon: Home, show: staff},
         ]
           .filter((l) => l.show)
           .map((l) => (

@@ -15,6 +15,7 @@ export function Ai() {
   const {redirect, user} = useSignedIn();
   const status = useApi(user ? '/ai/status' : null);
   const chats = useApi(user ? '/ai/chats' : null);
+  const usage = useApi(user ? '/ai/usage' : null);
   const [chatId, setChatId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -30,13 +31,21 @@ export function Ai() {
   const open = async (id) => {
     setError('');
     setChatId(id);
-    setMessages(id ? (await api(`/ai/chats/${id}`)).messages : []);
+    try {
+      setMessages(id ? (await api(`/ai/chats/${id}`)).messages : []);
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const remove = async (id) => {
     if (!confirm('Delete this chat?')) return;
-    await api(`/ai/chats/${id}`, {method: 'DELETE'});
-    if (id === chatId) open(null);
-    chats.reload();
+    try {
+      await api(`/ai/chats/${id}`, {method: 'DELETE'});
+      if (id === chatId) open(null);
+      chats.reload();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const send = async (e) => {
@@ -62,6 +71,7 @@ export function Ai() {
         setMessages((m) => [...m.slice(0, -1), {role: 'assistant', content: m.at(-1).content + value}]);
       }
       chats.reload();
+      usage.reload();
     } catch (err) {
       setError(err.message);
       setMessages((m) => m.slice(0, -2));
@@ -90,6 +100,11 @@ export function Ai() {
           >
             New chat
           </Button>
+          {usage.data && (
+            <p className="mt-3 text-center text-xs text-muted tabular-nums" aria-live="polite">
+              {Math.max(0, usage.data.limit - usage.data.used)} of {usage.data.limit} messages left today
+            </p>
+          )}
           <ul className="mt-4">
             {chats.data?.map((c) => (
               <li key={c._id} className="flex items-center gap-1 border-b border-rule">

@@ -1,3 +1,4 @@
+// Request checking with zod, so routes only ever see clean input.
 import {ApiError} from './errors.js';
 
 /**

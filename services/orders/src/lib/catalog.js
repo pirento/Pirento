@@ -1,3 +1,4 @@
+// Asking the catalog service for a service's live price.
 import {ApiError, callService} from '@pirento/shared/server';
 import {config} from '../config.js';
 

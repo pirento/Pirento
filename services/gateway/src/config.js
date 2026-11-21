@@ -22,6 +22,7 @@ export const config = {
   webDist: env('WEB_DIST', '../../apps/web/dist'),
   rateLimitPerMinute: Number(env('RATE_LIMIT_PER_MIN', 300)),
   otpRequestsPer15Min: Number(env('RATE_LIMIT_OTP', 20)),
+  enquiriesPer15Min: Number(env('RATE_LIMIT_ENQUIRY', 10)),
 };
 
 /**

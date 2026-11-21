@@ -1,3 +1,4 @@
+// Page motion: smooth scroll, the hero entrance, scroll reveals, all skipped under reduced motion.
 import {useLayoutEffect} from 'react';
 import gsap from 'gsap';
 import {ScrollTrigger} from 'gsap/ScrollTrigger';

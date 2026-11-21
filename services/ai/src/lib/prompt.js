@@ -1,3 +1,4 @@
+// The assistant's model, its limits, and the system prompt every chat starts from.
 import {PRODUCTS, SERVICES} from '@pirento/shared';
 
 export const MODEL = 'claude-opus-5-5';

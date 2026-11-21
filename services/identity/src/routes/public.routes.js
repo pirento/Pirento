@@ -1,11 +1,11 @@
+// Anyone can check a Bharat ID. A mistyped number fails its checksum here,
+// before it costs a database lookup.
 import {Router} from 'express';
 import {isBharatId} from '@pirento/shared';
 import {ApiError, notFound} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
 import {publicName} from '../lib/publicName.js';
 
-// Anyone can check a Bharat ID. A mistyped number fails its checksum here,
-// before it costs a database lookup.
 export const publicRoutes = Router();
 
 publicRoutes.get('/verify/:bid', async (req, res) => {

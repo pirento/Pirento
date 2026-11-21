@@ -1,14 +1,15 @@
 // One order: timeline, payment panel and the customer's answers.
 import {useRef, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {Link, Navigate, useParams} from 'react-router-dom';
 import {BadgeCheck} from 'lucide-react';
-import {checkoutQuestions, statusLabel} from '@pirento/shared';
+import {askedQuestions, statusLabel} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Label, Section} from '../../components/ui/Heading';
 import {Tag} from '../../components/ui/Tag';
 import {useSignedIn} from '../auth/useSignedIn';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {PayPanel} from './PayPanel';
+import {DetailsRecord} from './OrderDetails';
 import {Timeline} from './Timeline';
 import {qty} from './helpers';
 import {useApi} from '../../lib/api/useApi';
@@ -18,7 +19,7 @@ import {usePageMeta} from '../../lib/page';
 
 export function OrderPage() {
   const {id} = useParams();
-  const {redirect, user} = useSignedIn();
+  const {redirect, user} = useSignedIn({area: 'any'});
   const {data: fetched, error, setData} = useOrder(user ? id : null);
   const ref = useRef(null);
   usePageMotion(ref, [Boolean(fetched)]);
@@ -26,8 +27,11 @@ export function OrderPage() {
   if (redirect) return redirect;
   if (error) return <NotFound />;
   if (!fetched) return <div className="min-h-dvh" />;
+  // A customer's own order lives in their product dashboard; this page stays for staff.
+  if (fetched.userId === user._id)
+    return <Navigate to={`/${fetched.product}/dashboard/orders/${fetched._id}`} replace />;
   const order = fetched;
-  const questions = checkoutQuestions(order.product, order.serviceSlug);
+  const questions = askedQuestions(order);
 
   return (
     <div ref={ref}>
@@ -69,6 +73,7 @@ export function OrderPage() {
                   </div>
                 ))}
             </dl>
+            <DetailsRecord order={order} className="rounded-[22px] border border-rule p-8" />
           </div>
         </div>
       </Section>

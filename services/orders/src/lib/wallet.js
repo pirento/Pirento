@@ -1,8 +1,7 @@
-import {callService} from '@pirento/shared/server';
-import {config} from '../config.js';
-
 // Talking to the wallet service. Every call carries a ref, and the wallet
 // applies a ref at most once, so any of these can be retried safely.
+import {callService} from '@pirento/shared/server';
+import {config} from '../config.js';
 
 export const debitForOrder = (order) =>
   callService(config.walletUrl, '/internal/debit', {

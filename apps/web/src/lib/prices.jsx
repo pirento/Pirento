@@ -1,33 +1,40 @@
-// Admin price changes, merged into the shared catalogue so every price shown is the one the server charges.
+// The admin's edits to the catalogue (prices, questions, services made in admin), merged in so every page shows
+// what the server sells and charges.
 import {createContext, useContext, useEffect, useState} from 'react';
-import {getService, servicesFor} from '@pirento/shared';
+import {LEGAL_CATALOGUE, categoriesOf, editedService, editedServicesFor, slugify} from '@pirento/shared';
 import {api} from './api/client';
 
-const PricesContext = createContext({overrides: {}, reload: () => {}});
+const PricesContext = createContext({edits: {}, reload: () => {}});
 
 export function PricesProvider({children}) {
-  const [overrides, setOverrides] = useState({});
-  // Until this answers, the catalogue prices show; the server re-prices every order anyway.
-  const reload = () => api('/catalog/prices').then(setOverrides, () => {});
+  const [edits, setEdits] = useState({});
+  // Until this answers, the catalogue as built shows; the server re-prices and re-checks every order anyway.
+  const reload = () => api('/catalog/prices').then(setEdits, () => {});
   useEffect(() => {
     reload();
   }, []);
-  return <PricesContext.Provider value={{overrides, reload}}>{children}</PricesContext.Provider>;
+  return <PricesContext.Provider value={{edits, reload}}>{children}</PricesContext.Provider>;
 }
 
-/** A service with its override: a new price, or price null when taken off sale. */
-export const withOverride = (service, o) =>
-  !service || !o ? service : o.offSale ? {...service, price: null} : o.price ? {...service, price: o.price} : service;
-
+/** One service as it sells now: a new price, or price null when off sale; its own questions; or made in admin. */
 export function useService(slug) {
-  const {overrides} = useContext(PricesContext);
-  return withOverride(getService(slug), overrides[slug]);
+  const {edits} = useContext(PricesContext);
+  return editedService(slug, edits);
 }
 
 export function useServicesFor(product) {
-  const {overrides} = useContext(PricesContext);
-  return servicesFor(product).map((s) => withOverride(s, overrides[s.slug]));
+  const {edits} = useContext(PricesContext);
+  return editedServicesFor(product, edits);
 }
 
-/** For admin: the raw overrides map, and a way to refresh it after a change. */
-export const usePriceOverrides = () => useContext(PricesContext);
+/** For admin: the raw edits map, and a way to refresh it after a change. */
+export const useCatalogEdits = () => useContext(PricesContext);
+
+/** Legal's areas of law in order, then any category made in admin, each with its anchor on /legal/services. */
+export function useLegalAreas() {
+  const services = useServicesFor('legal');
+  return categoriesOf(
+    services,
+    LEGAL_CATALOGUE.map((c) => c.title),
+  ).map((title) => ({title, anchor: slugify(title), count: services.filter((s) => s.category === title).length}));
+}

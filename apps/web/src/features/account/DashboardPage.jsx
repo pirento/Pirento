@@ -1,23 +1,28 @@
-// The Pirento Ecosystem dashboard: what needs you, your money, your activity, and every product.
+// The Pirento dashboard: the account's own place. Money, records, support and settings for every product live
+// here; each product's work stays in that product's own dashboard, so this page does not list the products.
 import {useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Search, ShieldCheck} from 'lucide-react';
+import {ArrowDownLeft, ArrowUpRight, LifeBuoy, Search} from 'lucide-react';
+import {Button} from '../../components/ui/Button';
+import {StatsRow} from '../../components/ui/Blocks';
+import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
-import {isStaffRole} from '../admin/adminNav';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {openCommandPalette} from '../../components/layout/CommandPalette';
 import {useSignedIn} from '../auth/useSignedIn';
 import {dashboard} from '../../data/site';
-import {ActivityFeed} from './ActivityFeed';
-import {AppsLauncher} from './AppsLauncher';
-import {ContinueList} from './ContinueList';
-import {Kpis} from './Kpis';
-import {NextSteps} from './NextSteps';
-import {SpendByProduct} from './SpendByProduct';
-import {WalletCard} from './WalletCard';
+import {ContinueList, waitingItems} from './ContinueList';
+import {NextSteps, stepsDone} from './NextSteps';
+import {paymentHistory, spentThisMonth} from './payments';
+import {hasReceipt} from '../orders/receipts';
+import {getProduct} from '@pirento/shared';
+import {formatDate, inr} from '../../lib/format';
+import {accountStats} from './accountStats';
 import {greeting, summaryLine} from './summary';
 import {useDashboardData} from './useDashboardData';
+
+const pill = 'inline-flex items-center gap-2 rounded-full border border-rule px-5 py-2.5 text-sm hover:border-ink';
 
 export function Dashboard() {
   const {redirect, user} = useSignedIn();
@@ -28,71 +33,115 @@ export function Dashboard() {
   usePageMeta({title: 'Dashboard — Pirento Ecosystem'});
   if (redirect) return redirect;
   if (!user) return <div className="min-h-dvh" />;
-  const name = user.name || user.email.split('@')[0];
+  // First name only; without a name we just say hello rather than print an email address.
+  const name = user.name?.trim().split(/\s+/)[0];
   const ready = data.loaded.orders && data.loaded.tickets;
+  const waiting = waitingItems(user, data);
+  const history = data.wallet && data.orders ? paymentHistory(data.wallet.transactions, data.orders) : null;
+  const glance = [
+    ...accountStats(data).slice(0, 1),
+    {label: 'Spent this month', value: history ? inr(spentThisMonth(history) / 100) : '—'},
+    {label: 'Receipts', value: data.orders ? String(data.orders.filter(hasReceipt).length) : '—'},
+    ...accountStats(data).slice(1, 3),
+  ];
+  const done = stepsDone(user, data);
+  const showSteps = done && Object.values(done).some((d) => !d);
+  let n = 0;
 
   return (
-    <div ref={ref} className="space-y-8">
-      <header className="flex flex-wrap items-end justify-between gap-6">
+    <div ref={ref} className="space-y-14 md:space-y-16">
+      <header className="flex flex-wrap items-end justify-between gap-8">
         <div className="min-w-0">
           <p className="eyebrow">Pirento Ecosystem · Dashboard</p>
           <Heading
             as="h1"
-            text={`${greeting(hour)}, / ${name}.`}
-            className="mt-4 text-[clamp(2rem,3.6vw,3rem)] leading-[1.05] break-words"
+            text={name ? `${greeting(hour)}, / ${name}.` : `${greeting(hour)}.`}
+            className="mt-5 text-[clamp(2.25rem,4.4vw,3.75rem)] leading-[1.02] break-words"
           />
-          <p className="body mt-3 text-base" aria-live="polite">
+          <p className="body mt-4" aria-live="polite">
             {ready ? summaryLine(data) : 'Loading your account…'}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={openCommandPalette}
-            className="inline-flex items-center gap-3 rounded-full border border-rule px-4 py-2 text-sm text-muted hover:border-ink hover:text-ink"
-          >
-            <Search aria-hidden className="size-4" /> Search Pirento
-            <kbd className="hidden rounded-md border border-rule px-1.5 text-xs sm:inline">Ctrl K</kbd>
-          </button>
-          {isStaffRole(user.role) && (
-            <Link
-              to="/admin"
-              className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm text-paper"
-            >
-              <ShieldCheck aria-hidden className="size-4" /> Admin
-            </Link>
-          )}
+        <div className="flex flex-wrap gap-3">
+          <Button variant="outline" icon={Search} onClick={openCommandPalette}>
+            Search Pirento
+          </Button>
         </div>
       </header>
 
-      <nav aria-label="Quick actions" className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1">
-        {dashboard.actions.map((a) => (
-          <Link key={a.to} to={a.to} className="shrink-0 rounded-full bg-stone px-4 py-2 text-sm hover:bg-rule">
-            {a.label}
+      <DashSection n={++n} id="glance" label="At a glance" title="Your account, / every product.">
+        <StatsRow compact stats={glance} />
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            to="/wallet#add"
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent"
+          >
+            <ArrowDownLeft aria-hidden className="size-4" /> Add money
           </Link>
-        ))}
-      </nav>
+          <Link to="/wallet#withdraw" className={pill}>
+            <ArrowUpRight aria-hidden className="size-4" /> Withdraw
+          </Link>
+          <Link to="/support" className={pill}>
+            <LifeBuoy aria-hidden className="size-4" /> Support
+          </Link>
+        </div>
+      </DashSection>
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="lg:col-span-5">
-          <WalletCard wallet={data.wallet} />
+      <div className={`grid gap-14 ${showSteps ? 'lg:grid-cols-12' : ''}`}>
+        <div className={`min-w-0 ${showSteps ? 'lg:col-span-7' : ''}`}>
+          <DashSection n={++n} id="waiting" label="Needs you" title="Across / every product.">
+            <ContinueList items={waiting} />
+          </DashSection>
         </div>
-        <div className="lg:col-span-7">
-          <Kpis data={data} />
-        </div>
+        {showSteps && (
+          <div className="min-w-0 lg:col-span-5">
+            <DashSection
+              n={++n}
+              id="start"
+              label="Get started"
+              title="Four first steps."
+              action={
+                <span className="text-sm text-muted tabular-nums">
+                  {Object.values(done).filter(Boolean).length} of {dashboard.steps.length} done
+                </span>
+              }
+            >
+              <NextSteps done={done} />
+            </DashSection>
+          </div>
+        )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-12">
-        <div className="min-w-0 space-y-4 lg:col-span-8">
-          <ContinueList user={user} data={data} />
-          <ActivityFeed data={data} />
-        </div>
-        <div className="min-w-0 space-y-4 lg:col-span-4">
-          <NextSteps user={user} data={data} />
-          <SpendByProduct orders={data.orders} />
-        </div>
-      </div>
-
-      <AppsLauncher />
+      <DashSection
+        n={++n}
+        id="recent"
+        label="Payments"
+        title="Latest / payments."
+        action={
+          <Link to="/payments" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+            Full history
+          </Link>
+        }
+      >
+        {history?.length === 0 && <p className="text-muted">No payments yet.</p>}
+        <ul className="border-t border-rule">
+          {history?.slice(0, 6).map((p) => (
+            <li key={p.key} className="flex items-center justify-between gap-4 border-b border-rule py-3.5" data-reveal>
+              <span className="min-w-0">
+                <span className="block truncate">{p.title}</span>
+                <span className="text-xs text-muted">
+                  {p.product && `${getProduct(p.product)?.name} · `}
+                  {p.method} · {formatDate(p.at)}
+                </span>
+              </span>
+              <span className="shrink-0 text-sm tabular-nums">
+                {p.direction === 'in' ? '+' : '−'}
+                {inr(p.amount / 100)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </DashSection>
     </div>
   );
 }

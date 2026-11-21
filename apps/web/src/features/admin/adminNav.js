@@ -5,11 +5,14 @@ import {
   BadgeCheck,
   Banknote,
   Briefcase,
+  ClipboardList,
   CreditCard,
+  FilePlus2,
   GraduationCap,
   Handshake,
   Inbox,
   LayoutDashboard,
+  Mail,
   ListChecks,
   Megaphone,
   ScrollText,
@@ -36,7 +39,23 @@ export const ADMIN_SECTIONS = [
     label: 'Overview',
     icon: LayoutDashboard,
     roles: ALL_STAFF,
-    intro: "Today's numbers across the ecosystem and the last 30 days.",
+    intro: 'What needs doing now. Finance and superadmins also see the numbers for the whole ecosystem.',
+  },
+  {
+    id: 'my-work',
+    group: 'Work',
+    label: 'My work',
+    icon: ClipboardList,
+    roles: ['support', 'staff', 'superadmin'],
+    intro: 'Everything assigned to you: the orders you are working on and the tickets waiting on you.',
+  },
+  {
+    id: 'book',
+    group: 'Work',
+    label: 'Book a service',
+    icon: FilePlus2,
+    roles: OPS, // ACCESS.booking
+    intro: 'Place an order for a customer, say after a call. It waits in their dashboard and they pay it there.',
   },
   {
     id: 'orders',
@@ -61,6 +80,14 @@ export const ADMIN_SECTIONS = [
     icon: Inbox,
     roles: ['support', 'staff', 'superadmin'],
     intro: 'Support tickets waiting on the team. Open one to reply, take it, or add a team note.',
+  },
+  {
+    id: 'enquiries',
+    group: 'Work',
+    label: 'Enquiries',
+    icon: Mail,
+    roles: ['support', 'staff', 'superadmin'], // ACCESS.support
+    intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
   },
   {
     id: 'openings',
@@ -116,7 +143,8 @@ export const ADMIN_SECTIONS = [
     label: 'Withdrawals',
     icon: Banknote,
     roles: MONEY,
-    intro: 'Customers asking to take wallet money out. Send it by UPI, then mark it paid with the UTR.',
+    intro:
+      'Customers asking to take wallet money out. Send it through RazorpayX when it is set up, or by UPI yourself and mark it paid with the UTR.',
   },
   {
     id: 'coupons',
@@ -148,7 +176,8 @@ export const ADMIN_SECTIONS = [
     label: 'Services & prices',
     icon: Briefcase,
     roles: ALL_STAFF,
-    intro: 'Every service and its price. Finance and superadmins can change a price or take a service off sale.',
+    intro:
+      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services and packages and set the questions asked before and after payment.',
   },
   {
     id: 'settings',
@@ -169,6 +198,8 @@ export const ADMIN_SECTIONS = [
 ];
 
 export const isStaffRole = (role) => ALL_STAFF.includes(role);
+/** Where someone's own area is: staff work in the admin, customers in their dashboard. */
+export const homeFor = (user) => (isStaffRole(user?.role) ? '/admin' : '/dashboard');
 export const sectionsFor = (role) => ADMIN_SECTIONS.filter((s) => s.roles.includes(role));
 
 export const ROLES = ['customer', 'support', 'finance', 'staff', 'superadmin'];

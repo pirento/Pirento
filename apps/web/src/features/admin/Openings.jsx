@@ -75,8 +75,12 @@ function NewOpening({onDone}) {
 function Applications({opening}) {
   const apps = useApi(`/learning/staff/openings/${opening._id}/applications`);
   const setStatus = async (a, status) => {
-    await api(`/learning/staff/openings/applications/${a._id}`, {method: 'PATCH', body: {status}});
-    apps.reload();
+    try {
+      await api(`/learning/staff/openings/applications/${a._id}`, {method: 'PATCH', body: {status}});
+      apps.reload();
+    } catch (err) {
+      alert(err.message);
+    }
   };
   return (
     <div className="mt-4">
@@ -115,8 +119,12 @@ export function Openings() {
   const list = useApi('/learning/staff/openings');
   const [openId, setOpenId] = useState(null);
   const toggle = async (o) => {
-    await api(`/learning/staff/openings/${o._id}`, {method: 'PATCH', body: {open: !o.open}});
-    list.reload();
+    try {
+      await api(`/learning/staff/openings/${o._id}`, {method: 'PATCH', body: {open: !o.open}});
+      list.reload();
+    } catch (err) {
+      alert(err.message);
+    }
   };
   return (
     <div className="space-y-8">

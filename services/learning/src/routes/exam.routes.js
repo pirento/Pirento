@@ -1,3 +1,4 @@
+// Taking the exam. The answer key never leaves this service.
 import {Router} from 'express';
 import {z} from 'zod';
 import {TRACKS, bankForSlug} from '@pirento/shared/exam';
@@ -8,7 +9,6 @@ import {Certificate} from '../models/Certificate.js';
 import {EXAM_MINUTES, publicQuestions, score, withinTime} from '../lib/exam.js';
 import {newCertificateCode, publicCertificate, shuffled, trackName} from '../lib/certificate.js';
 
-// Taking the exam. The answer key never leaves this service.
 export const examRoutes = Router();
 examRoutes.use(requireAuth);
 
@@ -49,8 +49,21 @@ examRoutes.post(
       if (retryAt > new Date()) {
         throw new ApiError(429, 'RETRY_LATER', `You can try again after ${retryAt.toLocaleString('en-IN')}`);
       }
+      // An attempt left running past its time is closed as a fail, so it no longer holds the one open slot.
+      if (last?.open && !last.submittedAt) {
+        await Attempt.updateOne(
+          {_id: last._id, open: true},
+          {$set: {submittedAt: new Date(), percent: 0, passed: false}, $unset: {open: 1}},
+        );
+      }
       const ids = shuffled(bankForSlug(track).map((q) => q.id));
-      attempt = await Attempt.create({userId, track, fullName, questionIds: ids});
+      try {
+        attempt = await Attempt.create({userId, track, fullName, questionIds: ids});
+      } catch (err) {
+        // Two "start"s at once: the database kept one attempt open, and both get that one.
+        if (err.code !== 11000) throw err;
+        attempt = await Attempt.findOne({userId, track, open: true});
+      }
     }
 
     res.json({
@@ -77,13 +90,14 @@ examRoutes.post(
 
     const done = await Attempt.findOneAndUpdate(
       {_id: attempt._id, submittedAt: null},
-      {$set: {submittedAt: new Date(), percent: result.percent, passed: result.passed}},
+      {$set: {submittedAt: new Date(), percent: result.percent, passed: result.passed}, $unset: {open: 1}},
       {new: true},
     );
     if (!done) throw conflict('ALREADY_SUBMITTED', 'This exam was already submitted');
 
     let certificate = null;
     if (result.passed) {
+      // One certificate per person and track (a unique index): a second pass returns the first certificate.
       const cert = await Certificate.create({
         code: newCertificateCode(),
         userId: req.user.sub,
@@ -91,6 +105,10 @@ examRoutes.post(
         track: attempt.track,
         percent: result.percent,
         skills: result.skills,
+      }).catch(async (err) => {
+        const first = err.code === 11000 && (await Certificate.findOne({userId: req.user.sub, track: attempt.track}));
+        if (!first) throw err; // a clash on the random code, not a second pass
+        return first;
       });
       certificate = publicCertificate(cert);
     }

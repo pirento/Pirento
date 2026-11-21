@@ -4,7 +4,7 @@ export function Avatar({person, className = 'size-12 text-sm'}) {
   if (person.photo)
     return (
       <img
-        src={person.photo}
+        src={person.face ?? person.photo}
         alt=""
         width="96"
         height="96"

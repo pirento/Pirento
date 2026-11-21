@@ -1,3 +1,4 @@
+// The Intern exam's question bank, per track. Server-only: it holds the answers.
 const general = [
   {
     id: 'gen-1',

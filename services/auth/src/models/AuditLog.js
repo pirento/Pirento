@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-
 // The audit trail: one row per staff action in any service (role changes,
 // order moves, ID decisions, ticket replies). Written, never edited.
+import mongoose from 'mongoose';
+
 export const AuditLog = mongoose.model(
   'AuditLog',
   new mongoose.Schema(

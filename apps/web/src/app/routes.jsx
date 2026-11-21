@@ -43,13 +43,17 @@ export const ROUTES = [
   {path: '/legal/services', Page: page(() => import('../features/legal/CataloguePage'), 'Legal')},
   {path: '/services/:slug', Page: page(() => import('../features/legal/ServicePage'), 'Service')},
   {path: '/checkout/:slug', Page: page(() => import('../features/orders/CheckoutPage'), 'Checkout')},
+  {path: '/orders', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllOrders')},
+  {path: '/receipts', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllReceipts')},
+  {path: '/payments', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllPayments')},
+  {path: '/subscriptions', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'Subscriptions')},
   {path: '/orders/:id', Page: page(() => import('../features/orders/OrderPage'), 'OrderPage')},
 
   // Public checks and help
   {path: '/verify', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
   {path: '/verify/:code', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
-  {path: '/support', Page: page(() => import('../features/support/SupportPage'), 'Support')},
-  {path: '/support/:id', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
+  {path: '/support', layout: 'app', Page: page(() => import('../features/support/SupportPage'), 'Support')},
+  {path: '/support/:id', layout: 'app', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
 
   // Staff
   {path: '/admin', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
@@ -61,6 +65,21 @@ export const ROUTES = [
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
   {
     path: '/:slug/dashboard',
+    layout: 'app',
+    Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
+  },
+  {
+    path: '/:slug/dashboard/orders/:id',
+    layout: 'app',
+    Page: page(() => import('../features/orders/OrderDetail'), 'OrderDetail'),
+  },
+  {
+    path: '/:slug/dashboard/receipts/:id',
+    layout: 'app',
+    Page: page(() => import('../features/orders/ReceiptPage'), 'Receipt'),
+  },
+  {
+    path: '/:slug/dashboard/:section',
     layout: 'app',
     Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),
   },

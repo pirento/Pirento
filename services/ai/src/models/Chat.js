@@ -1,6 +1,6 @@
+// A saved conversation with the assistant.
 import mongoose from 'mongoose';
 
-// A saved conversation with the assistant.
 export const Chat = mongoose.model(
   'Chat',
   new mongoose.Schema(

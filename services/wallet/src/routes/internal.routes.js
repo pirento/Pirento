@@ -1,12 +1,24 @@
+// Called by other services (orders, and auth when an account is deleted) only, never by a browser.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {conflict, requireInternal, validate} from '@pirento/shared/server';
 import {move} from '../lib/move.js';
 import {Wallet} from '../models/Wallet.js';
+import {Withdrawal} from '../models/Withdrawal.js';
 
-// Called by other services (orders) only, never by a browser.
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
+
+/** Account deletion: withdrawal requests keep their amounts, but lose the email and UPI ID. */
+internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
+  const {userId} = req.body;
+  // 'processing' too: a payout already sent through RazorpayX can still come back and need crediting.
+  if (await Withdrawal.exists({userId, status: {$in: ['requested', 'processing']}})) {
+    throw conflict('WITHDRAWAL_OPEN', 'A withdrawal is still being paid out. Finish it before deleting.');
+  }
+  await Withdrawal.updateMany({userId}, {$set: {email: `deleted-${userId}@deleted.invalid`, upi: 'removed'}});
+  res.json({data: {forgotten: true}});
+});
 
 const moveBody = z.object({
   userId: z.string().min(1),

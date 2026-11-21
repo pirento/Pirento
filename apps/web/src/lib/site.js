@@ -1,6 +1,7 @@
+// Which site a path belongs to (Pirento or one product), and painting the page in its colours.
 import {useLayoutEffect} from 'react';
 import {useLocation} from 'react-router-dom';
-import {getProduct, getService} from '@pirento/shared';
+import {PRODUCTS, getProduct, getService} from '@pirento/shared';
 import {iconDir} from '../components/layout/PirentoLogo';
 
 /**
@@ -10,12 +11,16 @@ import {iconDir} from '../components/layout/PirentoLogo';
  */
 export function productFromPath(pathname, search = '') {
   const [a, b] = pathname.split('/').filter(Boolean);
-  if (a === 'services' || a === 'checkout') return getProduct(getService(b ?? '')?.product ?? '');
+  // A service made in admin is not in the built catalogue, but its slug starts with its product's (legal-…).
+  if (a === 'services' || a === 'checkout')
+    return getProduct(getService(b ?? '')?.product ?? '') ?? PRODUCTS.find((p) => b?.startsWith(`${p.slug}-`)) ?? null;
   // Sign-in, sign-up and recovery pages wear the colours of the site you came from (?next=/legal/…).
   if (['login', 'register', 'forgot-password', 'forgot-user-id'].includes(a)) {
     return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
   }
   if (a === 'products' && b) return getProduct(b);
+  // The one support desk wears the colours of the product you came from (/support?product=legal).
+  if (a === 'support' && !b) return getProduct(new URLSearchParams(search).get('product') ?? '');
   return getProduct(a ?? '');
 }
 

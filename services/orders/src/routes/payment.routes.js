@@ -1,22 +1,44 @@
+// Paying for an order: from the wallet, or by card/UPI through Razorpay.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, conflict, requireAuth, validate} from '@pirento/shared/server';
+import {
+  ApiError,
+  conflict,
+  requireAuth,
+  validate,
+  checkoutSignatureOk,
+  createRazorpayOrder,
+  razorpayConfig,
+} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
-import {findAccessible, markPaid} from '../lib/orders.js';
+import {findOwn, markPaid, noteExtraPayment} from '../lib/orders.js';
 import {debitForOrder, voidOrderDebit} from '../lib/wallet.js';
-import {checkoutSignatureOk, createRazorpayOrder, razorpayConfig} from '../lib/razorpay.js';
+import {codeHasRoom, returnUse, takeUse} from '../lib/coupons.js';
 
-// Paying for an order: from the wallet, or by card/UPI through Razorpay.
 export const paymentRoutes = Router();
 paymentRoutes.use('/:id/pay', requireAuth);
 
 const notPayable = () => conflict('NOT_PAYABLE', 'This order is already settled');
+const codeUsedUp = () =>
+  conflict('CODE_USED_UP', 'This discount code has been used up. Cancel this order and place it again without it.');
 
 paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
-  const order = await findAccessible(req);
+  const order = await findOwn(req);
+  // A retry that lands after the first try paid it gets the paid order back, not an error.
+  if (order.payment?.method === 'wallet' && order.status !== 'pending_payment' && order.status !== 'cancelled') {
+    return res.json({data: order});
+  }
   if (order.status !== 'pending_payment') throw notPayable();
 
-  await debitForOrder(order);
+  // A limited code is checked and taken in one step before any money moves; if it ran out while the
+  // order sat unpaid, nothing is charged.
+  if (!(await takeUse(order, {strict: true}))) throw codeUsedUp();
+  try {
+    await debitForOrder(order);
+  } catch (err) {
+    await returnUse(order);
+    throw err;
+  }
   const paid = await markPaid(order._id, {method: 'wallet'}, 'Paid from wallet');
   if (paid) return res.json({data: paid});
 
@@ -25,8 +47,10 @@ paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
   const now = await Order.findById(order._id);
   if (now.payment?.method === 'wallet') return res.json({data: now});
 
-  // Settled another way, or cancelled, while we were debiting: give the money back.
+  // Settled another way, or cancelled, while we were debiting: give the money back (and the code's use, if
+  // nothing paid for the order at all).
   await voidOrderDebit(order);
+  if (now.status === 'cancelled') await returnUse(order);
   throw conflict('NOT_PAYABLE', 'This order was already settled. Your wallet was refunded.');
 });
 
@@ -34,8 +58,11 @@ paymentRoutes.post('/:id/pay/wallet', async (req, res) => {
 paymentRoutes.post('/:id/pay/razorpay', async (req, res) => {
   const cfg = razorpayConfig();
   if (!cfg) throw new ApiError(503, 'PAYMENTS_UNAVAILABLE', 'Card and UPI payments are not switched on yet');
-  let order = await findAccessible(req);
+  let order = await findOwn(req);
   if (order.status !== 'pending_payment') throw notPayable();
+  // shortcut: a card payment cannot be stopped once it starts, so a code's last use is only checked here, not
+  // reserved; two card payments at the same moment can take it one past its limit. Reserve it if that matters.
+  if (!(await codeHasRoom(order))) throw codeUsedUp();
 
   if (!order.payment?.razorpayOrderId) {
     const rzp = await createRazorpayOrder(cfg, order.amount, `order-${order.orderNo}`);
@@ -58,7 +85,7 @@ paymentRoutes.post(
   ),
   async (req, res) => {
     const cfg = razorpayConfig();
-    const order = await findAccessible(req);
+    const order = await findOwn(req);
     const genuine =
       cfg &&
       order.payment?.razorpayOrderId === req.body.razorpay_order_id &&
@@ -74,7 +101,11 @@ paymentRoutes.post(
       },
       'Paid with Razorpay',
     );
-    // Already paid (the webhook can arrive first): just return the order as it is.
-    res.json({data: paid ?? (await Order.findById(order._id))});
+    if (paid) return res.json({data: paid});
+    // Not pending any more: the webhook got there first with this same payment, or the order was settled
+    // another way, and then this payment needs refunding.
+    const now = await Order.findById(order._id);
+    await noteExtraPayment(now, req.body.razorpay_payment_id);
+    res.json({data: await Order.findById(order._id)});
   },
 );

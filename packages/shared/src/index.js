@@ -6,10 +6,33 @@
 export {PRODUCTS, getProduct} from './data/products.js';
 export {BRAND, PRODUCT_COLOURS} from './data/brand.js';
 export {LEGAL_CATALOGUE, legalServiceSlug} from './data/legalCatalogue.js';
-export {SERVICES, getService, servicesFor} from './catalog/services.js';
+export {
+  SERVICES,
+  getService,
+  servicesFor,
+  applyEdit,
+  editedService,
+  editedServicesFor,
+  basePrice,
+  categoriesOf,
+  slugify,
+} from './catalog/services.js';
 
 // Orders: life cycle and checkout questions
-export {ORDER_STEPS, STAFF_TRANSITIONS, statusLabel, checkoutQuestions, validateIntake} from './orders/rules.js';
+export {
+  ORDER_STEPS,
+  STAFF_TRANSITIONS,
+  FULFILMENT,
+  statusLabel,
+  checkoutQuestions,
+  serviceQuestions,
+  askedQuestions,
+  needsDetails,
+  FIXED_QUESTION_IDS,
+  checkAnswers,
+  validateIntake,
+  validateFulfilment,
+} from './orders/rules.js';
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';

@@ -1,3 +1,4 @@
+// The signed-in person's own profile.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, conflict, notFound, requireAuth, validate} from '@pirento/shared/server';
@@ -6,7 +7,6 @@ import {MIN_PASSWORD, hashPassword, verifyPassword} from '../lib/password.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 import {User} from '../models/User.js';
 
-// The signed-in person's own profile.
 export const meRoutes = Router();
 meRoutes.use('/me', requireAuth);
 
@@ -36,8 +36,13 @@ meRoutes.post(
     if (await DeletionRequest.exists({userId: req.user.sub, status: 'requested'})) {
       throw conflict('OPEN_REQUEST', 'Your request is already with our team');
     }
-    const doc = await DeletionRequest.create({userId: req.user.sub, email: req.user.email, reason: req.body.reason});
-    res.status(201).json({data: doc});
+    try {
+      const doc = await DeletionRequest.create({userId: req.user.sub, email: req.user.email, reason: req.body.reason});
+      res.status(201).json({data: doc});
+    } catch (err) {
+      if (err.code === 11000) throw conflict('OPEN_REQUEST', 'Your request is already with our team');
+      throw err;
+    }
   },
 );
 

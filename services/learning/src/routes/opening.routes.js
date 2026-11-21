@@ -1,10 +1,10 @@
+// Openings: anyone can read the open ones and signed-in people apply; staff post and review.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ACCESS, audit, conflict, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
 import {Application} from '../models/Application.js';
 import {Opening} from '../models/Opening.js';
 
-// Openings: anyone can read the open ones and signed-in people apply; staff post and review.
 export const openingRoutes = Router();
 
 openingRoutes.get('/openings', async (_req, res) => {

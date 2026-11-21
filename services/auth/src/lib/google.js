@@ -1,3 +1,4 @@
+// Checking a Google sign-in token with Google before trusting it.
 import {ApiError} from '@pirento/shared/server';
 
 const ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];

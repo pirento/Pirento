@@ -1,3 +1,4 @@
+// Connecting a service to its own database and starting it.
 import mongoose from 'mongoose';
 
 /** Connects to the service's own database (if it has one) and starts listening. */
@@ -20,3 +21,18 @@ export async function nextSeq(name) {
 
 /** True when `id` could be a Mongo id; saves a query (and a cast error) on junk. */
 export const isId = (id) => mongoose.isValidObjectId(id);
+
+/**
+ * A staff search box as a Mongo filter: a number finds that record number, anything else matches the text
+ * fields case-insensitively (escaped, so a user's "." or "(" is literal). null for an empty search.
+ */
+export function searchFilter(q, numberField, textFields) {
+  const text = String(q ?? '')
+    .trim()
+    .replace(/^#/, '')
+    .slice(0, 80);
+  if (!text) return null;
+  if (/^\d+$/.test(text)) return {[numberField]: Number(text)};
+  const match = {$regex: text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i'};
+  return {$or: textFields.map((f) => ({[f]: match}))};
+}

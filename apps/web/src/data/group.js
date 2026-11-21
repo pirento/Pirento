@@ -2,7 +2,8 @@
 // Sources: the Pirento Foundation and JBC Seva Trust profiles, the Pirento Blank and Venturecore Billing guides,
 // the Vakilsearch business partner agreement, and the ventures' own websites.
 
-// People. `photo` is a file in public/team/; without one the page shows initials.
+// People. `photo` is a file in public/team/; without one the page shows initials. `face` is a square crop of the
+// photo for the small round avatars, for a photo where the face is small in the frame.
 // `site` is shown as the domain; `href` is where it opens today.
 // shortcut: portfolio links open the vercel.app copies, switch href to the domain once it is live.
 export const PEOPLE = {
@@ -11,6 +12,7 @@ export const PEOPLE = {
     role: 'Founder & Director',
     body: 'Founded Venturecore Solutions and the Pirento ecosystem. Co-founder of Shri Sarraf and managing trustee of JBC Seva Trust.',
     photo: '/team/ravikant-soni.jpg',
+    face: '/team/ravikant-soni-face.jpg',
     site: 'ravikantsoni.in',
     href: 'https://portfolio-rks.vercel.app/',
   },
@@ -38,7 +40,7 @@ export const PEOPLE = {
     href: 'https://rajneeshkumar-dev.vercel.app/',
   },
   shriKant: {
-    name: 'Shri Kant',
+    name: 'Shri Kant Soni',
     role: 'Member · Shri Sarraf',
     body: 'Runs Shri Sarraf, the jewellery business, with Ravikant Soni.',
   },
@@ -134,7 +136,7 @@ export const ALONGSIDE = [
     domain: 'shrisarraf.com',
     href: 'https://shrisarraf.com/',
     tagline: 'Crafting timeless elegance.',
-    body: 'A jewellery business run by Ravikant Soni and Shri Kant.',
+    body: 'A jewellery business run by Ravikant Soni and Shri Kant Soni.',
     note: 'Family business',
   },
   {
@@ -167,7 +169,7 @@ export const STORY = [
   },
   {
     title: 'The team grows',
-    body: 'Ashish Soni joins as director; Rajneesh Kumar and Shri Kant join as members.',
+    body: 'Ashish Soni joins as director; Rajneesh Kumar and Shri Kant Soni join as members.',
     people: ['ashish', 'rajneesh', 'shriKant'],
   },
   {title: 'Pirento Foundation', body: 'The company sets up its social-impact arm. Registration is pending.'},

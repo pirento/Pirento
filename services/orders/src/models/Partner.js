@@ -1,3 +1,4 @@
+// A Pirento One partner and their code.
 import mongoose from 'mongoose';
 
 // A Pirento One partner and the code they share. Orders placed after opening

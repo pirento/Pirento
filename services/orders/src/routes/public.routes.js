@@ -1,10 +1,9 @@
-import {Router} from 'express';
-import {ApiError, notFound} from '@pirento/shared/server';
-import {Order} from '../models/Order.js';
-import {markPaid} from '../lib/orders.js';
-import {razorpayConfig, webhookSignatureOk} from '../lib/razorpay.js';
-
 // Routes that need no sign-in.
+import {Router} from 'express';
+import {ApiError, notFound, razorpayConfig, webhookSignatureOk} from '@pirento/shared/server';
+import {Order} from '../models/Order.js';
+import {markPaid, noteExtraPayment} from '../lib/orders.js';
+
 export const publicRoutes = Router();
 
 /** Tells the browser whether card/UPI payments are switched on. */
@@ -33,9 +32,21 @@ publicRoutes.post('/payments/razorpay/webhook', async (req, res) => {
         {method: 'razorpay', razorpayOrderId: payment.order_id, razorpayPaymentId: payment.id},
         'Paid with Razorpay',
       );
-      // shortcut: money captured on an order cancelled meanwhile is refunded by hand in Razorpay; automate with its refunds API.
-      if (!paid && order.status === 'cancelled') console.warn(`Captured payment on cancelled order ${order.orderNo}`);
+      if (!paid) await noteExtraPayment(await Order.findById(order._id), payment.id);
     }
+  }
+  // A refund Razorpay could not complete: the order shows money owed again, and "Retry refund" sends a new one.
+  const refund = req.body.payload?.refund?.entity;
+  if (req.body.event === 'refund.failed' && refund?.id) {
+    await Order.updateOne(
+      {'payment.refundId': refund.id, 'payment.refunded': true},
+      {
+        $set: {'payment.refunded': false},
+        $unset: {'payment.refundId': 1},
+        $inc: {'payment.refundTries': 1},
+        $push: {timeline: {status: 'cancelled', note: 'The refund did not go through. Our team will send it again.'}},
+      },
+    );
   }
   res.json({data: {ok: true}});
 });

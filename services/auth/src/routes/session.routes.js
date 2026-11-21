@@ -1,10 +1,10 @@
+// Keeping a session alive, and ending it.
 import {Router} from 'express';
-import {ApiError} from '@pirento/shared/server';
+import {ApiError, requireAuth} from '@pirento/shared/server';
 import {RefreshToken} from '../models/RefreshToken.js';
 import {User} from '../models/User.js';
-import {issueSession, readRefreshCookie, setRefreshCookie, sha256} from '../lib/session.js';
+import {endAllSessions, issueSession, readRefreshCookie, setRefreshCookie, sha256} from '../lib/session.js';
 
-// Keeping a session alive, and ending it.
 export const sessionRoutes = Router();
 
 sessionRoutes.post('/refresh', async (req, res) => {
@@ -22,6 +22,13 @@ sessionRoutes.post('/refresh', async (req, res) => {
 sessionRoutes.post('/logout', async (req, res) => {
   const raw = readRefreshCookie(req);
   if (raw) await RefreshToken.deleteOne({hash: sha256(raw)});
+  setRefreshCookie(res, '', 0);
+  res.json({data: {signedOut: true}});
+});
+
+/** Signs out every device, this one included: for a lost phone or a shared computer. */
+sessionRoutes.post('/logout/everywhere', requireAuth, async (req, res) => {
+  await endAllSessions(req.user.sub);
   setRefreshCookie(res, '', 0);
   res.json({data: {signedOut: true}});
 });

@@ -1,6 +1,5 @@
-import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
-
 // All site copy lives here; components only render it.
+import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
 
 export const brand = {
   name: 'Pirento',
@@ -147,6 +146,13 @@ export const home = {
   contact: {
     label: 'Contact',
     title: 'Have a matter? / Let’s talk.',
+    // The contact form at the end of most pages; what it sends lands in admin → Enquiries.
+    form: {
+      title: 'Write to us',
+      intro: 'Tell us what you need. The team replies by email, or calls if you leave a number.',
+      service: 'Which service is it about? (optional)',
+      sent: 'Thank you. Your message reached the team; the reply comes to your email.',
+    },
   },
 };
 
@@ -217,6 +223,217 @@ export const terms = {
       ],
     },
   ],
+};
+
+// Each product's own dashboard: the sections in its sidebar, in order (the first is /<slug>/dashboard).
+// Every product shows the one Pirento wallet (same balance everywhere) and links to the one support desk.
+const SHARED_SECTIONS = [
+  {id: 'wallet', label: 'Wallet', icon: 'wallet'},
+  {id: 'support', label: 'Support', icon: 'help', support: true},
+];
+const ORDER_SECTIONS = (orders, services, extra = []) => [
+  {id: 'overview', label: 'Overview', icon: 'overview'},
+  {id: 'orders', label: orders, icon: 'orders'},
+  ...extra,
+  {id: 'receipts', label: 'Receipts', icon: 'receipts'},
+  {id: 'services', label: services, icon: 'services'},
+  ...SHARED_SECTIONS,
+];
+/** Products with a single page of their own (Capital's waitlist while it is Expected). */
+export const SINGLE_PAGE_SECTIONS = [{id: 'overview', label: 'Dashboard', icon: 'overview'}, ...SHARED_SECTIONS];
+const APP_SECTIONS = (...own) => [{id: 'overview', label: 'Overview', icon: 'overview'}, ...own, ...SHARED_SECTIONS];
+const DOCUMENTS = {id: 'documents', label: 'Documents', icon: 'documents'};
+export const productDashboards = {
+  legal: ORDER_SECTIONS('My requests', 'Areas of law', [
+    DOCUMENTS,
+    {id: 'consultations', label: 'Consultations', icon: 'consultations'},
+  ]),
+  black: ORDER_SECTIONS('My filings', 'Services', [DOCUMENTS]),
+  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
+  giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
+  intern: APP_SECTIONS(
+    {id: 'exams', label: 'Exams', icon: 'exams'},
+    {id: 'certificates', label: 'Certificates', icon: 'certificates'},
+    {id: 'openings', label: 'Openings', icon: 'openings'},
+  ),
+  vault: APP_SECTIONS(
+    {id: 'files', label: 'Files', icon: 'files'},
+    {id: 'passwords', label: 'Passwords', icon: 'passwords'},
+  ),
+  ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, ...SHARED_SECTIONS],
+  one: APP_SECTIONS({id: 'referrals', label: 'Referrals', icon: 'referrals'}),
+  'bharat-id': APP_SECTIONS({id: 'apply', label: 'Application', icon: 'apply'}),
+};
+
+// The app products' dashboards (Intern, Vault, One, Bharat ID): headings and the words on each section.
+export const appDashboards = {
+  intern: {
+    hello: 'Your exams / and certificates.',
+    intro: 'Take a final exam, earn a certificate with a public verify page, and apply to openings.',
+    glance: {label: 'At a glance', title: 'Where you / stand.'},
+    next: {label: 'Next', title: 'What to / do next.'},
+    exams: {
+      label: 'Final exams',
+      title: 'Pick a track, / take the exam.',
+      history: 'Your attempts',
+      noHistory: 'No attempts yet.',
+    },
+    certificates: {
+      label: 'Certificates',
+      title: 'Proof you / can show.',
+      empty: 'No certificates yet. Pass an exam to earn one.',
+    },
+    openings: {
+      label: 'Openings',
+      title: 'Work you / can apply for.',
+      mine: 'Your applications',
+      noMine: 'You have not applied yet.',
+    },
+    applicationStatus: {new: 'Applied', shortlisted: 'Shortlisted', declined: 'Not selected'},
+  },
+  vault: {
+    hello: 'Your vault, / locked.',
+    intro:
+      'Files and passwords, encrypted with AES-256-GCM before they are stored. Pirento holds the key, so this is not end-to-end encryption.',
+    glance: {label: 'At a glance', title: 'What you / keep here.'},
+    health: {
+      label: 'Password health',
+      title: 'Weak or / reused.',
+      good: 'Every saved password is strong and used once.',
+      weak: 'weak',
+      reused: 'reused',
+      note: 'Checked on our server; a password is never sent to your browser just to be checked.',
+    },
+    files: {label: 'Files', title: 'Documents, / encrypted.'},
+    passwords: {label: 'Passwords', title: 'Saved / passwords.'},
+  },
+  one: {
+    hello: 'Share Pirento. / See what it brings.',
+    intro: 'Your partner code and link, and every order a client placed through it.',
+    link: {label: 'Your link', title: 'Share it / anywhere.'},
+    glance: {label: 'At a glance', title: 'What your / link brought.'},
+    referrals: {label: 'Referrals', title: 'Orders through / your link.', empty: 'No orders through your link yet.'},
+    // True today: partners are tracked, not paid (see Partner model).
+    commission: 'Commission payouts: Expected. Today this tracks referrals only.',
+  },
+  'bharat-id': {
+    hello: 'One identity, / checked once.',
+    intro: 'Seven short steps, a 20-second video, then a review by our team.',
+    status: {label: 'Status', title: 'Where your / application is.'},
+    steps: ['Fill the steps', 'Record the video', 'Submit', 'Team review', 'ID issued'],
+    card: {label: 'Your ID', title: 'Your Bharat ID / card.'},
+    apply: {label: 'Application', title: 'Your details, / step by step.'},
+  },
+};
+
+// The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
+export const receipt = {
+  title: 'Payment receipt',
+  note: 'This receipt confirms a payment made on Pirento. It is not a GST tax invoice.',
+};
+
+// Dashboards of the order-based products (Legal, Black, Green, Giftox): section names and headings.
+export const orderDashboard = {
+  recent: {label: 'Latest', title: 'Your latest / orders.'},
+  glance: {label: 'At a glance', title: 'Your work with us.'},
+  waiting: {label: 'Needs you', title: 'Waiting / on you.', empty: 'Nothing is waiting on you.'},
+  orders: {label: 'Your orders', title: 'Every order, / step by step.', empty: 'No orders yet.'},
+  start: {
+    label: 'Start something',
+    // Legal shows its areas of law; the other products show their services and prices.
+    legalTitle: 'Pick an area / of law.',
+    title: 'Order / something new.',
+  },
+  documents: {
+    label: 'Documents',
+    title: 'Every paper, / both ways.',
+    intro: 'What you sent us and what our team sent back, across all your orders. Add a document from inside an order.',
+    empty: 'No documents yet. Open an order to add the papers it needs.',
+  },
+  consultations: {
+    label: 'Consultations',
+    title: 'Talk to / an expert.',
+    intro: 'Book a paid consultation with a lawyer, CA or CS, then agree a time with the team in its messages.',
+    mine: 'Your consultations',
+    // The catalogue's consultation area; the first four are the quick calls.
+    area: 'Consultation & Support',
+  },
+  wallet: {
+    label: 'Wallet',
+    title: 'One wallet, / every product.',
+    intro: 'The same Pirento wallet and balance in every product. Add money once, pay anywhere.',
+    paid: 'Paid from your wallet here',
+  },
+};
+
+// The Pirento dashboard's own pages: the account's money and records across every product.
+export const hub = {
+  payments: {title: 'Payments', label: 'Every product', heading: 'Every rupee, / in and out.'},
+  subscriptions: {
+    title: 'Subscriptions',
+    label: 'Plans',
+    heading: 'No plans / to renew.',
+    // True today: every Pirento product is paid per order, so there is nothing recurring to show.
+    empty: 'You have no subscriptions. Pirento products are paid per order, so nothing renews or charges you again.',
+  },
+};
+
+/** The one support desk. `?product=<slug>` (and `&order=<no>`) say where someone came from. */
+export const support = {
+  title: 'Support',
+  heading: 'How can / we help?',
+  intro: 'One desk for every Pirento product, your account and your wallet. A person on our team replies.',
+  about: 'Related product',
+  general: 'My account or wallet',
+  tabs: [
+    {id: 'tickets', label: 'My tickets'},
+    {id: 'chat', label: 'Live chat'},
+    {id: 'email', label: 'Email'},
+    {id: 'call', label: 'Callback'},
+  ],
+  // Quick topics fill in the form; the customer can still change anything.
+  topics: [
+    {
+      title: 'Billing and payments',
+      body: 'Charges, refunds, receipts, the wallet.',
+      subject: 'Billing question',
+      priority: 'medium',
+    },
+    {
+      title: 'Technical help',
+      body: 'Something on the site is not working.',
+      subject: 'Something is not working',
+      priority: 'high',
+    },
+    {
+      title: 'Account access',
+      body: 'Sign-in, codes, password, security.',
+      subject: 'Trouble signing in',
+      priority: 'high',
+    },
+  ],
+  priorities: [
+    {id: 'low', label: 'Low · when you can'},
+    {id: 'medium', label: 'Medium'},
+    {id: 'high', label: 'High · it blocks me'},
+  ],
+  chat: {
+    title: 'Chat with / the team.',
+    intro: 'A conversation that stays on record. Our team answers here, and you can come back to it any time.',
+    start: 'Start a chat',
+    subject: 'Live chat',
+  },
+  email: {
+    title: 'Write to / us.',
+    intro: 'Prefer your own email? Send it to our support address and the team replies by email.',
+  },
+  call: {
+    title: 'We call / you back.',
+    intro:
+      'Leave your number and what it is about. Someone from the team calls you, and the request stays under My tickets.',
+    topics: ['An order', 'A payment or refund', 'My account', 'Something else'],
+    done: 'Callback requested. You can follow it under My tickets.',
+  },
 };
 
 // The ecosystem dashboard: quick actions and the first things worth doing.

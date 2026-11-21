@@ -1,3 +1,4 @@
+// Fixed prices for the services other products sell, in rupees.
 export const STATIC_SERVICE_PRICES = {
   // --- Pirento Legal ---
   'private-limited-company': {

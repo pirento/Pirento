@@ -1,6 +1,6 @@
+// The ledger: one row per money movement, with the balance it left behind.
 import mongoose from 'mongoose';
 
-// The ledger: one row per money movement, with the balance it left behind.
 export const Transaction = mongoose.model(
   'Transaction',
   new mongoose.Schema(

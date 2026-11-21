@@ -1,3 +1,4 @@
+// The applicant's side: fill the steps, record the video, submit.
 import express, {Router} from 'express';
 import {z} from 'zod';
 import {ID_SECTIONS, validateSection} from '@pirento/shared';
@@ -7,7 +8,6 @@ import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
 import {challengeValid, newChallenge} from '../lib/challenge.js';
 
-// The applicant's side: fill the steps, record the video, submit.
 export const applicationRoutes = Router();
 applicationRoutes.use(['/me', '/draft', '/kyc', '/submit'], requireAuth);
 
@@ -29,6 +29,20 @@ async function editable(req) {
   }
 }
 
+/**
+ * Writes to an application only while it is still a draft or rejected, in one conditional update, so a
+ * save racing a submit can never change what was submitted.
+ */
+async function stillEditable(doc, set, unset) {
+  const saved = await Identity.findOneAndUpdate(
+    {_id: doc._id, status: EDITABLE},
+    {$set: set, ...(unset ? {$unset: unset} : {})},
+    {new: true},
+  );
+  if (!saved) throw locked();
+  return saved;
+}
+
 applicationRoutes.get('/me', async (req, res) => {
   res.json({data: await Identity.findOne({userId: req.user.sub})});
 });
@@ -38,9 +52,7 @@ applicationRoutes.put('/draft/:section', async (req, res) => {
   const {data, error} = validateSection(req.params.section, req.body);
   if (error) throw badInput(error);
   const doc = await editable(req);
-  doc.sections = {...doc.sections, [req.params.section]: data};
-  await doc.save();
-  res.json({data: doc});
+  res.json({data: await stillEditable(doc, {[`sections.${req.params.section}`]: data})});
 });
 
 /**
@@ -49,13 +61,11 @@ applicationRoutes.put('/draft/:section', async (req, res) => {
  */
 applicationRoutes.post('/kyc/challenge', async (req, res) => {
   const doc = await editable(req);
-  if (!challengeValid(doc.kyc)) {
-    doc.set('kyc.challenge', newChallenge());
-    doc.set('kyc.challengeAt', new Date());
-    await doc.save();
-  }
-  const expiresAt = new Date(new Date(doc.kyc.challengeAt).getTime() + config.challengeLifeMs);
-  res.json({data: {challenge: doc.kyc.challenge, expiresAt}});
+  const fresh = challengeValid(doc.kyc)
+    ? doc
+    : await stillEditable(doc, {'kyc.challenge': newChallenge(), 'kyc.challengeAt': new Date()});
+  const expiresAt = new Date(new Date(fresh.kyc.challengeAt).getTime() + config.challengeLifeMs);
+  res.json({data: {challenge: fresh.kyc.challenge, expiresAt}});
 });
 
 /** Video KYC, part 2: the recording itself, as raw video bytes. */
@@ -74,12 +84,12 @@ applicationRoutes.post(
       {type, ...encrypt(config.kycKey, req.body)},
       {upsert: true, new: true},
     );
-    doc.set('kyc.recordedAt', new Date());
-    doc.set('kyc.size', req.body.length);
-    doc.set('kyc.mimeType', type);
-    doc.set('kyc.deletedAt', undefined);
-    await doc.save();
-    res.status(201).json({data: doc});
+    const saved = await stillEditable(
+      doc,
+      {'kyc.recordedAt': new Date(), 'kyc.size': req.body.length, 'kyc.mimeType': type},
+      {'kyc.deletedAt': 1},
+    );
+    res.status(201).json({data: saved});
   },
 );
 

@@ -1,3 +1,4 @@
+// Who is calling: tokens, staff roles, and which role may work which admin area.
 import jwt from 'jsonwebtoken';
 import {env} from './env.js';
 import {ApiError} from './errors.js';
@@ -20,8 +21,10 @@ export const ACCESS = {
   audit: ['superadmin'],
   coupons: ['finance', 'superadmin'],
   pricing: ['finance', 'superadmin'],
+  catalog: ['superadmin'], // new services and packages, and the questions services ask
   accounts: ['superadmin'], // deletion requests, site settings
   openings: ['staff', 'superadmin'],
+  booking: ['staff', 'superadmin'], // placing an order for a customer
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');

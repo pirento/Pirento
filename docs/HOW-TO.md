@@ -37,7 +37,13 @@ Short recipes for the changes we make most. Each one names every place to touch.
 
 ## Add a service to sell
 
-Add it to the catalogue data in `packages/shared/src/data/` (prices in rupees). It appears in the catalog API, on its product page and at checkout. Prices are only ever read on the server.
+Without a deploy: admin → Services & prices → Add a service or package (superadmin). It gets the slug `<product>-<name>`, shows on its product's home page, catalogue and dashboard at once, and sells at checkout. Use a new category such as "Packages" and list what is included, one per line.
+
+In code: add it to the catalogue data in `packages/shared/src/data/` (prices in rupees). It appears in the catalog API, on its product page and at checkout. Prices are only ever read on the server.
+
+## Change the questions a service asks
+
+Admin → Services & prices → open the service (superadmin). "Before payment" replaces the product's standard questions (phone, and the address for a gift, are always asked); "After payment" is answered by the customer on their paid order. Placed orders keep the questions they were asked. The standard sets live in `packages/shared/src/data/intake.js`.
 
 ## Change a Bharat ID question
 

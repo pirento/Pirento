@@ -6,7 +6,12 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {inr} from '../../lib/format';
 
-const STATE = {requested: 'Waiting for our team', paid: 'Sent', rejected: 'Returned to your wallet'};
+const STATE = {
+  requested: 'Waiting for our team',
+  processing: 'On its way to your bank',
+  paid: 'Sent',
+  rejected: 'Returned to your wallet',
+};
 
 export function Withdraw({balance, onDone}) {
   const list = useApi('/wallet/withdrawals');
@@ -15,7 +20,7 @@ export function Withdraw({balance, onDone}) {
   const [upi, setUpi] = useState('');
   const [error, setError] = useState('');
   const latest = list.data?.[0];
-  const waiting = latest?.status === 'requested';
+  const waiting = latest?.status === 'requested' || latest?.status === 'processing';
 
   const submit = async (e) => {
     e.preventDefault();

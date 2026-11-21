@@ -1,10 +1,10 @@
+// Pirento One: become a partner, and see the orders your code brought in.
 import crypto from 'node:crypto';
 import {Router} from 'express';
 import {requireAuth} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 
-// Pirento One: become a partner, and see the orders your code brought in.
 export const partnerRoutes = Router();
 partnerRoutes.use('/partner', requireAuth);
 

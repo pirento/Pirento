@@ -1,31 +1,48 @@
-// "Pick up where you left off": the things waiting on you, each with the one button that finishes it.
+// "Needs you" on the hub: what is waiting on you in any product, each with the one button that finishes it.
+// Every item opens inside its own product's dashboard (or the support desk), and names that product.
 import {Link} from 'react-router-dom';
 import {CircleCheck, CreditCard, Fingerprint, MessageSquare, UserRound} from 'lucide-react';
+import {getProduct} from '@pirento/shared';
 import {inr} from '../../lib/format';
 
-export function ContinueList({user, data}) {
-  const {orders, tickets, identity} = data;
-  const items = [
+const nameOf = (slug) => getProduct(slug ?? '')?.name;
+
+export function waitingItems(user, {orders, tickets, identity}) {
+  return [
     ...(orders ?? [])
       .filter((o) => o.status === 'pending_payment')
       .map((o) => ({
         icon: CreditCard,
+        product: o.product,
         title: `Pay for ${o.serviceName}`,
-        note: `Order #${o.orderNo} · ${inr(o.amount / 100)}`,
+        note: `${nameOf(o.product)} · order #${o.orderNo} · ${inr(o.amount / 100)}`,
         cta: 'Pay now',
-        to: `/orders/${o._id}`,
+        to: `/${o.product}/dashboard/orders/${o._id}`,
+      })),
+    // The team wrote last on a live order: probably a question for you.
+    ...(orders ?? [])
+      .filter((o) => o.status !== 'cancelled' && o.messages?.at(-1)?.from === 'team')
+      .map((o) => ({
+        icon: MessageSquare,
+        product: o.product,
+        title: `The team wrote about ${o.serviceName}`,
+        note: `${nameOf(o.product)} · ${o.messages.at(-1).body}`,
+        cta: 'Read',
+        to: `/${o.product}/dashboard/orders/${o._id}#messages`,
       })),
     ...(tickets ?? [])
       .filter((t) => t.status === 'answered')
       .map((t) => ({
         icon: MessageSquare,
+        product: t.product,
         title: 'Support replied',
-        note: t.subject,
+        note: `${nameOf(t.product) ?? 'Account'} · ${t.subject}`,
         cta: 'Read',
         to: `/support/${t._id}`,
       })),
     identity?.status === 'draft' && {
       icon: Fingerprint,
+      product: 'bharat-id',
       title: 'Finish your Bharat ID',
       note: 'Your answers are saved',
       cta: 'Continue',
@@ -33,6 +50,7 @@ export function ContinueList({user, data}) {
     },
     identity?.status === 'rejected' && {
       icon: Fingerprint,
+      product: 'bharat-id',
       title: 'Bharat ID needs a change',
       note: identity.reason,
       cta: 'Fix it',
@@ -46,37 +64,31 @@ export function ContinueList({user, data}) {
       to: '/account',
     },
   ].filter(Boolean);
+}
 
+export function ContinueList({items}) {
+  if (items.length === 0)
+    return (
+      <p className="flex items-center gap-2 text-muted">
+        <CircleCheck aria-hidden className="size-4" /> All caught up. Nothing is waiting on you.
+      </p>
+    );
   return (
-    <section aria-labelledby="continue-h" className="rounded-[22px] border border-rule p-6 md:p-7" data-reveal>
-      <h2 id="continue-h" className="text-xl">
-        Pick up where you left off
-      </h2>
-      {items.length === 0 ? (
-        <p className="mt-4 flex items-center gap-2 text-sm text-muted">
-          <CircleCheck aria-hidden className="size-4" /> All caught up. Nothing is waiting on you.
-        </p>
-      ) : (
-        <ul className="mt-4 divide-y divide-rule">
-          {items.slice(0, 5).map((it) => (
-            <li key={it.to + it.title} className="flex items-center gap-4 py-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-stone">
-                <it.icon aria-hidden className="size-4" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block font-medium sm:truncate">{it.title}</span>
-                <span className="line-clamp-2 block text-sm text-muted sm:truncate">{it.note}</span>
-              </span>
-              <Link
-                to={it.to}
-                className="shrink-0 rounded-full border border-rule px-4 py-1.5 text-sm hover:border-ink"
-              >
-                {it.cta}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
+    <ul className="border-t border-rule">
+      {items.slice(0, 5).map((it) => (
+        <li key={it.to + it.title} className="flex items-center gap-4 border-b border-rule py-4" data-reveal>
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-full border border-rule">
+            <it.icon aria-hidden className="size-4" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-medium sm:truncate">{it.title}</span>
+            <span className="line-clamp-2 block text-sm text-muted sm:truncate">{it.note}</span>
+          </span>
+          <Link to={it.to} className="shrink-0 rounded-full border border-rule px-4 py-2 text-sm hover:border-ink">
+            {it.cta}
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }

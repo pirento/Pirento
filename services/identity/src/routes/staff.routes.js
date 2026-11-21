@@ -1,3 +1,4 @@
+// The team's side: review applications, watch the video, decide.
 import {Router} from 'express';
 import {z} from 'zod';
 import {bharatIdFromSeq} from '@pirento/shared';
@@ -10,6 +11,7 @@ import {
   isId,
   nextSeq,
   notFound,
+  notify,
   requireAuth,
   requireRole,
   validate,
@@ -18,7 +20,6 @@ import {config} from '../config.js';
 import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
 
-// The team's side: review applications, watch the video, decide.
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.identity));
 
@@ -70,6 +71,15 @@ staffRoutes.patch(
       await doc.save();
     }
     audit(req, `bharat-id.${decision}`, doc.bharatId ?? String(doc._id), reason);
+    notify(doc.userId, {
+      brand: 'Bharat ID',
+      label: 'Your application',
+      big: decision === 'approve' ? doc.bharatId : 'Needs changes',
+      note:
+        decision === 'approve'
+          ? 'Your Bharat ID is issued. Open the Bharat ID dashboard to see and download your card.'
+          : `Our team could not approve it yet: ${reason}. Fix it and submit again from your dashboard.`,
+    });
     res.json({data: doc});
   },
 );

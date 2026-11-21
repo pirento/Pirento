@@ -1,6 +1,17 @@
+// Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 import {Router} from 'express';
 import {z} from 'zod';
-import {ACCESS, ApiError, STAFF, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
+import {
+  ACCESS,
+  ApiError,
+  STAFF,
+  conflict,
+  isId,
+  notFound,
+  requireAuth,
+  requireRole,
+  validate,
+} from '@pirento/shared/server';
 import {PRODUCTS} from '@pirento/shared';
 import {config} from '../config.js';
 import {AuditLog} from '../models/AuditLog.js';
@@ -11,13 +22,26 @@ import {STAFF_ID} from './door.routes.js';
 import {forgetUser} from '../lib/forget.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 
-// Staff: find people (support, finance, superadmin); change roles and suspend (superadmin only).
 export const adminRoutes = Router();
 adminRoutes.use('/admin', requireAuth);
 const superOnly = requireRole('superadmin');
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const DAY = 86_400_000;
+
+/** Active customers matching an email or name, for booking an order on someone's behalf. Ten at most, few fields. */
+adminRoutes.get('/admin/customers', requireRole(...ACCESS.booking), async (req, res) => {
+  const q = String(req.query.q ?? '')
+    .trim()
+    .slice(0, 80);
+  if (q.length < 3) return res.json({data: []});
+  const match = {$regex: escapeRegex(q), $options: 'i'};
+  const people = await User.find(
+    {role: 'customer', suspended: {$ne: true}, $or: [{email: match}, {name: match}]},
+    {email: 1, name: 1},
+  ).limit(10);
+  res.json({data: people});
+});
 
 adminRoutes.get('/admin/users', requireRole(...ACCESS.users), async (req, res) => {
   const q = String(req.query.q ?? '')
@@ -42,7 +66,7 @@ adminRoutes.get('/admin/users/:id', requireRole(...ACCESS.users), async (req, re
 });
 
 /** Sign-ups per day for the last 30 days, for the overview chart. */
-adminRoutes.get('/admin/stats', requireRole(...ACCESS.users, 'staff'), async (_req, res) => {
+adminRoutes.get('/admin/stats', requireRole(...ACCESS.users), async (_req, res) => {
   const since = new Date(Date.now() - 30 * DAY);
   const [total, perDay] = await Promise.all([
     User.estimatedDocumentCount(),
@@ -138,11 +162,10 @@ adminRoutes.patch(
     const doc = isId(req.params.id) && (await DeletionRequest.findById(req.params.id));
     if (!doc || doc.status !== 'requested') throw notFound('No open request with that id');
     if (req.body.decision === 'reject' && !req.body.answer) throw new ApiError(400, 'BAD_INPUT', 'Tell them why');
-    if (req.body.decision === 'approve') {
-      req.params.id = doc.userId; // targetOf reads the account id from the URL
-      await forgetUser(await targetOf(req));
-    }
-    // Conditional on 'requested', so a second click does not decide twice.
+    // Checked before claiming: a superadmin set in SUPERADMIN_EMAILS (or yourself) cannot be deleted here.
+    const target = req.body.decision === 'approve' ? await targetOf({...req, params: {id: doc.userId}}) : null;
+    // Claimed first, conditional on 'requested': a second click, a reject at the same moment, or the customer
+    // withdrawing it all lose here, so the account is forgotten at most once and only when approved.
     const done = await DeletionRequest.findOneAndUpdate(
       {_id: doc._id, status: 'requested'},
       {
@@ -155,6 +178,19 @@ adminRoutes.patch(
       },
       {new: true},
     );
+    if (!done) throw conflict('CHANGED', 'This request was already decided or withdrawn');
+    if (target) {
+      try {
+        await forgetUser(target);
+      } catch (err) {
+        // Nothing was forgotten for sure: open the request again so it can be retried.
+        await DeletionRequest.updateOne(
+          {_id: doc._id},
+          {$set: {status: 'requested'}, $unset: {decidedBy: 1, decidedAt: 1}},
+        );
+        throw err;
+      }
+    }
     await AuditLog.create({
       actorId: req.user.sub,
       actorEmail: req.user.email,

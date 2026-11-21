@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-
 // A stored file. Only the name, type and size are readable; the bytes are
 // sealed with AES-256-GCM (iv + tag + data).
+import mongoose from 'mongoose';
+
 export const VaultFile = mongoose.model(
   'VaultFile',
   new mongoose.Schema(

@@ -1,10 +1,10 @@
+// The banner and paused checkouts: read by everyone, changed by a superadmin.
 import {Router} from 'express';
 import {z} from 'zod';
 import {PRODUCTS} from '@pirento/shared';
 import {ACCESS, audit, requireAuth, requireInternal, requireRole, validate} from '@pirento/shared/server';
 import {Settings, readSettings} from '../models/Settings.js';
 
-// The banner and paused checkouts: read by everyone, changed by a superadmin.
 export const settingsRoutes = Router();
 
 const publicView = ({banner, paused}) => ({banner, paused});

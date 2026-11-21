@@ -1,8 +1,8 @@
+// Staff: every certificate issued, newest first, optionally for one track.
 import {Router} from 'express';
 import {ACCESS, requireAuth, requireRole} from '@pirento/shared/server';
 import {Certificate} from '../models/Certificate.js';
 
-// Staff: every certificate issued, newest first, optionally for one track.
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.learning));
 

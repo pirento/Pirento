@@ -273,10 +273,11 @@ h3,
   }
 }
 
-/* Printing the Bharat ID card: only the page content, no site chrome. */
+/* Printing (the Bharat ID card, a receipt): only the page content, no site chrome or sidebar. */
 @media print {
   header,
   footer,
+  aside,
   #contact,
   .no-print,
   .skip-link {

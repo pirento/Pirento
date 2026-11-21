@@ -52,18 +52,18 @@ services/<name>/src
 
 ## Services
 
-| Service  | Port | Owns                                                               |
-| -------- | ---- | ------------------------------------------------------------------ |
-| gateway  | 4000 | routing, rate limits, serving the website                          |
-| auth     | 4001 | accounts, email codes, sessions, roles                             |
-| wallet   | 4002 | balances (paise), the ledger, withdrawals                          |
-| catalog  | 4003 | products and prices (from `packages/shared`), site settings        |
-| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals |
-| identity | 4005 | Bharat ID applications, video KYC, verify                          |
-| learning | 4006 | Intern exam, certificates, openings and applications               |
-| vault    | 4007 | encrypted files and passwords                                      |
-| support  | 4008 | tickets                                                            |
-| ai       | 4009 | the Claude assistant                                               |
+| Service  | Port | Owns                                                                                      |
+| -------- | ---- | ----------------------------------------------------------------------------------------- |
+| gateway  | 4000 | routing, rate limits, serving the website                                                 |
+| auth     | 4001 | accounts, email codes, sessions, roles                                                    |
+| wallet   | 4002 | balances (paise), the ledger, withdrawals                                                 |
+| catalog  | 4003 | products and prices (from `packages/shared`), admin edits and new services, site settings |
+| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals                        |
+| identity | 4005 | Bharat ID applications, video KYC, verify                                                 |
+| learning | 4006 | Intern exam, certificates, openings and applications                                      |
+| vault    | 4007 | encrypted files and passwords                                                             |
+| support  | 4008 | tickets, contact-form enquiries                                                           |
+| ai       | 4009 | the Claude assistant                                                                      |
 
 ## The website
 

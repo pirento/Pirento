@@ -23,11 +23,15 @@ export const config = {
   superadminStaffId: env('SUPERADMIN_STAFF_ID', ''),
   superadminPassword: env('SUPERADMIN_PASSWORD', ''),
   /** Services that keep personal data and forget it when an account is deleted. */
+  // The wallet goes first: it refuses while a withdrawal is still being paid, before anything else is forgotten.
   forgetUrls: () => [
+    env('WALLET_URL', 'http://127.0.0.1:4002'),
     env('IDENTITY_URL', 'http://127.0.0.1:4005'),
     env('VAULT_URL', 'http://127.0.0.1:4007'),
     env('AI_URL', 'http://127.0.0.1:4009'),
     env('LEARNING_URL', 'http://127.0.0.1:4006'),
+    env('ORDERS_URL', 'http://127.0.0.1:4004'),
+    env('SUPPORT_URL', 'http://127.0.0.1:4008'),
   ],
 
   /** Emails promoted to superadmin on sign-in: the way to bootstrap the first admin. */

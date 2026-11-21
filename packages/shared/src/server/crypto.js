@@ -1,7 +1,7 @@
-import crypto from 'node:crypto';
-
 // AES-256-GCM with a random 12-byte IV per item. GCM's tag makes any change to
 // the stored bytes fail on decrypt instead of returning garbage.
+import crypto from 'node:crypto';
+
 export const keyFrom = (secret) => crypto.createHash('sha256').update(secret).digest();
 
 export function encrypt(key, plain) {

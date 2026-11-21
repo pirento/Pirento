@@ -35,6 +35,9 @@ export async function refresh() {
   return refreshing;
 }
 
+// On these a 401 means a wrong password or a dead cookie, not an expired token, so they never retry.
+const NO_RETRY = ['/api/auth/refresh', '/api/auth/password/login', '/api/auth/staff/login', '/api/auth/google'];
+
 /** fetch with the access token, refreshing once on 401. */
 export async function authFetch(url, init = {}) {
   const send = () =>
@@ -43,7 +46,7 @@ export async function authFetch(url, init = {}) {
       headers: {...init.headers, ...(accessToken ? {Authorization: `Bearer ${accessToken}`} : {})},
     });
   let res = await send();
-  if (res.status === 401 && !url.startsWith('/api/auth/') && hasFlag()) {
+  if (res.status === 401 && !NO_RETRY.includes(url) && hasFlag()) {
     try {
       await refresh();
       res = await send();

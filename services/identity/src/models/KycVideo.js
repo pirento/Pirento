@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-
 // The KYC recording, encrypted with AES-256-GCM (see shared/server/crypto.js).
 // Kept apart from Identity so listing applications never loads megabytes of video.
+import mongoose from 'mongoose';
+
 export const KycVideo = mongoose.model(
   'KycVideo',
   new mongoose.Schema(

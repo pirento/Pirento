@@ -3,7 +3,7 @@ import {Field} from '../../components/ui/Field';
 
 export function Question({q, value, onChange}) {
   if (!q.options) {
-    return (
+    const field = (
       <Field
         label={q.label}
         required={Boolean(q.pattern || q.required)}
@@ -13,6 +13,14 @@ export function Question({q, value, onChange}) {
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value)}
       />
+    );
+    return q.help ? (
+      <div>
+        {field}
+        <p className="mt-2 text-sm text-muted">{q.help}</p>
+      </div>
+    ) : (
+      field
     );
   }
   if (q.options.length > 6) {

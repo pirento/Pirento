@@ -1,4 +1,4 @@
-// Admin overview: headline numbers, 30-day charts and paid orders per product.
+// Admin overview: for finance and superadmins, headline numbers, 30-day charts and paid orders per product.
 import {Link} from 'react-router-dom';
 import {PRODUCTS, statusLabel} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
@@ -7,8 +7,14 @@ import {useApi} from '../../lib/api/useApi';
 import {BarChart} from './BarChart';
 import {ACCESS_OF} from './adminNav';
 import {inr} from '../../lib/format';
+import {MyWork} from './MyWork';
 
+// Finance and superadmins see the whole business; everyone else sees their own work.
 export function Overview({me}) {
+  return ['finance', 'superadmin'].includes(me.role) ? <BusinessOverview me={me} /> : <MyWork me={me} />;
+}
+
+function BusinessOverview({me}) {
   // Ask only for what this role may read, so a support login sees no 403s.
   const may = (section) => ACCESS_OF(section).includes(me.role);
   const users = useApi('/auth/admin/stats');
@@ -16,6 +22,7 @@ export function Overview({me}) {
   const daily = useApi(may('orders') ? '/orders/staff/daily' : null);
   const kyc = useApi(may('bharat-id') ? '/identity/staff/queue' : null);
   const tickets = useApi(may('tickets') ? '/support/staff/queue' : null);
+  const enquiries = useApi(may('enquiries') ? '/support/staff/enquiries' : null);
   const d = orders.data;
   const top = Math.max(1, ...Object.values(d?.byProduct ?? {}).map((p) => p.amount));
 
@@ -27,6 +34,7 @@ export function Overview({me}) {
           ...(may('orders') ? [{value: d ? inr(d.revenue / 100) : '—', label: 'paid order value'}] : []),
           ...(may('bharat-id') ? [{value: String(kyc.data?.length ?? '—'), label: 'Bharat IDs to review'}] : []),
           ...(may('tickets') ? [{value: String(tickets.data?.length ?? '—'), label: 'tickets waiting on us'}] : []),
+          ...(may('enquiries') ? [{value: String(enquiries.data?.length ?? '—'), label: 'new enquiries'}] : []),
         ]}
       />
       <div className="grid gap-4 lg:grid-cols-3">

@@ -1,9 +1,8 @@
-import {PRODUCT_COLOURS, textOn} from './brand.js';
-import {PRODUCT_DETAILS} from './productDetails.js';
-
 // The ten Pirento products. Every line here describes what the product does
 // today and what it does not do yet. Keep it that way: no numbers or claims
 // that are not true.
+import {PRODUCT_COLOURS, textOn} from './brand.js';
+import {PRODUCT_DETAILS} from './productDetails.js';
 
 const signIn = {
   title: 'Sign in with email',

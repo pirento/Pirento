@@ -1,3 +1,4 @@
+// Saved chats, and sending a message to the assistant.
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, isId, notFound, validate} from '@pirento/shared/server';
@@ -5,9 +6,8 @@ import {config} from '../config.js';
 import {Chat} from '../models/Chat.js';
 import {DAILY_LIMIT} from '../lib/prompt.js';
 import {streamReply} from '../lib/claude.js';
-import {questionsToday} from '../lib/usage.js';
+import {giveBack, takeOne, usedToday} from '../lib/usage.js';
 
-// Saved chats, and sending a message to the assistant.
 export const chatRoutes = Router();
 
 const findOwnChat = async (req) => {
@@ -17,6 +17,11 @@ const findOwnChat = async (req) => {
 };
 
 chatRoutes.get('/status', (_req, res) => res.json({data: {enabled: config.enabled, dailyLimit: DAILY_LIMIT}}));
+
+/** Messages sent today and the daily allowance, for the meter on the AI dashboard. */
+chatRoutes.get('/usage', async (req, res) => {
+  res.json({data: {used: await usedToday(req.user.sub), limit: DAILY_LIMIT}});
+});
 
 chatRoutes.get('/chats', async (req, res) => {
   res.json({data: await Chat.find({userId: req.user.sub}, {messages: 0}).sort({updatedAt: -1}).limit(50)});
@@ -39,7 +44,7 @@ chatRoutes.post(
   validate(z.object({content: z.string().trim().min(1, 'Write a message').max(2000)})),
   async (req, res) => {
     if (!config.enabled) throw new ApiError(503, 'AI_UNAVAILABLE', 'Pirento AI is not switched on yet');
-    if ((await questionsToday(req.user.sub)) >= DAILY_LIMIT) {
+    if (!(await takeOne(req.user.sub, DAILY_LIMIT))) {
       throw new ApiError(429, 'DAILY_LIMIT', `You can send ${DAILY_LIMIT} messages a day. Try again tomorrow.`);
     }
 
@@ -70,6 +75,7 @@ chatRoutes.post(
         // Nothing came back: drop the question too, so a failed turn never enters the history.
         chat.messages.pop();
         await chat.save();
+        await giveBack(req.user.sub);
         return res.end('Sorry, something went wrong. Please try again.');
       }
     }

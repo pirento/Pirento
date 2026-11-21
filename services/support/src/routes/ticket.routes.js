@@ -1,17 +1,23 @@
+// Opening a ticket, reading it, replying and closing.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
-import {Ticket} from '../models/Ticket.js';
+import {ApiError, audit, canUse, isId, nextSeq, notFound, notify, validate} from '@pirento/shared/server';
+import {PRODUCTS, getProduct} from '@pirento/shared';
+import {PRIORITIES, Ticket} from '../models/Ticket.js';
 
-// Opening a ticket, reading it, replying and closing.
 export const ticketRoutes = Router();
 
 const messageBody = z.string().trim().min(2, 'Write a message').max(4000);
 
-/** The ticket in the URL, if it is the caller's or the caller is staff. */
+/** The team opens tickets that are theirs or nobody's yet; a superadmin opens any. */
+const teamCanOpen = (req, ticket) =>
+  canUse(req, 'support') &&
+  (req.user.role === 'superadmin' || !ticket.assignee?.id || ticket.assignee.id === req.user.sub);
+
+/** The ticket in the URL, if it is the caller's or the caller's team may open it. */
 async function findTicket(req) {
   const ticket = isId(req.params.id) && (await Ticket.findById(req.params.id));
-  if (!ticket || (ticket.userId !== req.user.sub && !canUse(req, 'support'))) throw notFound('Ticket not found');
+  if (!ticket || (ticket.userId !== req.user.sub && !teamCanOpen(req, ticket))) throw notFound('Ticket not found');
   return ticket;
 }
 
@@ -22,6 +28,8 @@ ticketRoutes.post(
       subject: z.string().trim().min(3, 'Add a short subject').max(120),
       message: messageBody,
       orderNo: z.number().int().positive().optional(),
+      product: z.enum(PRODUCTS.map((p) => p.slug)).optional(),
+      priority: z.enum(PRIORITIES).default('medium'),
     }),
   ),
   async (req, res) => {
@@ -31,6 +39,8 @@ ticketRoutes.post(
       email: req.user.email,
       subject: req.body.subject,
       orderNo: req.body.orderNo,
+      product: req.body.product,
+      priority: req.body.priority,
       messages: [{from: 'customer', body: req.body.message}],
     });
     res.status(201).json({data: ticket});
@@ -38,7 +48,7 @@ ticketRoutes.post(
 );
 
 ticketRoutes.get('/', async (req, res) => {
-  res.json({data: await Ticket.find({userId: req.user.sub}, {messages: 0}).sort({updatedAt: -1}).limit(100)});
+  res.json({data: await Ticket.find({userId: req.user.sub}, {messages: 0, notes: 0}).sort({updatedAt: -1}).limit(100)});
 });
 
 /** Staff see team notes on other people's tickets; customers never do. */
@@ -59,7 +69,15 @@ ticketRoutes.post('/:id/messages', validate(z.object({body: messageBody})), asyn
     {$push: {messages: {from, body: req.body.body}}, $set: {status: from === 'staff' ? 'answered' : 'open'}},
     {new: true},
   );
-  if (from === 'staff') audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
+  if (from === 'staff') {
+    audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
+    notify(ticket.userId, {
+      brand: getProduct(ticket.product ?? '')?.name,
+      label: `Support request #${ticket.ticketNo}`,
+      big: 'New reply',
+      note: `The team answered "${ticket.subject}". Open Support in your dashboard to read it and reply.`,
+    });
+  }
   res.json({data: forCaller(req, updated)});
 });
 

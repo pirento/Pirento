@@ -1,9 +1,9 @@
+// Each page's title, description and canonical URL, set from inside the page.
 import {useEffect, useRef} from 'react';
 import {reducedMotion} from './motion';
 
 const SITE = 'https://pirento.com';
 
-// Per-page title, description and canonical URL.
 export function usePageMeta({title, description}) {
   useEffect(() => {
     document.title = title;

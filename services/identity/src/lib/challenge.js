@@ -1,3 +1,4 @@
+// The spoken code that proves a KYC video was recorded live.
 import crypto from 'node:crypto';
 import {config} from '../config.js';
 
