@@ -71,6 +71,14 @@ export function Extra({product, n}) {
                   </Link>
                 </li>
               ))}
+              {/* Blank cells finish the last row, so the hairline grid never shows a grey gap (2 or 4 across). */}
+              {[0, 1, 2].map((k) => (
+                <li
+                  key={`blank-${k}`}
+                  aria-hidden
+                  className={`hidden bg-paper ${k < (2 - (areas.length % 2)) % 2 ? 'sm:block' : ''} ${k < (4 - (areas.length % 4)) % 4 ? 'lg:block' : 'lg:hidden'}`}
+                />
+              ))}
             </ul>
           </>
         )}
