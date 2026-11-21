@@ -12,7 +12,8 @@ internalRoutes.use('/internal', requireInternal);
 /** Account deletion: withdrawal requests keep their amounts, but lose the email and UPI ID. */
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
-  if (await Withdrawal.exists({userId, status: 'requested'})) {
+  // 'processing' too: a payout already sent through RazorpayX can still come back and need crediting.
+  if (await Withdrawal.exists({userId, status: {$in: ['requested', 'processing']}})) {
     throw conflict('WITHDRAWAL_OPEN', 'A withdrawal is still being paid out. Finish it before deleting.');
   }
   await Withdrawal.updateMany({userId}, {$set: {email: `deleted-${userId}@deleted.invalid`, upi: 'removed'}});

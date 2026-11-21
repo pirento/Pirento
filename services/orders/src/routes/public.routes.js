@@ -1,9 +1,8 @@
 // Routes that need no sign-in.
 import {Router} from 'express';
-import {ApiError, notFound} from '@pirento/shared/server';
+import {ApiError, notFound, razorpayConfig, webhookSignatureOk} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
 import {markPaid, noteExtraPayment} from '../lib/orders.js';
-import {razorpayConfig, webhookSignatureOk} from '../lib/razorpay.js';
 
 export const publicRoutes = Router();
 

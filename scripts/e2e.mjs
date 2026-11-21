@@ -99,7 +99,16 @@ check(
     })
   ).status === 404,
 );
-check('razorpay off', (await call(`/orders/${o._id}/pay/razorpay`, {method: 'POST', token: user})).status === 503);
+// Card/UPI is on only when the stack has Razorpay keys (a local stand-in in tests: RAZORPAY_URL, RAZORPAY_KEY_SECRET).
+const RZP = process.env.RAZORPAY_KEY_SECRET;
+if (!RZP) {
+  check('razorpay off', (await call(`/orders/${o._id}/pay/razorpay`, {method: 'POST', token: user})).status === 503);
+  check(
+    'card top-up off',
+    (await call('/wallet/topup/razorpay', {method: 'POST', token: user, body: {amount: 100}})).status === 503,
+  );
+}
+check('top-up options', (await call('/wallet/topup/config', {token: user})).data?.testTopup === true);
 check(
   'webhook bad signature',
   (
@@ -955,6 +964,74 @@ const paid = (
   })
 ).data;
 check('paid withdrawal', paid?.status === 'paid' && paid.utr === 'UTR123');
+
+// Card/UPI top-ups. The amount is the server's; the money lands once, whether the browser's callback or the
+// webhook (or both, or twice) reports it.
+if (RZP) {
+  const rzpSign = (secret, data) => crypto.createHmac('sha256', secret).update(data).digest('hex');
+  const rzpHook = (entity) => {
+    const raw = JSON.stringify({event: 'payment.captured', payload: {payment: {entity}}});
+    return fetch(B + '/wallet/topup/razorpay/webhook', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-razorpay-signature': rzpSign(process.env.RAZORPAY_WEBHOOK_SECRET, raw),
+      },
+      body: raw,
+    }).then((r) => r.status);
+  };
+  const topper = await login(`top${Date.now()}@example.com`);
+  const bal = async () => (await call('/wallet', {token: topper})).data.balance;
+  check('card top-up is offered', Boolean((await call('/wallet/topup/config', {token: topper})).data?.razorpayKeyId));
+  check(
+    'a top-up under ₹1 is refused',
+    (await call('/wallet/topup/razorpay', {method: 'POST', token: topper, body: {amount: 0.5}})).status === 400,
+  );
+  const opened = (await call('/wallet/topup/razorpay', {method: 'POST', token: topper, body: {amount: 250}})).data;
+  check(
+    'a top-up opens for the asked amount',
+    opened?.amount === 25000 && /^order_/.test(opened.razorpayOrderId),
+    opened,
+  );
+  const paid = {razorpay_order_id: opened?.razorpayOrderId, razorpay_payment_id: 'pay_top1'};
+  const signed = {...paid, razorpay_signature: rzpSign(RZP, `${paid.razorpay_order_id}|${paid.razorpay_payment_id}`)};
+  check(
+    'a forged signature credits nothing',
+    (
+      await call('/wallet/topup/razorpay/verify', {
+        method: 'POST',
+        token: topper,
+        body: {...paid, razorpay_signature: 'x'},
+      })
+    ).status === 400 && (await bal()) === 0,
+  );
+  check(
+    "someone else's top-up cannot be claimed",
+    (await call('/wallet/topup/razorpay/verify', {method: 'POST', token: user, body: signed})).status === 400,
+  );
+  const entity = {id: 'pay_top1', order_id: opened?.razorpayOrderId, amount: 25000};
+  check(
+    'a webhook for another amount is ignored',
+    (await rzpHook({...entity, amount: 99})) === 200 && (await bal()) === 0,
+  );
+  const [cb1, cb2, h1, h2] = await Promise.all([
+    call('/wallet/topup/razorpay/verify', {method: 'POST', token: topper, body: signed}),
+    call('/wallet/topup/razorpay/verify', {method: 'POST', token: topper, body: signed}),
+    rzpHook(entity),
+    rzpHook(entity),
+  ]);
+  const credits = (await call('/wallet', {token: topper})).data.transactions.filter((t) => /card or UPI/.test(t.note));
+  check(
+    'callback and webhook together credit once',
+    cb1.status === 200 &&
+      cb2.status === 200 &&
+      h1 === 200 &&
+      h2 === 200 &&
+      (await bal()) === 25000 &&
+      credits.length === 1,
+    {cb1: cb1.status, cb2: cb2.status, h1, h2, b: await bal(), n: credits.length},
+  );
+}
 
 // Withdrawals through RazorpayX. Runs when the stack points at a payout API (the local fake in tests):
 // RAZORPAYX_URL, RAZORPAYX_WEBHOOK_SECRET set for both the stack and this script.

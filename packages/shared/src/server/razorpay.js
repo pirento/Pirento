@@ -1,12 +1,13 @@
-// Razorpay: creating its orders and checking its signatures.
+// Razorpay (card and UPI): creating its orders and checking its signatures, for orders and wallet top-ups.
 // Read lazily so tests and dev can run without keys. No keys = Razorpay off.
 import crypto from 'node:crypto';
-import {safeEqual} from '@pirento/shared/server';
+import {safeEqual} from './internal.js';
 
 export const razorpayConfig = () => {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  return keyId && keySecret ? {keyId, keySecret, webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET} : null;
+  const url = process.env.RAZORPAY_URL || 'https://api.razorpay.com'; // a stand-in server in local tests
+  return keyId && keySecret ? {keyId, keySecret, url, webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET} : null;
 };
 
 const hmac = (secret, data) => crypto.createHmac('sha256', secret).update(data).digest('hex');
@@ -19,8 +20,8 @@ export const checkoutSignatureOk = (secret, {razorpay_order_id, razorpay_payment
 export const webhookSignatureOk = (secret, rawBody, signature) =>
   Boolean(secret && rawBody) && safeEqual(hmac(secret, rawBody), signature);
 
-export async function createRazorpayOrder({keyId, keySecret}, amount, receipt) {
-  const res = await fetch('https://api.razorpay.com/v1/orders', {
+export async function createRazorpayOrder({keyId, keySecret, url}, amount, receipt) {
+  const res = await fetch(`${url}/v1/orders`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
