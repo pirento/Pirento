@@ -45,6 +45,8 @@ export const ROUTES = [
   {path: '/checkout/:slug', Page: page(() => import('../features/orders/CheckoutPage'), 'Checkout')},
   {path: '/orders', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllOrders')},
   {path: '/receipts', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllReceipts')},
+  {path: '/payments', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'AllPayments')},
+  {path: '/subscriptions', layout: 'app', Page: page(() => import('../features/account/HubPages'), 'Subscriptions')},
   {path: '/orders/:id', Page: page(() => import('../features/orders/OrderPage'), 'OrderPage')},
 
   // Public checks and help

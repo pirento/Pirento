@@ -14,7 +14,10 @@ walletRoutes.use(requireAuth);
 walletRoutes.get('/', async (req, res) => {
   const [wallet, transactions] = await Promise.all([
     Wallet.findOne({userId: req.user.sub}),
-    Transaction.find({userId: req.user.sub}, {ref: 0}).sort({createdAt: -1}).limit(50),
+    // The dashboard needs the latest few; the payment history page asks for more (?limit, at most 500).
+    Transaction.find({userId: req.user.sub}, {ref: 0})
+      .sort({createdAt: -1})
+      .limit(Math.min(Math.max(Number(req.query.limit) || 50, 1), 500)),
   ]);
   res.json({data: {balance: wallet?.balance ?? 0, transactions}});
 });

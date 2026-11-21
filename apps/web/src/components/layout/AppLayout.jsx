@@ -4,7 +4,9 @@ import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
   Home,
+  ArrowLeftRight,
   Briefcase,
+  RefreshCw,
   FileText,
   MessagesSquare,
   LayoutDashboard,
@@ -21,7 +23,6 @@ import {
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
-import {PRODUCTS} from '@pirento/shared';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
@@ -85,24 +86,23 @@ function useAppNav() {
       ],
     };
   }
-  // The Pirento dashboard is the hub: everything across products, and the way into each one.
+  // The Pirento dashboard is the account's own place: money, records, support and settings for every product.
+  // It does not list the products; each one is reached from its own site and keeps its own dashboard.
   return {
     title: 'Pirento Ecosystem',
     groups: [
       {
         label: 'Account',
         items: [
-          {label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard},
-          {label: 'Orders', to: '/orders', icon: ShoppingBag},
+          {label: 'Overview', to: '/dashboard', icon: LayoutDashboard},
+          {label: 'Payments', to: '/payments', icon: ArrowLeftRight},
           {label: 'Receipts', to: '/receipts', icon: Receipt},
+          {label: 'Orders', to: '/orders', icon: ShoppingBag},
+          {label: 'Subscriptions', to: '/subscriptions', icon: RefreshCw},
           {label: 'Wallet', to: '/wallet', icon: WalletIcon},
           {label: 'Support', to: '/support', icon: LifeBuoy},
           {label: 'Account', to: '/account', icon: UserRound},
         ],
-      },
-      {
-        label: 'Products',
-        items: PRODUCTS.map((p) => ({label: p.name, to: `/${p.slug}/dashboard`, dot: p.color})),
       },
     ],
   };
@@ -191,11 +191,9 @@ function Sidebar({onNavigate}) {
 
       <div className="mt-6 space-y-1 border-t border-rule pt-4 text-sm">
         {[
-          // On a product's dashboard, the way back to the Pirento hub; the hub lists itself already.
-          {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: !staff && Boolean(product)},
+          // Staff only: the way back to the admin from a shared page, and to the public site.
           {label: 'Admin', to: '/admin', icon: ShieldCheck, show: staff && !inAdmin},
           {label: 'Pirento website', to: '/', icon: Home, show: staff},
-          {label: 'Verify a code', to: '/verify', icon: Search, show: true},
         ]
           .filter((l) => l.show)
           .map((l) => (

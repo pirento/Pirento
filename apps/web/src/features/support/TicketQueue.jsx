@@ -15,6 +15,7 @@ export const TicketQueue = () => (
       {label: 'Replied', value: 'answered'},
       {label: 'Closed', value: 'closed'},
     ]}
+    byProduct={{none: 'Account and wallet'}}
     render={(t) => (
       <Link
         key={t._id}
@@ -29,7 +30,10 @@ export const TicketQueue = () => (
             {t.email} · {getProduct(t.product ?? '')?.short ?? 'Account'} · {formatDate(t.updatedAt)}
           </span>
         </span>
-        <Tag>{STATUS[t.status]}</Tag>
+        <span className="flex items-center gap-2">
+          {t.priority === 'high' && <Tag tone="accent">High priority</Tag>}
+          <Tag>{STATUS[t.status]}</Tag>
+        </span>
       </Link>
     )}
   />

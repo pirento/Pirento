@@ -1,85 +1,50 @@
-// /support: the one support desk for every product, the account and the wallet. Opened from a product
-// (?product=legal&order=100031), it already knows where you came from and wears that product's colours.
+// /support: the one support desk for every product, the account and the wallet, in four ways to reach us
+// (tickets, live chat, email, callback). Opened from a product (?product=legal&order=100031), it already knows
+// where you came from and wears that product's colours.
 import {useRef, useState} from 'react';
-import {Link, useNavigate, useSearchParams} from 'react-router-dom';
-import {PRODUCTS, getProduct} from '@pirento/shared';
-import {Button} from '../../components/ui/Button';
+import {useSearchParams} from 'react-router-dom';
+import {getProduct} from '@pirento/shared';
 import {DashSection} from '../../components/ui/DashSection';
-import {Field} from '../../components/ui/Field';
 import {Heading} from '../../components/ui/Heading';
-import {Tag} from '../../components/ui/Tag';
-import {TextArea} from '../../components/ui/TextArea';
-import {support as copy} from '../../data/site';
+import {brand, support as copy} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
-import {STATUS} from './status';
-import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
-import {formatDate} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {Callback} from './Callback';
+import {LiveChat} from './LiveChat';
+import {NewTicket} from './NewTicket';
+import {TicketList} from './TicketList';
 
 export function Support() {
   const {redirect, user} = useSignedIn();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const tickets = useApi(user ? '/support' : null);
-  const navigate = useNavigate();
   const from = getProduct(params.get('product') ?? '');
-  const [form, setForm] = useState({
-    product: from?.slug ?? '',
-    subject: '',
-    message: '',
-    orderNo: (params.get('order') ?? '').replace(/\D/g, ''),
-  });
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
+  const tab = copy.tabs.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'tickets';
+  const [copied, setCopied] = useState(false);
   const ref = useRef(null);
-  usePageMotion(ref, [Boolean(tickets.data)]);
+  usePageMotion(ref, [Boolean(tickets.data), tab]);
   usePageMeta({title: `Support — ${from?.name ?? 'Pirento'}`});
   if (redirect) return redirect;
 
-  const submit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setBusy(true);
+  const open = (id) => {
+    const next = new URLSearchParams(params);
+    next.set('tab', id);
+    setParams(next, {replace: true});
+  };
+  const copyEmail = async () => {
     try {
-      const t = await api('/support', {
-        method: 'POST',
-        body: {
-          subject: form.subject,
-          message: form.message,
-          ...(form.product ? {product: form.product} : {}),
-          ...(form.orderNo ? {orderNo: Number(form.orderNo)} : {}),
-        },
-      });
-      navigate(`/support/${t._id}`);
-    } catch (err) {
-      setError(err.message);
-      setBusy(false);
+      await navigator.clipboard.writeText(brand.supportEmail);
+      setCopied(true);
+    } catch {
+      // Clipboard can be blocked; the address is on screen to copy by hand.
     }
   };
-  const open = tickets.data?.filter((t) => t.status !== 'closed') ?? [];
-  const closed = tickets.data?.filter((t) => t.status === 'closed') ?? [];
-
-  const TicketRow = ({t}) => (
-    <li>
-      <Link
-        to={`/support/${t._id}`}
-        className="flex items-center justify-between gap-4 border-b border-rule py-4 hover:border-ink"
-      >
-        <span className="min-w-0">
-          <span className="block truncate font-medium">{t.subject}</span>
-          <span className="text-xs text-muted">
-            #{t.ticketNo} · {getProduct(t.product ?? '')?.name ?? copy.general}
-            {t.orderNo && ` · order #${t.orderNo}`} · {formatDate(t.updatedAt)}
-          </span>
-        </span>
-        <Tag tone={t.status === 'answered' ? 'accent' : 'rule'}>{STATUS[t.status]}</Tag>
-      </Link>
-    </li>
-  );
+  const product = from?.slug ?? '';
 
   return (
-    <div ref={ref} className="space-y-14">
+    <div ref={ref} className="space-y-12">
       <header>
         <p className="eyebrow">
           {from ? `${from.name} · ` : ''}
@@ -89,77 +54,73 @@ export function Support() {
         <p className="body mt-4">{copy.intro}</p>
       </header>
 
-      <div className="grid gap-14 lg:grid-cols-12">
-        <div className="min-w-0 lg:col-span-7">
-          <DashSection n={1} id="new" label="New request" title="Tell us / what you need.">
-            <form onSubmit={submit} noValidate className="space-y-6">
-              <label className="block">
-                <span className="text-sm font-medium">{copy.about}</span>
-                <select
-                  value={form.product}
-                  onChange={(e) => setForm({...form, product: e.target.value})}
-                  className="mt-2 block w-full rounded-[14px] border border-rule bg-paper px-4 py-3 outline-none focus:border-ink"
-                >
-                  <option value="">{copy.general}</option>
-                  {PRODUCTS.map((p) => (
-                    <option key={p.slug} value={p.slug}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Field
-                label="Subject"
-                required
-                maxLength={120}
-                value={form.subject}
-                onChange={(e) => setForm({...form, subject: e.target.value})}
-              />
-              <Field
-                label="Order number, if it is about an order"
-                inputMode="numeric"
-                value={form.orderNo}
-                onChange={(e) => setForm({...form, orderNo: e.target.value.replace(/\D/g, '')})}
-              />
-              <TextArea
-                label="Message"
-                value={form.message}
-                onChange={(e) => setForm({...form, message: e.target.value})}
-              />
-              {error && (
-                <p role="alert" className="text-sm">
-                  ⚠ {error}
-                </p>
-              )}
-              <Button type="submit" variant="accent" disabled={busy}>
-                {busy ? 'Sending' : 'Send'}
-              </Button>
-            </form>
-          </DashSection>
-        </div>
-        <div className="min-w-0 lg:col-span-5">
-          <DashSection n={2} id="mine" label="Your requests" title="Every product, / one place.">
-            {tickets.data?.length === 0 && <p className="text-muted">Nothing yet.</p>}
-            {open.length > 0 && (
-              <ul className="border-t border-rule">
-                {open.map((t) => (
-                  <TicketRow key={t._id} t={t} />
-                ))}
-              </ul>
+      <nav aria-label="Ways to reach us" className="flex flex-wrap gap-2 border-b border-rule pb-4">
+        {copy.tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => open(t.id)}
+            aria-current={tab === t.id ? 'page' : undefined}
+            className={`rounded-full px-5 py-2.5 text-sm ${tab === t.id ? 'bg-ink text-paper' : 'border border-rule hover:border-ink'}`}
+          >
+            {t.label}
+            {t.id === 'tickets' && tickets.data?.length > 0 && (
+              <span className="ml-2 tabular-nums opacity-70">
+                {tickets.data.filter((x) => x.status !== 'closed').length}
+              </span>
             )}
-            {closed.length > 0 && (
-              <details className="mt-8">
-                <summary className="cursor-pointer text-sm text-muted">Closed ({closed.length})</summary>
-                <ul className="mt-3 border-t border-rule">
-                  {closed.map((t) => (
-                    <TicketRow key={t._id} t={t} />
-                  ))}
-                </ul>
-              </details>
-            )}
-          </DashSection>
+          </button>
+        ))}
+      </nav>
+
+      {tab === 'tickets' && (
+        <div className="grid gap-14 lg:grid-cols-12">
+          <div className="min-w-0 lg:col-span-7">
+            <DashSection n={1} id="new" label="New request" title="Tell us / what you need.">
+              <NewTicket product={product} orderNo={(params.get('order') ?? '').replace(/\D/g, '')} />
+            </DashSection>
+          </div>
+          <div className="min-w-0 lg:col-span-5">
+            <DashSection n={2} id="mine" label="Your requests" title="Every product, / one place.">
+              <TicketList tickets={tickets.data} />
+            </DashSection>
+          </div>
         </div>
-      </div>
+      )}
+
+      {tab === 'chat' && (
+        <DashSection n={1} id="chat" label={copy.tabs[1].label} title={copy.chat.title}>
+          <LiveChat tickets={tickets.data} product={product} onStarted={tickets.reload} />
+        </DashSection>
+      )}
+
+      {tab === 'email' && (
+        <DashSection n={1} id="email" label={copy.tabs[2].label} title={copy.email.title}>
+          <p className="text-muted">{copy.email.intro}</p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <a
+              href={`mailto:${brand.supportEmail}${from ? `?subject=${encodeURIComponent(from.name)}` : ''}`}
+              className="rounded-full bg-accent px-6 py-3 text-sm font-medium text-on-accent"
+            >
+              {brand.supportEmail}
+            </a>
+            <button
+              type="button"
+              onClick={copyEmail}
+              className="rounded-full border border-rule px-5 py-3 text-sm hover:border-ink"
+            >
+              {copied ? 'Copied' : 'Copy address'}
+            </button>
+          </div>
+        </DashSection>
+      )}
+
+      {tab === 'call' && (
+        <DashSection n={1} id="call" label={copy.tabs[3].label} title={copy.call.title}>
+          <p className="mb-6 text-muted">{copy.call.intro}</p>
+          <Callback product={product} onDone={tickets.reload} />
+        </DashSection>
+      )}
     </div>
   );
 }

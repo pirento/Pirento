@@ -24,6 +24,7 @@ export const SECTIONS = {
     <StaffQueue
       path="/orders/staff/queue"
       filters={FILTERS}
+      byProduct={{}}
       render={(o, reload) => <StaffOrder key={o._id} order={o} onChange={reload} />}
     />
   ),

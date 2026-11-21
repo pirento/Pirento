@@ -1,6 +1,5 @@
-// The Pirento dashboard: the hub of the account. It says what needs you across products, takes you into each
-// product's own dashboard, and holds what belongs to the account itself (the one wallet, identity, support).
-// The work of each product stays in that product's dashboard; the hub does not repeat it.
+// The Pirento dashboard: the account's own place. Money, records, support and settings for every product live
+// here; each product's work stays in that product's own dashboard, so this page does not list the products.
 import {useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowDownLeft, ArrowUpRight, LifeBuoy, Search} from 'lucide-react';
@@ -15,7 +14,10 @@ import {useSignedIn} from '../auth/useSignedIn';
 import {dashboard} from '../../data/site';
 import {ContinueList, waitingItems} from './ContinueList';
 import {NextSteps, stepsDone} from './NextSteps';
-import {YourProducts} from './YourProducts';
+import {paymentHistory, spentThisMonth} from './payments';
+import {hasReceipt} from '../orders/receipts';
+import {getProduct} from '@pirento/shared';
+import {formatDate, inr} from '../../lib/format';
 import {accountStats} from './accountStats';
 import {greeting, summaryLine} from './summary';
 import {useDashboardData} from './useDashboardData';
@@ -35,9 +37,13 @@ export function Dashboard() {
   const name = user.name?.trim().split(/\s+/)[0];
   const ready = data.loaded.orders && data.loaded.tickets;
   const waiting = waitingItems(user, data);
-  // How many things wait in each product, for the badge on its card.
-  const needs = {};
-  for (const it of waiting) if (it.product) needs[it.product] = (needs[it.product] ?? 0) + 1;
+  const history = data.wallet && data.orders ? paymentHistory(data.wallet.transactions, data.orders) : null;
+  const glance = [
+    ...accountStats(data).slice(0, 1),
+    {label: 'Spent this month', value: history ? inr(spentThisMonth(history) / 100) : '—'},
+    {label: 'Receipts', value: data.orders ? String(data.orders.filter(hasReceipt).length) : '—'},
+    ...accountStats(data).slice(1, 3),
+  ];
   const done = stepsDone(user, data);
   const showSteps = done && Object.values(done).some((d) => !d);
   let n = 0;
@@ -63,8 +69,22 @@ export function Dashboard() {
         </div>
       </header>
 
-      <DashSection n={++n} id="products" label="Your products" title="Pick up / where you work.">
-        <YourProducts needs={needs} />
+      <DashSection n={++n} id="glance" label="At a glance" title="Your account, / every product.">
+        <StatsRow compact stats={glance} />
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <Link
+            to="/wallet#add"
+            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent"
+          >
+            <ArrowDownLeft aria-hidden className="size-4" /> Add money
+          </Link>
+          <Link to="/wallet#withdraw" className={pill}>
+            <ArrowUpRight aria-hidden className="size-4" /> Withdraw
+          </Link>
+          <Link to="/support" className={pill}>
+            <LifeBuoy aria-hidden className="size-4" /> Support
+          </Link>
+        </div>
       </DashSection>
 
       <div className={`grid gap-14 ${showSteps ? 'lg:grid-cols-12' : ''}`}>
@@ -92,25 +112,35 @@ export function Dashboard() {
         )}
       </div>
 
-      <DashSection n={++n} id="account" label="Your account" title="Shared by / every product.">
-        <StatsRow compact stats={accountStats(data)} />
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Link
-            to="/wallet#add"
-            className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent"
-          >
-            <ArrowDownLeft aria-hidden className="size-4" /> Add money
+      <DashSection
+        n={++n}
+        id="recent"
+        label="Payments"
+        title="Latest / payments."
+        action={
+          <Link to="/payments" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
+            Full history
           </Link>
-          <Link to="/wallet#withdraw" className={pill}>
-            <ArrowUpRight aria-hidden className="size-4" /> Withdraw
-          </Link>
-          <Link to="/support" className={pill}>
-            <LifeBuoy aria-hidden className="size-4" /> Support
-          </Link>
-          <Link to="/account" className="text-sm text-muted underline-offset-4 hover:text-ink hover:underline">
-            Profile and security
-          </Link>
-        </div>
+        }
+      >
+        {history?.length === 0 && <p className="text-muted">No payments yet.</p>}
+        <ul className="border-t border-rule">
+          {history?.slice(0, 6).map((p) => (
+            <li key={p.key} className="flex items-center justify-between gap-4 border-b border-rule py-3.5" data-reveal>
+              <span className="min-w-0">
+                <span className="block truncate">{p.title}</span>
+                <span className="text-xs text-muted">
+                  {p.product && `${getProduct(p.product)?.name} · `}
+                  {p.method} · {formatDate(p.at)}
+                </span>
+              </span>
+              <span className="shrink-0 text-sm tabular-nums">
+                {p.direction === 'in' ? '+' : '−'}
+                {inr(p.amount / 100)}
+              </span>
+            </li>
+          ))}
+        </ul>
       </DashSection>
     </div>
   );

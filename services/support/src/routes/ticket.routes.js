@@ -3,7 +3,7 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
 import {PRODUCTS} from '@pirento/shared';
-import {Ticket} from '../models/Ticket.js';
+import {PRIORITIES, Ticket} from '../models/Ticket.js';
 
 export const ticketRoutes = Router();
 
@@ -29,6 +29,7 @@ ticketRoutes.post(
       message: messageBody,
       orderNo: z.number().int().positive().optional(),
       product: z.enum(PRODUCTS.map((p) => p.slug)).optional(),
+      priority: z.enum(PRIORITIES).default('medium'),
     }),
   ),
   async (req, res) => {
@@ -39,6 +40,7 @@ ticketRoutes.post(
       subject: req.body.subject,
       orderNo: req.body.orderNo,
       product: req.body.product,
+      priority: req.body.priority,
       messages: [{from: 'customer', body: req.body.message}],
     });
     res.status(201).json({data: ticket});
@@ -46,7 +48,7 @@ ticketRoutes.post(
 );
 
 ticketRoutes.get('/', async (req, res) => {
-  res.json({data: await Ticket.find({userId: req.user.sub}, {messages: 0}).sort({updatedAt: -1}).limit(100)});
+  res.json({data: await Ticket.find({userId: req.user.sub}, {messages: 0, notes: 0}).sort({updatedAt: -1}).limit(100)});
 });
 
 /** Staff see team notes on other people's tickets; customers never do. */

@@ -285,13 +285,74 @@ export const orderDashboard = {
   },
 };
 
+// The Pirento dashboard's own pages: the account's money and records across every product.
+export const hub = {
+  payments: {title: 'Payments', label: 'Every product', heading: 'Every rupee, / in and out.'},
+  subscriptions: {
+    title: 'Subscriptions',
+    label: 'Plans',
+    heading: 'No plans / to renew.',
+    // True today: every Pirento product is paid per order, so there is nothing recurring to show.
+    empty: 'You have no subscriptions. Pirento products are paid per order, so nothing renews or charges you again.',
+  },
+};
+
 /** The one support desk. `?product=<slug>` (and `&order=<no>`) say where someone came from. */
 export const support = {
   title: 'Support',
-  heading: 'Ask us / anything.',
-  intro: 'One desk for every Pirento product, your account and your wallet. A person on our team replies here.',
-  about: 'About',
+  heading: 'How can / we help?',
+  intro: 'One desk for every Pirento product, your account and your wallet. A person on our team replies.',
+  about: 'Related product',
   general: 'My account or wallet',
+  tabs: [
+    {id: 'tickets', label: 'My tickets'},
+    {id: 'chat', label: 'Live chat'},
+    {id: 'email', label: 'Email'},
+    {id: 'call', label: 'Callback'},
+  ],
+  // Quick topics fill in the form; the customer can still change anything.
+  topics: [
+    {
+      title: 'Billing and payments',
+      body: 'Charges, refunds, receipts, the wallet.',
+      subject: 'Billing question',
+      priority: 'medium',
+    },
+    {
+      title: 'Technical help',
+      body: 'Something on the site is not working.',
+      subject: 'Something is not working',
+      priority: 'high',
+    },
+    {
+      title: 'Account access',
+      body: 'Sign-in, codes, password, security.',
+      subject: 'Trouble signing in',
+      priority: 'high',
+    },
+  ],
+  priorities: [
+    {id: 'low', label: 'Low · when you can'},
+    {id: 'medium', label: 'Medium'},
+    {id: 'high', label: 'High · it blocks me'},
+  ],
+  chat: {
+    title: 'Chat with / the team.',
+    intro: 'A conversation that stays on record. Our team answers here, and you can come back to it any time.',
+    start: 'Start a chat',
+    subject: 'Live chat',
+  },
+  email: {
+    title: 'Write to / us.',
+    intro: 'Prefer your own email? Send it to our support address and the team replies by email.',
+  },
+  call: {
+    title: 'We call / you back.',
+    intro:
+      'Leave your number and what it is about. Someone from the team calls you, and the request stays under My tickets.',
+    topics: ['An order', 'A payment or refund', 'My account', 'Something else'],
+    done: 'Callback requested. You can follow it under My tickets.',
+  },
 };
 
 // The ecosystem dashboard: quick actions and the first things worth doing.

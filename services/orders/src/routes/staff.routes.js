@@ -100,6 +100,11 @@ staffRoutes.get('/staff/queue', async (req, res) => {
   const status =
     typeof req.query.status === 'string' && req.query.status in STAFF_TRANSITIONS ? req.query.status : null;
   const filter = scoped(req, status ? {status} : {status: {$in: ['paid', 'in_progress']}});
+  // One product's orders (?product=legal), never outside the staffer's own products.
+  const scope = productScope(req);
+  if (typeof req.query.product === 'string' && (!scope || scope.includes(req.query.product))) {
+    filter.product = req.query.product;
+  }
   if (req.query.mine === '1') filter['assignee.id'] = req.user.sub;
   else if (!seesAllWork(req)) filter.$or = [{'assignee.id': req.user.sub}, {'assignee.id': {$exists: false}}];
   res.json({data: await Order.find(filter).sort({createdAt: 1}).limit(200)});

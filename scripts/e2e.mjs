@@ -713,6 +713,29 @@ check(
 const tk = (
   await call('/support', {method: 'POST', token: user, body: {subject: 'Capital waitlist', message: 'A shop loan'}})
 ).data;
+const urgent = (
+  await call('/support', {
+    method: 'POST',
+    token: user,
+    body: {subject: 'Cannot sign in', message: 'Codes do not arrive', priority: 'high'},
+  })
+).data;
+check('a ticket keeps its priority', urgent?.priority === 'high' && tk?.priority === 'medium');
+const openQueue = (await call('/support/staff/queue?status=open', {token: boss})).data ?? [];
+check(
+  'high priority comes first in the queue',
+  openQueue.findIndex((t) => t._id === urgent?._id) < openQueue.findIndex((t) => t._id === tk?._id),
+);
+const legalTickets = (await call('/support/staff/queue?status=open&product=legal', {token: boss})).data ?? [];
+check('tickets filter by product', legalTickets.length > 0 && legalTickets.every((t) => t.product === 'legal'));
+check(
+  'account tickets filter',
+  ((await call('/support/staff/queue?status=open&product=none', {token: boss})).data ?? [{product: 'x'}]).every(
+    (t) => !t.product,
+  ),
+);
+const legalOrders = (await call('/orders/staff/queue?status=pending_payment&product=legal', {token: boss})).data;
+check('orders filter by product', Array.isArray(legalOrders) && legalOrders.every((o) => o.product === 'legal'));
 const supAgain = (await loginWithCookie(supUser.email)).token;
 const supMe = (await call('/auth/me', {token: supAgain})).data;
 const withNote = (
@@ -720,6 +743,10 @@ const withNote = (
 ).data;
 check('team note', withNote?.notes?.at(-1)?.body === 'Call back Monday');
 check('customer never sees notes', (await call(`/support/${tk._id}`, {token: user})).data?.notes === undefined);
+check(
+  'customer list hides notes too',
+  ((await call('/support', {token: user})).data ?? []).every((t) => t.notes === undefined),
+);
 check(
   'customer cannot add notes',
   (await call(`/support/${tk._id}/notes`, {method: 'POST', token: user, body: {body: 'hi there'}})).status === 404,
