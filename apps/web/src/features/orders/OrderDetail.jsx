@@ -77,6 +77,9 @@ export function OrderDetail() {
               <FileText aria-hidden className="size-4" /> Receipt
             </Link>
           )}
+          <Link to={`/support?product=${slug}&order=${order.orderNo}`} className="underline-offset-4 hover:underline">
+            Ask support about this order
+          </Link>
           {order.status === 'pending_payment' && (
             <button onClick={cancel} className="text-muted underline underline-offset-4 hover:text-ink">
               Cancel order

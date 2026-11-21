@@ -2,6 +2,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, audit, canUse, isId, nextSeq, notFound, validate} from '@pirento/shared/server';
+import {PRODUCTS} from '@pirento/shared';
 import {Ticket} from '../models/Ticket.js';
 
 export const ticketRoutes = Router();
@@ -27,6 +28,7 @@ ticketRoutes.post(
       subject: z.string().trim().min(3, 'Add a short subject').max(120),
       message: messageBody,
       orderNo: z.number().int().positive().optional(),
+      product: z.enum(PRODUCTS.map((p) => p.slug)).optional(),
     }),
   ),
   async (req, res) => {
@@ -36,6 +38,7 @@ ticketRoutes.post(
       email: req.user.email,
       subject: req.body.subject,
       orderNo: req.body.orderNo,
+      product: req.body.product,
       messages: [{from: 'customer', body: req.body.message}],
     });
     res.status(201).json({data: ticket});

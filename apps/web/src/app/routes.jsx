@@ -50,8 +50,8 @@ export const ROUTES = [
   // Public checks and help
   {path: '/verify', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
   {path: '/verify/:code', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
-  {path: '/support', Page: page(() => import('../features/support/SupportPage'), 'Support')},
-  {path: '/support/:id', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
+  {path: '/support', layout: 'app', Page: page(() => import('../features/support/SupportPage'), 'Support')},
+  {path: '/support/:id', layout: 'app', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
 
   // Staff
   {path: '/admin', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},

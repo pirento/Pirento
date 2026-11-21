@@ -12,16 +12,13 @@ import {
   CreditCard,
   FileText,
   Gavel,
-  LifeBuoy,
   Mail,
   MessageSquare,
   MessagesSquare,
   Package,
   PenLine,
   Receipt,
-  Search,
   ShieldCheck,
-  Sparkles,
   Users,
 } from 'lucide-react';
 import {LEGAL_CATALOGUE, legalServiceSlug} from '@pirento/shared';
@@ -42,7 +39,6 @@ import {usePageMeta} from '../../lib/page';
 import {useServicesFor} from '../../lib/prices';
 
 const OPEN = ['pending_payment', 'paid', 'in_progress'];
-const HELP_ICONS = {support: LifeBuoy, ai: Sparkles, verify: Search};
 // One icon per area of law, in the catalogue's order; anything new falls back to a document.
 const AREA_ICONS = [
   Building2,
@@ -294,6 +290,7 @@ function Waiting({toPay, replies, base}) {
 export function OrdersDashboard({product, section = 'overview'}) {
   const {redirect, user} = useSignedIn();
   const orders = useApi(user ? '/orders' : null);
+  const wallet = useApi(user ? '/wallet' : null);
   const [filter, setFilter] = useState('open');
   const ref = useRef(null);
   const sections = productDashboards[product.slug];
@@ -345,7 +342,7 @@ export function OrdersDashboard({product, section = 'overview'}) {
           <Button to={browse} variant="accent">
             New order
           </Button>
-          <Button to="/support" variant="outline" icon={MessageSquare}>
+          <Button to={`/support?product=${product.slug}`} variant="outline" icon={MessageSquare}>
             Ask support
           </Button>
         </div>
@@ -361,6 +358,8 @@ export function OrdersDashboard({product, section = 'overview'}) {
                 {value: orders.data ? String(toPay.length) : '—', label: 'to pay'},
                 {value: orders.data ? String(done.length) : '—', label: 'completed'},
                 {value: orders.data ? inr(paidTotal / 100) : '—', label: 'paid in all'},
+                // The one Pirento wallet, the same balance in every product.
+                {value: wallet.data ? inr(wallet.data.balance / 100) : '—', label: 'wallet'},
               ]}
             />
           </DashSection>
@@ -455,18 +454,6 @@ export function OrdersDashboard({product, section = 'overview'}) {
           title={product.slug === 'legal' ? copy.start.legalTitle : copy.start.title}
         >
           <StartGrid product={product} browse={browse} />
-        </DashSection>
-      )}
-
-      {section === 'help' && (
-        <DashSection n={1} id="help" label={copy.help.label} title={copy.help.title}>
-          <ul className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-            {copy.helpItems.map((h) => (
-              <li key={h.to}>
-                <Card to={h.to} icon={HELP_ICONS[h.icon]} title={h.title} body={h.body} />
-              </li>
-            ))}
-          </ul>
         </DashSection>
       )}
     </div>

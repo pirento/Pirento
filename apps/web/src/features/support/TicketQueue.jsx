@@ -1,5 +1,6 @@
 // Staff queue of support tickets.
 import {Link} from 'react-router-dom';
+import {getProduct} from '@pirento/shared';
 import {Tag} from '../../components/ui/Tag';
 import {StaffQueue} from '../admin/StaffQueue';
 import {STATUS} from './status';
@@ -25,7 +26,7 @@ export const TicketQueue = () => (
             #{t.ticketNo} · {t.subject}
           </span>
           <span className="text-sm text-muted">
-            {t.email} · {formatDate(t.updatedAt)}
+            {t.email} · {getProduct(t.product ?? '')?.short ?? 'Account'} · {formatDate(t.updatedAt)}
           </span>
         </span>
         <Tag>{STATUS[t.status]}</Tag>

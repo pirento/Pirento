@@ -17,6 +17,8 @@ export function productFromPath(pathname, search = '') {
     return productFromPath((new URLSearchParams(search).get('next') ?? '').split('?')[0]);
   }
   if (a === 'products' && b) return getProduct(b);
+  // The one support desk wears the colours of the product you came from (/support?product=legal).
+  if (a === 'support' && !b) return getProduct(new URLSearchParams(search).get('product') ?? '');
   return getProduct(a ?? '');
 }
 

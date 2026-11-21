@@ -219,15 +219,21 @@ export const terms = {
 };
 
 // Each product's own dashboard: the sections in its sidebar, in order (the first is /<slug>/dashboard).
-// Products not listed here have a single dashboard page for now.
+// Every product shows the one Pirento wallet (same balance everywhere) and links to the one support desk.
+const SHARED_SECTIONS = [
+  {id: 'wallet', label: 'Wallet', icon: 'wallet'},
+  {id: 'support', label: 'Support', icon: 'help', support: true},
+];
 const ORDER_SECTIONS = (orders, services, extra = []) => [
   {id: 'overview', label: 'Overview', icon: 'overview'},
   {id: 'orders', label: orders, icon: 'orders'},
   ...extra,
   {id: 'receipts', label: 'Receipts', icon: 'receipts'},
   {id: 'services', label: services, icon: 'services'},
-  {id: 'help', label: 'Help', icon: 'help'},
+  ...SHARED_SECTIONS,
 ];
+/** Products with a single page of their own (Intern, AI, Vault, One, Capital, Bharat ID) for now. */
+export const SINGLE_PAGE_SECTIONS = [{id: 'overview', label: 'Dashboard', icon: 'overview'}, ...SHARED_SECTIONS];
 const DOCUMENTS = {id: 'documents', label: 'Documents', icon: 'documents'};
 export const productDashboards = {
   legal: ORDER_SECTIONS('My requests', 'Areas of law', [
@@ -257,7 +263,6 @@ export const orderDashboard = {
     legalTitle: 'Pick an area / of law.',
     title: 'Order / something new.',
   },
-  help: {label: 'Help', title: 'Stuck? / Ask us.'},
   documents: {
     label: 'Documents',
     title: 'Every paper, / both ways.',
@@ -272,11 +277,21 @@ export const orderDashboard = {
     // The catalogue's consultation area; the first four are the quick calls.
     area: 'Consultation & Support',
   },
-  helpItems: [
-    {title: 'Ask support', body: 'Write to the team about an order or a question.', to: '/support', icon: 'support'},
-    {title: 'Ask Pirento AI', body: 'Not sure which service fits? Ask in your words.', to: '/ai/dashboard', icon: 'ai'},
-    {title: 'Verify a record', body: 'Check a completion code or certificate.', to: '/verify', icon: 'verify'},
-  ],
+  wallet: {
+    label: 'Wallet',
+    title: 'One wallet, / every product.',
+    intro: 'The same Pirento wallet and balance in every product. Add money once, pay anywhere.',
+    paid: 'Paid from your wallet here',
+  },
+};
+
+/** The one support desk. `?product=<slug>` (and `&order=<no>`) say where someone came from. */
+export const support = {
+  title: 'Support',
+  heading: 'Ask us / anything.',
+  intro: 'One desk for every Pirento product, your account and your wallet. A person on our team replies here.',
+  about: 'About',
+  general: 'My account or wallet',
 };
 
 // The ecosystem dashboard: quick actions and the first things worth doing.

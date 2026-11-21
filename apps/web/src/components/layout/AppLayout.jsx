@@ -26,7 +26,7 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
-import {productDashboards} from '../../data/site';
+import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
 
 const SECTION_ICONS = {
   overview: LayoutDashboard,
@@ -36,6 +36,7 @@ const SECTION_ICONS = {
   help: LifeBuoy,
   documents: FileText,
   consultations: MessagesSquare,
+  wallet: WalletIcon,
 };
 
 const InApp = createContext(false);
@@ -48,7 +49,8 @@ function useAppNav() {
   const {user} = useSession();
   const product = useProductSite();
 
-  if (pathname.startsWith('/admin')) {
+  // Staff always get the admin sidebar, also on pages both sides use (a ticket, an order).
+  if (pathname.startsWith('/admin') || isStaffRole(user?.role)) {
     return {
       title: 'Pirento Admin',
       // One sidebar group per section group (Work, People, Money…), keeping their order.
@@ -58,9 +60,10 @@ function useAppNav() {
       })),
     };
   }
-  // A product's dashboard is its own app: only its sections, never the other products.
+  // A product's dashboard is its own app: only its sections, never the other products. Wallet and Support
+  // appear in every product, but there is one wallet and one support desk behind them.
   if (product) {
-    const sections = productDashboards[product.slug] ?? [{id: 'overview', label: 'Dashboard', icon: 'overview'}];
+    const sections = productDashboards[product.slug] ?? SINGLE_PAGE_SECTIONS;
     return {
       title: product.name,
       groups: [
@@ -69,7 +72,11 @@ function useAppNav() {
           items: [
             ...sections.map((s, i) => ({
               label: s.label,
-              to: i === 0 ? `/${product.slug}/dashboard` : `/${product.slug}/dashboard/${s.id}`,
+              to: s.support
+                ? `/support?product=${product.slug}`
+                : i === 0
+                  ? `/${product.slug}/dashboard`
+                  : `/${product.slug}/dashboard/${s.id}`,
               icon: SECTION_ICONS[s.icon],
             })),
             {label: `${product.short} website`, to: `/${product.slug}`, icon: Home},
@@ -89,6 +96,7 @@ function useAppNav() {
           {label: 'Orders', to: '/orders', icon: ShoppingBag},
           {label: 'Receipts', to: '/receipts', icon: Receipt},
           {label: 'Wallet', to: '/wallet', icon: WalletIcon},
+          {label: 'Support', to: '/support', icon: LifeBuoy},
           {label: 'Account', to: '/account', icon: UserRound},
         ],
       },
@@ -186,7 +194,6 @@ function Sidebar({onNavigate}) {
           // On a product's dashboard, the way back to the Pirento hub; the hub lists itself already.
           {label: 'Pirento dashboard', to: '/dashboard', icon: LayoutDashboard, show: !staff && Boolean(product)},
           {label: 'Admin', to: '/admin', icon: ShieldCheck, show: staff && !inAdmin},
-          {label: 'Support', to: '/support', icon: LifeBuoy, show: !staff},
           {label: 'Pirento website', to: '/', icon: Home, show: staff},
           {label: 'Verify a code', to: '/verify', icon: Search, show: true},
         ]

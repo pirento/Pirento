@@ -1,7 +1,11 @@
-// "Needs you": the things waiting on you, each with the one button that finishes it.
+// "Needs you" on the hub: what is waiting on you in any product, each with the one button that finishes it.
+// Every item opens inside its own product's dashboard (or the support desk), and names that product.
 import {Link} from 'react-router-dom';
 import {CircleCheck, CreditCard, Fingerprint, MessageSquare, UserRound} from 'lucide-react';
+import {getProduct} from '@pirento/shared';
 import {inr} from '../../lib/format';
+
+const nameOf = (slug) => getProduct(slug ?? '')?.name;
 
 export function waitingItems(user, {orders, tickets, identity}) {
   return [
@@ -9,22 +13,36 @@ export function waitingItems(user, {orders, tickets, identity}) {
       .filter((o) => o.status === 'pending_payment')
       .map((o) => ({
         icon: CreditCard,
+        product: o.product,
         title: `Pay for ${o.serviceName}`,
-        note: `Order #${o.orderNo} · ${inr(o.amount / 100)}`,
+        note: `${nameOf(o.product)} · order #${o.orderNo} · ${inr(o.amount / 100)}`,
         cta: 'Pay now',
-        to: `/orders/${o._id}`,
+        to: `/${o.product}/dashboard/orders/${o._id}`,
+      })),
+    // The team wrote last on a live order: probably a question for you.
+    ...(orders ?? [])
+      .filter((o) => o.status !== 'cancelled' && o.messages?.at(-1)?.from === 'team')
+      .map((o) => ({
+        icon: MessageSquare,
+        product: o.product,
+        title: `The team wrote about ${o.serviceName}`,
+        note: `${nameOf(o.product)} · ${o.messages.at(-1).body}`,
+        cta: 'Read',
+        to: `/${o.product}/dashboard/orders/${o._id}#messages`,
       })),
     ...(tickets ?? [])
       .filter((t) => t.status === 'answered')
       .map((t) => ({
         icon: MessageSquare,
+        product: t.product,
         title: 'Support replied',
-        note: t.subject,
+        note: `${nameOf(t.product) ?? 'Account'} · ${t.subject}`,
         cta: 'Read',
         to: `/support/${t._id}`,
       })),
     identity?.status === 'draft' && {
       icon: Fingerprint,
+      product: 'bharat-id',
       title: 'Finish your Bharat ID',
       note: 'Your answers are saved',
       cta: 'Continue',
@@ -32,6 +50,7 @@ export function waitingItems(user, {orders, tickets, identity}) {
     },
     identity?.status === 'rejected' && {
       icon: Fingerprint,
+      product: 'bharat-id',
       title: 'Bharat ID needs a change',
       note: identity.reason,
       cta: 'Fix it',

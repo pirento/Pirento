@@ -16,6 +16,8 @@ export const Ticket = mongoose.model(
       email: {type: String, required: true},
       subject: {type: String, required: true, maxlength: 120},
       orderNo: Number,
+      // Which product it came from (its slug), or none for the account and wallet: one support desk for all.
+      product: {type: String, index: true},
       status: {type: String, enum: TICKET_STATUSES, default: 'open', index: true},
       messages: [
         {

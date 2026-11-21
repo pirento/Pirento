@@ -1,6 +1,8 @@
-// One support conversation.
+// One support conversation, for its customer and for the team.
 import {useState} from 'react';
-import {useParams} from 'react-router-dom';
+import {Link, useParams} from 'react-router-dom';
+import {ArrowLeft} from 'lucide-react';
+import {getProduct} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Button} from '../../components/ui/Button';
 import {Section} from '../../components/ui/Heading';
@@ -13,6 +15,7 @@ import {TeamPanel} from './TeamPanel';
 import {api} from '../../lib/api/client';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
+import {support as copy} from '../../data/site';
 import {formatDate} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
 
@@ -47,7 +50,18 @@ export function Ticket() {
 
   return (
     <div>
-      <PageHero label={`Request #${t.ticketNo}${t.orderNo ? ` · order #${t.orderNo}` : ''}`} title={t.subject}>
+      <Link
+        to={staffView ? '/admin/tickets' : `/support${t.product ? `?product=${t.product}` : ''}`}
+        className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink"
+      >
+        <ArrowLeft aria-hidden className="size-4" /> {staffView ? 'Tickets' : 'All requests'}
+      </Link>
+      <PageHero
+        label={`Request #${t.ticketNo} · ${getProduct(t.product ?? '')?.name ?? copy.general}${
+          t.orderNo ? ` · order #${t.orderNo}` : ''
+        }`}
+        title={t.subject}
+      >
         <div className="mt-8 flex items-center gap-3">
           <Tag tone={t.status === 'answered' ? 'accent' : 'rule'}>{STATUS[t.status]}</Tag>
           {staffView && <span className="text-sm text-muted">{t.email}</span>}

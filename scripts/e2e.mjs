@@ -691,6 +691,25 @@ check(
 await call(`/auth/admin/users/${me2._id}/products`, {method: 'PATCH', token: boss, body: {products: []}});
 
 // ── Admin: tickets ──────────────────────────────────────────────────────
+// One support desk: a ticket says which product it came from, and a made-up product is refused.
+const fromLegal = (
+  await call('/support', {
+    method: 'POST',
+    token: user,
+    body: {subject: 'About my GST order', message: 'When will it be done?', product: 'legal'},
+  })
+).data;
+check('a ticket keeps the product it came from', fromLegal?.product === 'legal');
+check(
+  'an unknown product is refused',
+  (
+    await call('/support', {
+      method: 'POST',
+      token: user,
+      body: {subject: 'Hello', message: 'Hi there', product: 'mars'},
+    })
+  ).status === 400,
+);
 const tk = (
   await call('/support', {method: 'POST', token: user, body: {subject: 'Capital waitlist', message: 'A shop loan'}})
 ).data;
@@ -1278,6 +1297,19 @@ check(
 check(
   'sessions ended',
   (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: leaver.cookie}})).status === 401,
+);
+// Sign out of every device: both sessions' refresh cookies stop working.
+const roamer = `roamer${Date.now()}@example.com`;
+const laptop = await loginWithCookie(roamer);
+const phone = await loginWithCookie(roamer);
+check(
+  'sign out everywhere',
+  (await call('/auth/logout/everywhere', {method: 'POST', token: laptop.token})).status === 200,
+);
+check(
+  'every device is signed out',
+  (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: laptop.cookie}})).status === 401 &&
+    (await fetch(B + '/auth/refresh', {method: 'POST', headers: {cookie: phone.cookie}})).status === 401,
 );
 const audit2 = new Set(((await call('/auth/admin/audit', {token: boss})).data ?? []).map((r) => r.action));
 check(
