@@ -190,12 +190,7 @@ function Sidebar({onNavigate}) {
                       }`
                     }
                   >
-                    {item.icon ? (
-                      <item.icon aria-hidden className="size-4 shrink-0" />
-                    ) : (
-                      // Product rows show the product's own colour.
-                      <span aria-hidden className="ml-1 size-2 shrink-0 rounded-[2px]" style={{background: item.dot}} />
-                    )}
+                    {item.icon && <item.icon aria-hidden className="size-4 shrink-0" />}
                     <span className="truncate">{item.label}</span>
                   </NavLink>
                 </li>

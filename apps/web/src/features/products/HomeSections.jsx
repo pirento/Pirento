@@ -6,6 +6,7 @@ import {Illustration} from '../../components/Illustration';
 import {productIllustration} from '../../data/site';
 import {Heading, Label, Section, SectionHeader} from '../../components/ui/Heading';
 import {Steps} from '../../components/ui/Blocks';
+import {ProductIcon} from '../../components/ui/ProductIcon';
 
 const featuresOf = (product) => [...product.highlights, ...(product.more ?? [])];
 
@@ -77,7 +78,8 @@ function FeatureBento({product, n}) {
           data-reveal
         >
           <span className="eyebrow">01 · {product.short}</span>
-          <Illustration name={productIllustration[product.slug]} className="mt-8 hidden md:block" />
+          {/* Only where the card is tall (two rows beside it); on a tablet it would fill the screen. */}
+          <Illustration name={productIllustration[product.slug]} className="mt-8 hidden lg:block" />
           <div className="mt-10">
             <h3 className="text-[clamp(1.75rem,3vw,2.75rem)] leading-tight">{lead.title}</h3>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-muted">{lead.body}</p>
@@ -86,7 +88,8 @@ function FeatureBento({product, n}) {
         {rest.map((h, i) => (
           <div
             key={h.title}
-            className="group flex flex-col rounded-[22px] border border-rule p-8 transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink"
+            // Two across on a tablet: an odd last card takes the whole row instead of leaving a hole.
+            className={`group flex flex-col rounded-[22px] border border-rule p-8 ${rest.length % 2 && i === rest.length - 1 ? 'md:col-span-2 lg:col-span-1' : ''} transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-ink`}
             data-reveal
           >
             <span className="flex size-12 items-center justify-center rounded-full border border-rule text-sm tabular-nums transition-colors duration-500 group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
@@ -106,11 +109,11 @@ export function Audience({product, n}) {
   return (
     <Section>
       <SectionHeader n={n} label="Who it is for" title="Made for / people like you." />
-      <ul className="mt-16 grid border-t border-rule md:grid-cols-3">
+      <ul className="mt-16 grid border-t border-rule lg:grid-cols-3">
         {product.audience.map((a, i) => (
           <li
             key={a.title}
-            className="border-b border-rule py-10 md:border-b-0 md:px-8 md:first:pl-0 md:[&:not(:first-child)]:border-l"
+            className="border-b border-rule py-10 lg:border-b-0 lg:px-8 lg:first:pl-0 lg:[&:not(:first-child)]:border-l"
             data-reveal
           >
             <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
@@ -130,7 +133,7 @@ export function Related({product, n}) {
   return (
     <Section>
       <SectionHeader n={n} label="Goes well with" title="One account, / more to use." />
-      <ul className="mt-16 grid gap-4 md:grid-cols-3">
+      <ul className="mt-16 grid gap-4 lg:grid-cols-3">
         {list.map((p) => (
           <li key={p.slug} data-reveal>
             <Link
@@ -140,8 +143,7 @@ export function Related({product, n}) {
             >
               <span className="flex items-center justify-between">
                 <span className="flex items-center gap-3 font-medium">
-                  {/* A product's own colour, used only as a small mark. */}
-                  <span aria-hidden className="size-3 rounded-full" style={{background: p.color}} />
+                  <ProductIcon product={p} className="size-7" />
                   {p.name}
                 </span>
                 <ArrowUpRight aria-hidden className="size-5 transition-transform duration-500 group-hover:rotate-45" />

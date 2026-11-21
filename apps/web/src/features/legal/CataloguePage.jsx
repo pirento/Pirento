@@ -59,16 +59,16 @@ export function Legal() {
           <section
             key={g.title}
             id={g.anchor}
-            className="scroll-mt-24 grid gap-8 border-t border-rule py-12 md:grid-cols-12"
+            className="scroll-mt-24 grid gap-8 border-t border-rule py-12 lg:grid-cols-12"
             aria-labelledby={`cat-${i}`}
           >
-            <div className="md:col-span-4">
+            <div className="lg:col-span-4">
               <Label n={i + 1}>{g.items.length} services</Label>
               <h2 id={`cat-${i}`} className="mt-4 text-3xl">
                 {g.title}
               </h2>
             </div>
-            <ul className="grid gap-x-8 sm:grid-cols-2 md:col-span-8">
+            <ul className="grid gap-x-8 sm:grid-cols-2 lg:col-span-8">
               {g.items.map((s) => (
                 <li key={s.slug}>
                   <Link

@@ -11,6 +11,7 @@ import {inr} from '../../lib/format';
 import {useCatalogEdits, useServicesFor} from '../../lib/prices';
 import {DataTable} from './DataTable';
 import {ServiceEditor} from './ServiceEditor';
+import {ProductIcon} from '../../components/ui/ProductIcon';
 
 const selling = PRODUCTS.filter((p) => servicesFor(p.slug).length > 0);
 const CAN_EDIT = ['finance', 'superadmin'];
@@ -121,7 +122,7 @@ export function Services({id}) {
             onClick={() => setParams({product: p.slug}, {replace: true})}
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${slug === p.slug ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
           >
-            <span aria-hidden className="size-2 rounded-full" style={{background: p.color}} />
+            <ProductIcon product={p} className="size-5" />
             {p.name}
           </button>
         ))}

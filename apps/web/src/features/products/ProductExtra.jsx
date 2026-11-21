@@ -27,8 +27,13 @@ export function Extra({product, n}) {
           }
         />
         <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {list.map((s) => (
-            <li key={s.slug} data-reveal>
+          {list.map((s, i) => (
+            // Two across on a tablet: an odd last card takes the whole row instead of leaving a hole.
+            <li
+              key={s.slug}
+              className={list.length % 2 && i === list.length - 1 ? 'md:col-span-2 lg:col-span-1' : ''}
+              data-reveal
+            >
               <Link
                 to={`/services/${s.slug}`}
                 data-cursor="View"

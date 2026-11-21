@@ -3,6 +3,7 @@ import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {PRODUCTS} from '@pirento/shared';
+import {ProductIcon} from '../../components/ui/ProductIcon';
 
 export function EcosystemPicker() {
   const [slug, setSlug] = useState(PRODUCTS[0].slug);
@@ -47,7 +48,7 @@ export function EcosystemPicker() {
               x.slug === slug ? 'bg-stone text-ink' : 'text-muted hover:bg-stone hover:text-ink'
             }`}
           >
-            <span aria-hidden className="size-2.5 rounded-[3px]" style={{background: x.color}} />
+            <ProductIcon product={x} className="size-6" />
             <span className="truncate">{x.short}</span>
           </button>
         ))}

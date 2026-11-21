@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import {PRODUCTS} from '@pirento/shared';
 import {ALONGSIDE, COMPANY, FOUNDATION, TOOLS, VENTURES} from '../../data/group';
 import {brand} from '../../data/site';
+import {ProductIcon} from '../../components/ui/ProductIcon';
 
 // `tick` draws the short line from the cross line down to the box, where the four boxes sit in one row.
 const Box = ({title, sub, tick, children}) => (
@@ -39,7 +40,7 @@ export function GroupChart() {
             {PRODUCTS.map((p) => (
               <li key={p.slug} className="min-w-0">
                 <Link to={`/${p.slug}`} className="flex items-center gap-2 hover:underline">
-                  <span aria-hidden className="size-2 shrink-0 rounded-[2px]" style={{background: p.color}} />
+                  <ProductIcon product={p} className="size-4" />
                   <span className="truncate">{p.short}</span>
                 </Link>
               </li>

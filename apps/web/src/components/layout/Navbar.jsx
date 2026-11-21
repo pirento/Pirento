@@ -43,7 +43,10 @@ export function Navbar() {
               <span aria-hidden className="pulse size-1.5 rounded-full bg-accent" />
               {status}
             </span>
-            <ThemeToggle />
+            {/* Under 360px the bar is full with the logo and sign-in; the theme switch moves into the menu. */}
+            <span className="hidden min-[360px]:contents">
+              <ThemeToggle />
+            </span>
             {/* Always on screen, phones included: signing in is one tap from any page. */}
             <Button to={cta[1]} className="px-3.5! py-2! sm:px-5! sm:py-2.5!">
               {cta[0]}

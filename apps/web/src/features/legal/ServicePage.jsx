@@ -31,8 +31,8 @@ export function Service() {
     <div ref={ref} key={slug}>
       <PageHero label={service.category} title={service.name} intro={service.description} />
       <Section className="pt-0! md:pt-0!">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-7" data-reveal>
+        <div className="grid gap-10 md:grid-cols-12">
+          <div className="md:col-span-7" data-reveal>
             <p className="body">
               {consult ? (
                 <>
@@ -64,7 +64,7 @@ export function Service() {
               />
             </div>
           </div>
-          <aside className="rounded-[22px] border border-accent p-8 lg:col-span-5" data-reveal>
+          <aside className="rounded-[22px] border border-accent p-6 md:col-span-5 lg:p-8" data-reveal>
             <Tag tone="accent">{consult ? 'Consultation' : 'Fixed price'}</Tag>
             <p className="num mt-8 text-[clamp(2.5rem,5vw,4rem)]!">
               {service.price ? inr(service.price) : 'On quote'}

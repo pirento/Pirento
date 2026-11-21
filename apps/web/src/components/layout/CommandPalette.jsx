@@ -1,9 +1,10 @@
 // Ctrl/Cmd+K: jump to any product, page or priced service from anywhere in the app shell.
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {CornerDownLeft, Search} from 'lucide-react';
+import {CornerDownLeft, FileText, Search} from 'lucide-react';
 import {PRODUCTS, SERVICES} from '@pirento/shared';
 import {inr} from '../../lib/format';
+import {ProductIcon} from '../ui/ProductIcon';
 
 const OPEN_EVENT = 'pirento:command-palette';
 /** Opens the palette from any button. */
@@ -25,13 +26,14 @@ const ITEMS = [
     hint: p.overview,
     to: `/${p.slug}/dashboard`,
     kind: 'Product',
-    dot: p.color,
+    product: p,
   })),
   ...SERVICES.filter((s) => s.price).map((s) => ({
     label: s.name,
     hint: `${PRODUCTS.find((p) => p.slug === s.product)?.short} · from ${inr(s.price)}`,
     to: `/services/${s.slug}`,
     kind: 'Service',
+    product: PRODUCTS.find((p) => p.slug === s.product),
   })),
 ];
 
@@ -123,11 +125,16 @@ export function CommandPalette() {
             onClick={() => go(it)}
             className={`flex cursor-pointer items-center gap-3 rounded-[12px] px-3 py-2.5 ${i === active ? 'bg-stone' : ''}`}
           >
-            <span
-              aria-hidden
-              className="size-2 shrink-0 rounded-[2px] bg-rule"
-              style={it.dot ? {background: it.dot} : undefined}
-            />
+            {it.product ? (
+              <ProductIcon product={it.product} className="size-6" />
+            ) : (
+              <span
+                aria-hidden
+                className="flex size-6 shrink-0 items-center justify-center rounded-[30%] border border-rule"
+              >
+                <FileText className="size-3.5 text-muted" />
+              </span>
+            )}
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium">{it.label}</span>
               <span className="block truncate text-xs text-muted">{it.hint}</span>
