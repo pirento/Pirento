@@ -20,7 +20,7 @@ npm run db      # MongoDB in Docker (or run your own on 127.0.0.1:27017)
 npm run dev     # gateway, every service and the website
 ```
 
-Open http://localhost:5173. Sign in with any email: outside production the 6-digit code is shown on screen (and emailed too if `SMTP_URL` is set). To get a superadmin, start with `SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=<10+ characters> npm run dev` and sign in at `/admin/login` (or set `SUPERADMIN_EMAILS=you@example.com` and use the email code).
+Open http://localhost:5173. Sign in with any email: outside production the 6-digit code is shown on screen (and emailed too if `SMTP_URL` is set). To get a superadmin, start with `SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=<10+ characters> npm run dev` and sign in at `/admin/login` (or set `SUPERADMIN_EMAILS=you@example.com` and use the email code). For a test customer, add `TEST_USER_ID=test.user TEST_USER_PASSWORD=<8+ characters, a letter and a number>` and sign in with that user ID and password.
 
 ```bash
 npm test         # unit tests, next to the code they check
