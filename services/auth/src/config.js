@@ -22,6 +22,9 @@ export const config = {
   /** The first staff sign-in: a superadmin seeded at boot when both are set. */
   superadminStaffId: env('SUPERADMIN_STAFF_ID', ''),
   superadminPassword: env('SUPERADMIN_PASSWORD', ''),
+  /** A test customer (user ID + password) seeded at boot when both are set; leave empty on the live site. */
+  testUserId: env('TEST_USER_ID', ''),
+  testUserPassword: env('TEST_USER_PASSWORD', ''),
   /** Services that keep personal data and forget it when an account is deleted. */
   // The wallet goes first: it refuses while a withdrawal is still being paid, before anything else is forgotten.
   forgetUrls: () => [
