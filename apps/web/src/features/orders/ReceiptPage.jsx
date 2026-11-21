@@ -88,7 +88,10 @@ export function Receipt() {
             <dt className="text-muted">Order status</dt>
             <dd className="mt-1">
               {statusLabel(order.status)}
-              {order.payment.refunded && ' · refunded to your wallet'}
+              {order.payment.refunded &&
+                (order.payment.method === 'razorpay'
+                  ? ' · refunded to your card or UPI'
+                  : ' · refunded to your wallet')}
             </dd>
           </div>
         </dl>

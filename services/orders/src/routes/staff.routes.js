@@ -20,7 +20,7 @@ import {PAID_STATUSES, config} from '../config.js';
 import {liveService} from '../lib/catalog.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {completionCode, findAccessible, nextOrderNo, seesAllWork} from '../lib/orders.js';
+import {completionCode, findAccessible, nextOrderNo, refundCard, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
 export const staffRoutes = Router();
@@ -241,10 +241,11 @@ staffRoutes.patch(
   async (req, res) => {
     const order = await findAccessible(req);
     const {status, note} = req.body;
-    const paidByWallet = order.payment?.method === 'wallet' && !order.payment.refunded;
+    // Money to give back: a wallet payment to the wallet, a card/UPI payment through Razorpay.
+    const owed = ['wallet', 'razorpay'].includes(order.payment?.method) && !order.payment.refunded;
 
-    // Sending "cancelled" again for a cancelled order retries a wallet refund that failed.
-    const retryRefund = status === 'cancelled' && order.status === 'cancelled' && paidByWallet;
+    // Sending "cancelled" again for a cancelled order retries a refund that failed.
+    const retryRefund = status === 'cancelled' && order.status === 'cancelled' && owed;
     if (!retryRefund && !STAFF_TRANSITIONS[order.status].includes(status)) {
       throw conflict('BAD_TRANSITION', `An order that is ${order.status} cannot become ${status}`);
     }
@@ -262,13 +263,22 @@ staffRoutes.patch(
       if (!updated) throw conflict('CHANGED', 'Someone else just updated this order. Reload and try again.');
     }
 
-    if (status === 'cancelled' && paidByWallet) {
-      await refundOrder(order);
-      updated = await Order.findByIdAndUpdate(
-        order._id,
-        {$set: {'payment.refunded': true}, $push: {timeline: {status: 'cancelled', note: 'Refunded to your wallet'}}},
-        {new: true},
-      );
+    if (status === 'cancelled' && owed) {
+      // Both are idempotent (the wallet by ref, Razorpay by key), so two quick retries refund once.
+      const card = order.payment.method === 'razorpay';
+      let refundId;
+      if (card) refundId = await refundCard(order);
+      else await refundOrder(order);
+      const done = card ? 'Refunded to your card or UPI; banks take 5 to 7 working days' : 'Refunded to your wallet';
+      updated =
+        (await Order.findOneAndUpdate(
+          {_id: order._id, 'payment.refunded': {$ne: true}},
+          {
+            $set: {'payment.refunded': true, ...(refundId && {'payment.refundId': refundId})},
+            $push: {timeline: {status: 'cancelled', note: done}},
+          },
+          {new: true},
+        )) ?? (await Order.findById(order._id));
     }
     audit(req, `order.${status}`, `#${order.orderNo}`, note);
     if (!retryRefund) {
@@ -278,7 +288,6 @@ staffRoutes.patch(
         `${order.serviceName}${note ? `: ${note}` : ''}. Open your dashboard for the details.`,
       );
     }
-    // shortcut: a Razorpay-paid cancellation is refunded by hand in the Razorpay dashboard; automate with its refunds API.
     res.json({data: updated});
   },
 );

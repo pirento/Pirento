@@ -1033,6 +1033,83 @@ if (RZP) {
   );
 }
 
+// Card/UPI refunds: a cancelled card order is refunded through Razorpay once, a failed refund can be sent again,
+// and a payment that lands on a settled order is refunded by itself.
+if (RZP) {
+  const RX = process.env.RAZORPAY_URL;
+  const sign = (secret, data) => crypto.createHmac('sha256', secret).update(data).digest('hex');
+  const refundsMade = async () => (await (await fetch(RX + '/__count')).json()).refunds;
+  const payHook = (event, payload) => {
+    const raw = JSON.stringify({event, payload});
+    return fetch(B + '/orders/payments/razorpay/webhook', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-razorpay-signature': sign(process.env.RAZORPAY_WEBHOOK_SECRET, raw),
+      },
+      body: raw,
+    }).then((r) => r.status);
+  };
+  const read = async (id) => (await call(`/orders/${id}`, {token: user})).data;
+  const co = (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', intake}}))
+    .data;
+  const opened = (await call(`/orders/${co._id}/pay/razorpay`, {method: 'POST', token: user})).data;
+  const pay = {razorpay_order_id: opened?.razorpayOrderId, razorpay_payment_id: 'pay_card1'};
+  const paid = await call(`/orders/${co._id}/pay/razorpay/verify`, {
+    method: 'POST',
+    token: user,
+    body: {...pay, razorpay_signature: sign(RZP, `${pay.razorpay_order_id}|pay_card1`)},
+  });
+  check('a card payment pays the order', paid.data?.status === 'paid', paid);
+  const before = await refundsMade();
+  const cancel = () =>
+    call(`/orders/staff/${co._id}`, {method: 'PATCH', token: boss, body: {status: 'cancelled', note: ''}});
+  const clicks = await Promise.all([cancel(), cancel()]);
+  let now = await read(co._id);
+  check(
+    'a cancelled card order is refunded once',
+    clicks.some((r) => r.status === 200) &&
+      now?.status === 'cancelled' &&
+      now.payment.refunded &&
+      /^rfnd_/.test(now.payment.refundId ?? '') &&
+      (await refundsMade()) === before + 1 &&
+      now.timeline.filter((t) => /card or UPI/.test(t.note ?? '')).length === 1,
+    {clicks: clicks.map((r) => r.status), payment: now?.payment},
+  );
+
+  await fetch(RX + '/__unrefund', {method: 'POST', body: JSON.stringify({payment: 'pay_card1'})});
+  await payHook('refund.failed', {
+    refund: {entity: {id: now?.payment.refundId, payment_id: 'pay_card1', status: 'failed'}},
+  });
+  now = await read(co._id);
+  check(
+    'a failed refund shows money owed again',
+    now?.payment.refunded === false && now.payment.refundTries === 1,
+    now?.payment,
+  );
+  const retry = await cancel();
+  now = await read(co._id);
+  check(
+    'retry sends a fresh refund',
+    retry.status === 200 && now?.payment.refunded && (await refundsMade()) === before + 2,
+    {retry: retry.status, payment: now?.payment},
+  );
+
+  const extra = {id: 'pay_card2', order_id: opened?.razorpayOrderId, amount: co.amount};
+  await Promise.all([
+    payHook('payment.captured', {payment: {entity: extra}}),
+    payHook('payment.captured', {payment: {entity: extra}}),
+  ]);
+  now = await read(co._id);
+  check(
+    'a payment on a settled order is refunded by itself, once',
+    now?.payment.extraRefunded?.length === 1 &&
+      now.payment.extraRefunded[0] === 'pay_card2' &&
+      (await refundsMade()) === before + 3,
+    now?.payment,
+  );
+}
+
 // Withdrawals through RazorpayX. Runs when the stack points at a payout API (the local fake in tests):
 // RAZORPAYX_URL, RAZORPAYX_WEBHOOK_SECRET set for both the stack and this script.
 if (process.env.RAZORPAYX_WEBHOOK_SECRET) {

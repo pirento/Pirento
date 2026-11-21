@@ -33,3 +33,29 @@ export async function createRazorpayOrder({keyId, keySecret, url}, amount, recei
   if (!res.ok) throw Object.assign(new Error('Razorpay order failed'), {status: 502, code: 'GATEWAY_ERROR'});
   return res.json();
 }
+
+/**
+ * Refunds a captured payment in full. `key` is Razorpay's idempotency key: a retry with the same key returns the
+ * same refund instead of making a second one. A payment refunded already (by an earlier key, or by hand in the
+ * dashboard) counts as done and comes back as {id: null}.
+ */
+export async function refundPayment({keyId, keySecret, url}, paymentId, key) {
+  const res = await fetch(`${url}/v1/payments/${encodeURIComponent(paymentId)}/refund`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Basic ${Buffer.from(`${keyId}:${keySecret}`).toString('base64')}`,
+      'x-refund-idempotency': key,
+    },
+    body: JSON.stringify({speed: 'normal', notes: {ref: key}}),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (res.ok) return body;
+  const why = body.error?.description ?? '';
+  if (res.status === 400 && /fully refunded/i.test(why)) return {id: null, status: 'processed'};
+  throw Object.assign(new Error(`Razorpay refund failed${why ? `: ${why}` : ''}`), {
+    status: 502,
+    code: 'REFUND_FAILED',
+  });
+}

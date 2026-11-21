@@ -32,7 +32,11 @@ export function StaffOrder({order, onChange}) {
   const {user} = useSession();
   const questions = checkoutQuestions(order.product, order.serviceSlug);
   const act = async (status) => {
-    if (status === 'cancelled' && !confirm(`Cancel order #${order.orderNo}? A wallet payment is refunded.`)) return;
+    if (
+      status === 'cancelled' &&
+      !confirm(`Cancel order #${order.orderNo}? Any payment is refunded (wallet, or card/UPI through Razorpay).`)
+    )
+      return;
     setBusy(true);
     setError('');
     try {
@@ -58,7 +62,7 @@ export function StaffOrder({order, onChange}) {
       setBusy(false);
     }
   };
-  const refundPending = order.status === 'cancelled' && order.payment?.method === 'wallet' && !order.payment.refunded;
+  const refundPending = order.status === 'cancelled' && Boolean(order.payment?.method) && !order.payment.refunded;
   const actions = refundPending ? ['cancelled'] : STAFF_TRANSITIONS[order.status];
 
   return (

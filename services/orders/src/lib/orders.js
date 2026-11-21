@@ -1,6 +1,6 @@
 // Finding orders the caller may see or act on, and moving them to paid.
 import crypto from 'node:crypto';
-import {canUse, isId, nextSeq, notFound, productScope} from '@pirento/shared/server';
+import {canUse, isId, nextSeq, notFound, productScope, razorpayConfig, refundPayment} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
 import {takeUse} from './coupons.js';
@@ -54,13 +54,24 @@ export async function markPaid(id, payment, note) {
 export const completionCode = (product) =>
   CODE_PREFIX[product] && `${CODE_PREFIX[product]}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
 
+/** Refunds a cancelled card/UPI order's payment to the card or UPI it came from; returns the Razorpay refund id. */
+export async function refundCard(order) {
+  const cfg = razorpayConfig();
+  if (!cfg)
+    throw Object.assign(new Error('Razorpay is switched off, so this refund cannot be sent'), {
+      status: 503,
+      code: 'PAYMENTS_UNAVAILABLE',
+    });
+  const {razorpayPaymentId: id, refundTries = 0} = order.payment;
+  return (await refundPayment(cfg, id, `refund-${id}-${refundTries}`)).id ?? undefined;
+}
+
 /**
  * A card/UPI payment captured for an order that was already paid another way, or cancelled.
- * Noted once on the order, where the customer and the team both see it, so it gets refunded.
+ * Noted once on the order, where the customer and the team both see it, then refunded in full.
  */
 export async function noteExtraPayment(order, paymentId) {
   if (order.payment?.razorpayPaymentId === paymentId) return;
-  // shortcut: refunded by hand in the Razorpay dashboard; automate with its refunds API.
   const noted = await Order.updateOne(
     {_id: order._id, 'payment.extra': {$ne: paymentId}},
     {
@@ -68,10 +79,27 @@ export async function noteExtraPayment(order, paymentId) {
         'payment.extra': paymentId,
         timeline: {
           status: order.status,
-          note: 'A card/UPI payment arrived after this order was settled. Our team will refund it.',
+          note: 'A card/UPI payment arrived after this order was settled. It is being refunded.',
         },
       },
     },
   );
   if (noted.modifiedCount) console.warn(`Extra Razorpay payment ${paymentId} on order ${order.orderNo}`);
+  if (order.payment?.extraRefunded?.includes(paymentId)) return;
+  // shortcut: a refund that fails here is tried again only when Razorpay reports this payment again (the browser's
+  // callback and the webhook both do); add a staff "refund" button if failures show up in the logs.
+  try {
+    await refundPayment(razorpayConfig(), paymentId, `refund-${paymentId}-extra`);
+    await Order.updateOne(
+      {_id: order._id, 'payment.extraRefunded': {$ne: paymentId}},
+      {
+        $push: {
+          'payment.extraRefunded': paymentId,
+          timeline: {status: order.status, note: 'That extra payment was refunded to your card or UPI.'},
+        },
+      },
+    );
+  } catch (err) {
+    console.warn(`Refund of extra payment ${paymentId} on order ${order.orderNo} failed: ${err.message}`);
+  }
 }
