@@ -16,7 +16,10 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     // A courier tracking number leads to their address, so it goes with the answers.
     Order.updateMany(
       {userId},
-      {$set: {email: `deleted-${userId}@deleted.invalid`, intake: {}}, $unset: {'fulfilment.tracking': 1}},
+      {
+        $set: {email: `deleted-${userId}@deleted.invalid`, intake: {}},
+        $unset: {'fulfilment.tracking': 1, details: 1},
+      },
     ),
     // What they wrote to the team goes too; the team's side of the conversation stays as a record of the work.
     Order.updateMany(

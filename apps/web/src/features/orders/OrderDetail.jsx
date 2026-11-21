@@ -1,9 +1,9 @@
 // One order inside its product's dashboard (/<product>/dashboard/orders/:id): where it is, the conversation with the
-// team, its documents, paying, the answers given at checkout, and the receipt once paid.
+// team, its documents, paying, the answers given at checkout and after payment, and the receipt once paid.
 import {useRef, useState} from 'react';
 import {Link, useParams} from 'react-router-dom';
 import {ArrowLeft, BadgeCheck, FileText} from 'lucide-react';
-import {checkoutQuestions, getProduct, statusLabel} from '@pirento/shared';
+import {askedQuestions, getProduct, needsDetails, statusLabel} from '@pirento/shared';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
 import {Tag} from '../../components/ui/Tag';
@@ -13,6 +13,7 @@ import {NotFound} from '../ecosystem/NotFoundPage';
 import {OrderConversation, customerSend} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
 import {FulfilmentRecord} from './Fulfilment';
+import {DetailsForm} from './OrderDetails';
 import {PayPanel} from './PayPanel';
 import {Timeline} from './Timeline';
 import {hasReceipt} from './receipts';
@@ -40,7 +41,7 @@ export function OrderDetail() {
   const product = getProduct(slug);
   const ordersLabel = productDashboards[slug]?.find((s) => s.id === 'orders')?.label ?? 'Orders';
   const base = `/${slug}/dashboard`;
-  const questions = checkoutQuestions(order.product, order.serviceSlug).filter((q) => order.intake?.[q.id]);
+  const questions = askedQuestions(order).filter((q) => order.intake?.[q.id]);
   const cancel = async () => {
     if (!confirm('Cancel this order? You have not paid for it yet.')) return;
     try {
@@ -94,6 +95,13 @@ export function OrderDetail() {
         )}
       </header>
 
+      {/* Waiting on the customer: first thing on the page, on a phone too. */}
+      {needsDetails(order) && (
+        <div className="max-w-2xl">
+          <DetailsForm order={order} onSaved={setFresh} />
+        </div>
+      )}
+
       <div className="grid gap-14 lg:grid-cols-12">
         <div className="min-w-0 space-y-14 lg:col-span-7">
           <DashSection n={1} id="progress" label="Progress" title="Where it is.">
@@ -108,6 +116,7 @@ export function OrderDetail() {
         </div>
         <div className="min-w-0 space-y-6 lg:col-span-5">
           {order.status === 'pending_payment' && <PayPanel order={order} onPaid={setFresh} />}
+          {!needsDetails(order) && <DetailsForm key={order.detailsAt ?? 'new'} order={order} onSaved={setFresh} />}
           {order.code && (
             <div className="flex items-center gap-4 rounded-[22px] border border-rule p-6" data-reveal>
               <BadgeCheck aria-hidden className="size-6 shrink-0" />

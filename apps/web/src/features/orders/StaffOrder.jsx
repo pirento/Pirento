@@ -1,6 +1,6 @@
 // One order in the staff queue, with its actions.
 import {useState} from 'react';
-import {STAFF_TRANSITIONS, checkoutQuestions, statusLabel} from '@pirento/shared';
+import {STAFF_TRANSITIONS, askedQuestions, needsDetails, statusLabel} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {Tag} from '../../components/ui/Tag';
@@ -8,6 +8,7 @@ import {qty} from './helpers';
 import {OrderConversation} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
 import {FulfilmentForm, FulfilmentRecord, takesFulfilment} from './Fulfilment';
+import {DetailsRecord} from './OrderDetails';
 import {api} from '../../lib/api/client';
 import {formatDate, inr} from '../../lib/format';
 import {useSession} from '../../lib/api/session';
@@ -31,7 +32,7 @@ export function StaffOrder({order, onChange}) {
   // The conversation and documents load only once the row is opened, not for every row in the queue.
   const [open, setOpen] = useState(false);
   const {user} = useSession();
-  const questions = checkoutQuestions(order.product, order.serviceSlug);
+  const questions = askedQuestions(order);
   const act = async (status) => {
     if (
       status === 'cancelled' &&
@@ -78,6 +79,7 @@ export function StaffOrder({order, onChange}) {
             {order.email} · {formatDate(order.createdAt)}
             {order.assignee && ` · with ${order.assignee.email}`}
             {order.coupon && ` · ${order.coupon}`}
+            {needsDetails(order) && ' · waiting on the customer’s details'}
           </span>
         </span>
         <span className="flex items-center gap-3">
@@ -86,26 +88,29 @@ export function StaffOrder({order, onChange}) {
         </span>
       </summary>
       <div className="grid gap-8 pb-8 md:grid-cols-2">
-        <dl className="space-y-3 text-sm">
-          {questions
-            .filter((q) => order.intake[q.id])
-            .map((q) => (
-              <div key={q.id}>
-                <dt className="text-muted">{q.label}</dt>
-                <dd>{order.intake[q.id]}</dd>
+        <div className="space-y-6 text-sm">
+          <dl className="space-y-3">
+            {questions
+              .filter((q) => order.intake[q.id])
+              .map((q) => (
+                <div key={q.id}>
+                  <dt className="text-muted">{q.label}</dt>
+                  <dd>{order.intake[q.id]}</dd>
+                </div>
+              ))}
+            {order.payment?.method && (
+              <div>
+                <dt className="text-muted">Payment</dt>
+                <dd>
+                  {order.payment.method}
+                  {order.payment.razorpayPaymentId && ` · ${order.payment.razorpayPaymentId}`}
+                  {order.payment.refunded && ' · refunded'}
+                </dd>
               </div>
-            ))}
-          {order.payment?.method && (
-            <div>
-              <dt className="text-muted">Payment</dt>
-              <dd>
-                {order.payment.method}
-                {order.payment.razorpayPaymentId && ` · ${order.payment.razorpayPaymentId}`}
-                {order.payment.refunded && ' · refunded'}
-              </dd>
-            </div>
-          )}
-        </dl>
+            )}
+          </dl>
+          <DetailsRecord order={order} />
+        </div>
         <div className="space-y-6">
           <Assign order={order} busy={busy} onAssign={(assignee) => send('assign', {assignee})} />
           {/* A cancelled order keeps its record to read, but takes no new one. */}

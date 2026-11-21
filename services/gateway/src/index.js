@@ -15,6 +15,8 @@ app.set('trust proxy', 1);
 
 app.use('/api', rateLimit({windowMs: 60_000, limit: config.rateLimitPerMinute}));
 app.use('/api/auth/otp', rateLimit({windowMs: 15 * 60_000, limit: config.otpRequestsPer15Min}));
+// The contact form needs no account, so it gets its own, tighter limit.
+app.use('/api/support/enquiries', rateLimit({windowMs: 15 * 60_000, limit: config.enquiriesPer15Min}));
 
 // Service-to-service routes (/api/<svc>/internal/…) are never reachable from outside.
 const INTERNAL = /^\/api\/[^/]+\/internal(\/|$)/i;

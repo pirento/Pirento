@@ -1,18 +1,25 @@
-// Services & prices: every service on sale. Finance and superadmins change a price or take a service off sale.
+// Services & prices: every service on sale. Finance and superadmins change a price or take a service off sale;
+// superadmins add services and packages and set the questions each one asks (ServiceEditor).
 import {useState} from 'react';
-import {PRODUCTS, getService, servicesFor} from '@pirento/shared';
+import {Link, useSearchParams} from 'react-router-dom';
+import {Plus} from 'lucide-react';
+import {PRODUCTS, basePrice, servicesFor} from '@pirento/shared';
+import {Button} from '../../components/ui/Button';
 import {api} from '../../lib/api/client';
 import {useSession} from '../../lib/api/session';
 import {inr} from '../../lib/format';
-import {usePriceOverrides, useServicesFor} from '../../lib/prices';
+import {useCatalogEdits, useServicesFor} from '../../lib/prices';
 import {DataTable} from './DataTable';
+import {ServiceEditor} from './ServiceEditor';
 
 const selling = PRODUCTS.filter((p) => servicesFor(p.slug).length > 0);
 const CAN_EDIT = ['finance', 'superadmin'];
+const CAN_BUILD = ['superadmin']; // ACCESS.catalog
 
 /** One editable price cell: type a new price, or take the service off sale. */
 function PriceCell({s, onSaved}) {
-  const base = getService(s.slug).price;
+  const {edits} = useCatalogEdits();
+  const base = basePrice(s.slug, edits);
   const [value, setValue] = useState('');
   const [error, setError] = useState('');
   const save = async (body, question) => {
@@ -94,12 +101,15 @@ function PriceCell({s, onSaved}) {
   );
 }
 
-export function Services() {
-  const [slug, setSlug] = useState(selling[0]?.slug);
+export function Services({id}) {
+  const [params, setParams] = useSearchParams();
+  const slug = selling.some((p) => p.slug === params.get('product')) ? params.get('product') : selling[0]?.slug;
   const {user} = useSession();
-  const {reload} = usePriceOverrides();
+  const {reload} = useCatalogEdits();
   const rows = useServicesFor(slug);
   const canEdit = CAN_EDIT.includes(user?.role);
+  const canBuild = CAN_BUILD.includes(user?.role);
+  if (id && canBuild) return <ServiceEditor slug={id} />;
   return (
     <div className="space-y-6">
       <div role="tablist" aria-label="Product" className="flex flex-wrap gap-2">
@@ -108,15 +118,21 @@ export function Services() {
             key={p.slug}
             role="tab"
             aria-selected={slug === p.slug}
-            onClick={() => setSlug(p.slug)}
+            onClick={() => setParams({product: p.slug}, {replace: true})}
             className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${slug === p.slug ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
           >
             <span aria-hidden className="size-2 rounded-full" style={{background: p.color}} />
-            {p.name} · {servicesFor(p.slug).length}
+            {p.name}
           </button>
         ))}
       </div>
+      {canBuild && (
+        <Button to={`/admin/services/new?product=${slug}`} variant="outline" icon={Plus}>
+          Add a service or package
+        </Button>
+      )}
       <p className="text-sm text-muted">
+        {canBuild && 'Open a service to set the questions it asks before and after payment. '}
         {canEdit
           ? 'A new price applies to new orders at once; orders already placed keep theirs.'
           : 'Finance and superadmins can change prices.'}
@@ -125,7 +141,19 @@ export function Services() {
         rows={rows}
         rowKey={(s) => s.slug}
         columns={[
-          {label: 'Service', cell: (s) => s.name},
+          {
+            label: 'Service',
+            cell: (s) =>
+              canBuild ? (
+                <Link to={`/admin/services/${s.slug}`} className="underline-offset-4 hover:underline">
+                  {s.name}
+                  {s.custom && <span className="text-muted"> · made in admin</span>}
+                  {(s.questions || s.afterQuestions) && <span className="text-muted"> · own questions</span>}
+                </Link>
+              ) : (
+                s.name
+              ),
+          },
           {label: 'Category', cell: (s) => s.category},
           {label: 'Delivery', cell: (s) => s.deliveryTime ?? '—'},
           {

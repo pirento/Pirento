@@ -1,5 +1,6 @@
 // Finding orders the caller may see or act on, and moving them to paid.
 import crypto from 'node:crypto';
+import {serviceQuestions} from '@pirento/shared';
 import {canUse, isId, nextSeq, notFound, productScope, razorpayConfig, refundPayment} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
@@ -7,6 +8,15 @@ import {takeUse} from './coupons.js';
 
 /** Six-digit order numbers, starting at 100001. */
 export const nextOrderNo = async () => (await nextSeq('order')) + 100000;
+
+/**
+ * The questions an order keeps, since an admin may change a service's questions later: the labels of what checkout
+ * asked, and the questions the customer answers after paying.
+ */
+export const questionsOf = (service) => ({
+  asked: serviceQuestions(service).map(({id, label}) => ({id, label})),
+  afterQuestions: service.afterQuestions ?? [],
+});
 
 /** Finance and superadmins see every order; operations staff see theirs and the unassigned ones. */
 export const seesAllWork = (req) => ['finance', 'superadmin'].includes(req.user?.role);

@@ -56,3 +56,51 @@ export const SERVICES = [...legal, ...others, ...green, ...giftox];
 
 export const getService = (slug) => SERVICES.find((s) => s.slug === slug) ?? null;
 export const servicesFor = (product) => SERVICES.filter((s) => s.product === product);
+
+/**
+ * The admin's layer over the catalogue (kept by the catalog service, one row per slug): a new price or off sale,
+ * the service's own questions before and after payment, and for a service made in admin, the whole service.
+ */
+export function applyEdit(service, edit) {
+  if (!service || !edit) return service;
+  const s = {...service};
+  if (edit.questions) s.questions = edit.questions;
+  if (edit.afterQuestions) s.afterQuestions = edit.afterQuestions;
+  if (edit.offSale) s.price = null;
+  else if (edit.price) s.price = edit.price;
+  return s;
+}
+
+// A service made in admin: its slug starts with its product's (legal-startup-pack), so any page can tell whose it is.
+const madeInAdmin = (slug, edit) =>
+  edit?.custom ? {model: 'fixed', deliveryTime: null, includes: [], ...edit.custom, slug, custom: true} : null;
+
+/** One service as it sells now, from the base catalogue or made in admin, with the admin's edits. */
+export const editedService = (slug, edits) =>
+  applyEdit(getService(slug) ?? madeInAdmin(slug, edits[slug]), edits[slug]);
+
+/** A product's services as they sell now: the base catalogue, then the ones made in admin. */
+export const editedServicesFor = (product, edits) =>
+  [
+    ...servicesFor(product),
+    ...Object.entries(edits)
+      .filter(([, e]) => e.custom?.product === product)
+      .map(([slug, e]) => madeInAdmin(slug, e)),
+  ].map((s) => applyEdit(s, edits[s.slug]));
+
+/** The price a service goes back to on "Reset": the catalogue's, or the one it was made with in admin. */
+export const basePrice = (slug, edits) => getService(slug)?.price ?? edits[slug]?.custom?.price ?? null;
+
+/** Categories in the order to show them: Legal's own areas of law first, then any new ones made in admin. */
+export function categoriesOf(services, first = []) {
+  const names = [...first, ...services.map((s) => s.category)];
+  return [...new Set(names)].filter((c) => services.some((s) => s.category === c));
+}
+
+/** Lowercase words joined by hyphens: the slug of a name, and the anchor of a category. */
+export const slugify = (text) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '')
+    .slice(0, 60);

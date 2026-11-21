@@ -2,13 +2,14 @@
 import {useRef, useState} from 'react';
 import {Link, Navigate, useParams} from 'react-router-dom';
 import {BadgeCheck} from 'lucide-react';
-import {checkoutQuestions, statusLabel} from '@pirento/shared';
+import {askedQuestions, statusLabel} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Label, Section} from '../../components/ui/Heading';
 import {Tag} from '../../components/ui/Tag';
 import {useSignedIn} from '../auth/useSignedIn';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {PayPanel} from './PayPanel';
+import {DetailsRecord} from './OrderDetails';
 import {Timeline} from './Timeline';
 import {qty} from './helpers';
 import {useApi} from '../../lib/api/useApi';
@@ -30,7 +31,7 @@ export function OrderPage() {
   if (fetched.userId === user._id)
     return <Navigate to={`/${fetched.product}/dashboard/orders/${fetched._id}`} replace />;
   const order = fetched;
-  const questions = checkoutQuestions(order.product, order.serviceSlug);
+  const questions = askedQuestions(order);
 
   return (
     <div ref={ref}>
@@ -72,6 +73,7 @@ export function OrderPage() {
                   </div>
                 ))}
             </dl>
+            <DetailsRecord order={order} className="rounded-[22px] border border-rule p-8" />
           </div>
         </div>
       </Section>

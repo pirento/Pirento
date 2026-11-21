@@ -21,7 +21,7 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
-import {LEGAL_CATALOGUE, legalServiceSlug} from '@pirento/shared';
+import {LEGAL_CATALOGUE, legalServiceSlug, needsDetails} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
@@ -36,7 +36,7 @@ import {useApi} from '../../lib/api/useApi';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
-import {useServicesFor} from '../../lib/prices';
+import {useLegalAreas, useServicesFor} from '../../lib/prices';
 
 const OPEN = ['pending_payment', 'paid', 'in_progress'];
 // One icon per area of law, in the catalogue's order; anything new falls back to a document.
@@ -78,17 +78,18 @@ function Card({to, icon: Icon, title, body, meta}) {
   );
 }
 
-/** Legal: its areas of law with how many services each has. The others: their services with live prices. */
+/** Legal: its areas of law (and any new ones made in admin) with how many services each sells. The others: their services with live prices. */
 function StartGrid({product, browse, limit}) {
   const services = useServicesFor(product.slug);
+  const areas = useLegalAreas();
   const items =
     product.slug === 'legal'
-      ? LEGAL_CATALOGUE.map((c, i) => ({
-          key: c.title,
-          to: `/legal/services#cat-${i}`,
-          icon: AREA_ICONS[i] ?? FileText,
-          title: c.title,
-          meta: `${c.services.length} services`,
+      ? areas.map((a) => ({
+          key: a.title,
+          to: `/legal/services#${a.anchor}`,
+          icon: AREA_ICONS[LEGAL_CATALOGUE.findIndex((c) => c.title === a.title)] ?? FileText,
+          title: a.title,
+          meta: `${a.count} services`,
         }))
       : services
           .filter((s) => s.price)
@@ -236,8 +237,17 @@ function OrderList({orders, mine, browse, product, empty = copy.orders.empty}) {
 }
 
 /** What is waiting on the customer: orders to pay, and orders where the team wrote last. */
-function Waiting({toPay, replies, base}) {
+function Waiting({toPay, details, replies, base}) {
   const items = [
+    ...details.map((o) => ({
+      key: `details-${o._id}`,
+      icon: PenLine,
+      title: `Send the details for ${o.serviceName}`,
+      note: `Order #${o.orderNo} · ${o.afterQuestions.length} question${o.afterQuestions.length === 1 ? '' : 's'} so the team can start`,
+      cta: 'Answer',
+      accent: true,
+      to: `${base}/orders/${o._id}#details`,
+    })),
     ...toPay.map((o) => ({
       key: `pay-${o._id}`,
       icon: CreditCard,
@@ -307,6 +317,7 @@ export function OrdersDashboard({product, section = 'overview'}) {
   const done = mine.filter((o) => o.status === 'completed');
   // The team wrote last and the order is still live: the customer probably owes a reply.
   const replies = mine.filter((o) => o.status !== 'cancelled' && o.messages?.at(-1)?.from === 'team');
+  const details = mine.filter(needsDetails);
   const paidTotal = [...working, ...done].reduce((n, o) => n + o.amount, 0);
   const browse = product.slug === 'legal' ? '/legal/services' : `/${product.slug}#services`;
   const ordersLabel = sections.find((s) => s.id === 'orders').label;
@@ -364,7 +375,7 @@ export function OrdersDashboard({product, section = 'overview'}) {
             />
           </DashSection>
           <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
-            <Waiting toPay={toPay} replies={replies} base={base} />
+            <Waiting toPay={toPay} details={details} replies={replies} base={base} />
           </DashSection>
           <DashSection
             n={++n}

@@ -8,7 +8,6 @@ import {CheckList} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Section} from '../../components/ui/Heading';
 import {Tag} from '../../components/ui/Tag';
-import {brand} from '../../data/site';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
@@ -27,9 +26,6 @@ export function Service() {
   if (!service) return <NotFound />;
 
   const consult = service.model === 'consult';
-  const mail = `mailto:${brand.email}?subject=${encodeURIComponent(`Request: ${service.name}`)}&body=${encodeURIComponent(
-    `Hello Pirento,\n\nI would like to start "${service.name}" (${slug}).\n\nName:\nPhone:\nDetails:\n`,
-  )}`;
 
   return (
     <div ref={ref} key={slug}>
@@ -57,11 +53,13 @@ export function Service() {
                 items={
                   service.items
                     ? service.items.map((i) => `In the box: ${i}`)
-                    : [
-                        'Our team reviews your details before starting',
-                        'Every update is recorded in your account',
-                        'Support by email at any step',
-                      ]
+                    : service.includes?.length
+                      ? service.includes
+                      : [
+                          'Our team reviews your details before starting',
+                          'Every update is recorded in your account',
+                          'Support by email at any step',
+                        ]
                 }
               />
             </div>
@@ -83,14 +81,14 @@ export function Service() {
                   Start this service
                 </Button>
               ) : null}
-              <Button href={mail} variant="outline" icon={Mail}>
+              <Button href="#contact" variant="outline" icon={Mail}>
                 {service.price ? 'Ask a question first' : 'Request a quote'}
               </Button>
             </div>
           </aside>
         </div>
       </Section>
-      <ContactCta n={1} />
+      <ContactCta n={1} service={service.slug} />
     </div>
   );
 }

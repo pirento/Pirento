@@ -146,6 +146,13 @@ export const home = {
   contact: {
     label: 'Contact',
     title: 'Have a matter? / Let’s talk.',
+    // The contact form at the end of most pages; what it sends lands in admin → Enquiries.
+    form: {
+      title: 'Write to us',
+      intro: 'Tell us what you need. The team replies by email, or calls if you leave a number.',
+      service: 'Which service is it about? (optional)',
+      sent: 'Thank you. Your message reached the team; the reply comes to your email.',
+    },
   },
 };
 

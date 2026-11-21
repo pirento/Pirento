@@ -12,6 +12,7 @@ import {
   Handshake,
   Inbox,
   LayoutDashboard,
+  Mail,
   ListChecks,
   Megaphone,
   ScrollText,
@@ -79,6 +80,14 @@ export const ADMIN_SECTIONS = [
     icon: Inbox,
     roles: ['support', 'staff', 'superadmin'],
     intro: 'Support tickets waiting on the team. Open one to reply, take it, or add a team note.',
+  },
+  {
+    id: 'enquiries',
+    group: 'Work',
+    label: 'Enquiries',
+    icon: Mail,
+    roles: ['support', 'staff', 'superadmin'], // ACCESS.support
+    intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
   },
   {
     id: 'openings',
@@ -167,7 +176,8 @@ export const ADMIN_SECTIONS = [
     label: 'Services & prices',
     icon: Briefcase,
     roles: ALL_STAFF,
-    intro: 'Every service and its price. Finance and superadmins can change a price or take a service off sale.',
+    intro:
+      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services and packages and set the questions asked before and after payment.',
   },
   {
     id: 'settings',

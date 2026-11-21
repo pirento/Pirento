@@ -6,7 +6,17 @@
 export {PRODUCTS, getProduct} from './data/products.js';
 export {BRAND, PRODUCT_COLOURS} from './data/brand.js';
 export {LEGAL_CATALOGUE, legalServiceSlug} from './data/legalCatalogue.js';
-export {SERVICES, getService, servicesFor} from './catalog/services.js';
+export {
+  SERVICES,
+  getService,
+  servicesFor,
+  applyEdit,
+  editedService,
+  editedServicesFor,
+  basePrice,
+  categoriesOf,
+  slugify,
+} from './catalog/services.js';
 
 // Orders: life cycle and checkout questions
 export {
@@ -15,6 +25,11 @@ export {
   FULFILMENT,
   statusLabel,
   checkoutQuestions,
+  serviceQuestions,
+  askedQuestions,
+  needsDetails,
+  FIXED_QUESTION_IDS,
+  checkAnswers,
   validateIntake,
   validateFulfilment,
 } from './orders/rules.js';

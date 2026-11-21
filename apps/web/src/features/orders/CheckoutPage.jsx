@@ -2,7 +2,7 @@
 import {useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {ShieldCheck} from 'lucide-react';
-import {checkoutQuestions} from '@pirento/shared';
+import {serviceQuestions} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
@@ -35,7 +35,7 @@ export function Checkout() {
   if (!service?.price) return <NotFound />;
   if (redirect) return redirect;
 
-  const questions = checkoutQuestions(service.product, service.slug);
+  const questions = serviceQuestions(service);
   const paused = settings.data?.paused.includes(service.product);
   const submit = async (e) => {
     e.preventDefault();

@@ -1,13 +1,13 @@
 // Placing, listing, reading and cancelling your own orders.
 import {Router} from 'express';
 import {z} from 'zod';
-import {validateIntake} from '@pirento/shared';
+import {checkAnswers, validateIntake} from '@pirento/shared';
 import {liveService} from '../lib/catalog.js';
 import {ApiError, badInput, callService, conflict, requireAuth, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {findAccessible, findOwn, nextOrderNo} from '../lib/orders.js';
+import {findAccessible, findOwn, nextOrderNo, questionsOf} from '../lib/orders.js';
 import {discountOf} from '../lib/coupons.js';
 
 export const customerRoutes = Router();
@@ -34,7 +34,7 @@ customerRoutes.post(
       throw new ApiError(503, 'PAUSED', 'Orders for this product are paused for now. Please try again later.');
     }
 
-    const {answers, error} = validateIntake(service.product, service.slug, req.body.intake);
+    const {answers, error} = validateIntake(service, req.body.intake);
     if (error) throw badInput(error);
     const maxQty = service.maxQty ?? 1;
     if (req.body.quantity > maxQty) throw badInput(`You can order at most ${maxQty} at a time`);
@@ -59,6 +59,7 @@ customerRoutes.post(
       coupon,
       discount,
       intake: answers,
+      ...questionsOf(service),
       ref,
       timeline: [{status: 'pending_payment', note: 'Order placed'}],
     });
@@ -83,6 +84,25 @@ customerRoutes.post(
       {$push: {messages: {from: 'customer', body: req.body.body}}},
       {new: true},
     );
+    res.json({data: updated});
+  },
+);
+
+/** After paying, the customer answers the service's after-payment questions; they may correct them until it is done. */
+customerRoutes.put(
+  '/:id/details',
+  validate(z.object({answers: z.record(z.string(), z.string())})),
+  async (req, res) => {
+    const order = await findOwn(req);
+    if (!order.afterQuestions?.length) throw badInput('This order asks no more questions');
+    const {answers, error} = checkAnswers(order.afterQuestions, req.body.answers);
+    if (error) throw badInput(error);
+    const updated = await Order.findOneAndUpdate(
+      {_id: order._id, status: {$in: ['paid', 'in_progress']}},
+      {$set: {details: answers, detailsAt: new Date()}},
+      {new: true},
+    );
+    if (!updated) throw conflict('NOT_LIVE', 'Details can be sent once the order is paid, until it is completed');
     res.json({data: updated});
   },
 );

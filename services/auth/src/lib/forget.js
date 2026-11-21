@@ -13,7 +13,8 @@ export async function forgetUser(user) {
   const {balance} = await callService(config.walletUrl, '/internal/balance', {userId: String(user._id)});
   if (balance > 0) throw conflict('HAS_BALANCE', 'This wallet still holds money. Pay it out before deleting.');
 
-  for (const url of config.forgetUrls()) await callService(url, '/internal/forget', {userId: String(user._id)});
+  for (const url of config.forgetUrls())
+    await callService(url, '/internal/forget', {userId: String(user._id), email: user.email});
 
   user.email = `deleted-${user._id}@deleted.invalid`;
   user.name = '';

@@ -21,6 +21,7 @@ export const ACCESS = {
   audit: ['superadmin'],
   coupons: ['finance', 'superadmin'],
   pricing: ['finance', 'superadmin'],
+  catalog: ['superadmin'], // new services and packages, and the questions services ask
   accounts: ['superadmin'], // deletion requests, site settings
   openings: ['staff', 'superadmin'],
   booking: ['staff', 'superadmin'], // placing an order for a customer

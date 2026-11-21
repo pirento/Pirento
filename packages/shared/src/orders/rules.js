@@ -26,14 +26,27 @@ const GIFT_DELIVERY = [
   {id: 'pincode', label: 'PIN code', placeholder: '6 digits', pattern: '^[1-9]\\d{5}$'},
 ];
 
-/** Phone is always asked; then the product's own questions. */
-export function checkoutQuestions(product, slug) {
+/** Phone is always asked; then the product's own questions, or the set an admin gave this service. */
+export function checkoutQuestions(product, slug, own) {
   return [
     {id: 'phone', label: 'Phone number', placeholder: '10-digit mobile number', pattern: '^[6-9]\\d{9}$'},
     ...(product === 'giftox' ? GIFT_DELIVERY : []),
-    ...intakeQuestions(product, slug),
+    ...(own ?? intakeQuestions(product, slug)),
   ];
 }
+
+/** Ids an admin's question may not take: checkout asks these itself. */
+export const FIXED_QUESTION_IDS = ['phone', ...GIFT_DELIVERY.map((q) => q.id)];
+
+/** The questions before payment for a service as it sells now (see applyEdit in the catalogue). */
+export const serviceQuestions = (service) => checkoutQuestions(service.product, service.slug, service.questions);
+
+/** The questions an order was asked: kept on the order since admin may change them; older orders use the defaults. */
+export const askedQuestions = (order) => order.asked ?? checkoutQuestions(order.product, order.serviceSlug);
+
+/** Whether a live order still waits on the customer's answers to its after-payment questions. */
+export const needsDetails = (order) =>
+  ['paid', 'in_progress'].includes(order.status) && order.afterQuestions?.length > 0 && !order.detailsAt;
 
 /**
  * What the team records when it delivers a Green or Giftox order, and the line the customer is emailed.
@@ -78,13 +91,13 @@ export const validateFulfilment = (product, input) =>
     : {error: 'This product has no delivery record'};
 
 /**
- * Checks answers against the question set. Returns {answers} with only known
+ * Checks answers against a question set. Returns {answers} with only known
  * keys, or {error}. Choice answers must be one of the options; free text is
- * optional and capped.
+ * optional unless `required`, and capped.
  */
-export const validateIntake = (product, slug, input) => checkAnswers(checkoutQuestions(product, slug), input);
+export const validateIntake = (service, input) => checkAnswers(serviceQuestions(service), input);
 
-function checkAnswers(questions, input) {
+export function checkAnswers(questions, input) {
   const answers = {};
   for (const q of questions) {
     const value = typeof input?.[q.id] === 'string' ? input[q.id].trim() : '';

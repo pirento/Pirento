@@ -1,5 +1,6 @@
 // Generic staff queue: status filter pills over a list, and optionally a product picker.
 import {useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {PRODUCTS} from '@pirento/shared';
 import {useApi} from '../../lib/api/useApi';
 import {useSession} from '../../lib/api/session';
@@ -9,7 +10,9 @@ import {useSession} from '../../lib/api/session';
 export function StaffQueue({path, filters, render, byProduct, search}) {
   const {user} = useSession();
   const [filter, setFilter] = useState(filters[0].value);
-  const [product, setProduct] = useState('');
+  // A link such as /admin/orders?product=legal opens on that product.
+  const [params] = useSearchParams();
+  const [product, setProduct] = useState(params.get('product') ?? '');
   const [q, setQ] = useState('');
   const term = q.trim();
   // A filter is a status, or a ready query such as "mine=1".

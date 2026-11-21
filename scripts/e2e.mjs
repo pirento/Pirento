@@ -1353,7 +1353,7 @@ check(
     ?.code === 'NOT_FOR_SALE',
 );
 await call('/catalog/staff/prices/gst-registration', {method: 'PATCH', token: boss, body: {price: null}});
-check('reset removes the override', !(await call('/catalog/prices')).data?.['gst-registration']);
+check('reset removes the price change', !(await call('/catalog/prices')).data?.['gst-registration']?.price);
 check('service page shows the live price', (await call('/catalog/services/gst-registration')).data?.price === 999);
 const code2 = `BACK${Date.now().toString().slice(-6)}`;
 const cp2 = (
@@ -1807,6 +1807,148 @@ check(
     'role.products',
   ].every((a) => audit2.has(a)),
   [...audit2],
+);
+
+// ── Admin: a new Legal package, its questions beforeQs and afterQs payment ──
+const pack = `Startup pack ${Date.now().toString(36)}`;
+const packBody = {
+  product: 'legal',
+  name: pack,
+  category: 'Packages',
+  description: 'Company, GST and trademark together.',
+  deliveryTime: '20-25 days',
+  price: 4999,
+  includes: ['Private Limited Company', 'GST Registration'],
+};
+check(
+  'only a superadmin adds a service',
+  (await call('/catalog/staff/services', {method: 'POST', token: staffToken, body: packBody})).status === 403,
+);
+const pkg = (await call('/catalog/staff/services', {method: 'POST', token: boss, body: packBody})).data;
+check('a package pkg in admin carries its product in the slug', pkg?.slug?.startsWith('legal-startup-pack'), pkg);
+check(
+  'the same name twice is refused',
+  (await call('/catalog/staff/services', {method: 'POST', token: boss, body: packBody})).status === 409,
+);
+check(
+  'the new package is listed on Legal',
+  (await call('/catalog/products/legal')).data?.services?.some((sv) => sv.slug === pkg?.slug && sv.price === 4999),
+);
+const setQs = (questions, afterQuestions, token = boss) =>
+  call(`/catalog/staff/services/${pkg?.slug}/questions`, {method: 'PUT', token, body: {questions, afterQuestions}});
+const beforeQs = [
+  {id: 'companyName', label: 'Proposed company name', required: true},
+  {id: 'plan', label: 'Which plan suits you?', options: ['Basic', 'Full']},
+];
+const afterQs = [
+  {id: 'directors', label: 'Names of the directors', required: true},
+  {id: 'office', label: 'Is the office rented?', options: ['Rented', 'Owned']},
+];
+check(
+  'questions may not take checkout’s own ids',
+  (await setQs([{id: 'phone', label: 'Phone again'}], null)).status === 400,
+);
+check(
+  'a choice needs two options',
+  (await setQs([{id: 'x', label: 'Pick one', options: ['Only']}], null)).status === 400,
+);
+check('staff cannot set questions', (await setQs(beforeQs, afterQs, staffToken)).status === 403);
+check('questions saved', (await setQs(beforeQs, afterQs)).data?.afterQuestions?.length === 2);
+const packOrder = (b) => call('/orders', {method: 'POST', token: user, body: {serviceSlug: pkg?.slug, intake: b}});
+check(
+  'checkout asks the new questions, not the old ones',
+  (await packOrder({phone: '9876500000', plan: 'Full'})).status === 400,
+);
+const pkgOrder = (await packOrder({phone: '9876500000', companyName: 'Acme Labs', plan: 'Full', state: 'Goa'})).data;
+check(
+  'the order keeps what it was asked',
+  pkgOrder?.amount === 499900 &&
+    pkgOrder.intake.companyName === 'Acme Labs' &&
+    !pkgOrder.intake.state &&
+    pkgOrder.asked?.length === 3,
+  pkgOrder,
+);
+const sendDetails = (answers, token = user) =>
+  call(`/orders/${pkgOrder?._id}/details`, {method: 'PUT', token, body: {answers}});
+check('no sendDetails beforeQs payment', (await sendDetails({directors: 'A, B', office: 'Rented'})).status === 409);
+await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 4999}});
+await call(`/orders/${pkgOrder?._id}/pay/wallet`, {method: 'POST', token: user});
+check('a missing answer is refused', (await sendDetails({office: 'Rented'})).status === 400);
+check(
+  'someone else cannot answer',
+  (await sendDetails({directors: 'X', office: 'Rented'}, await login(`y${Date.now()}@example.com`))).status === 404,
+);
+const answeredPkg = (await sendDetails({directors: 'Asha Rao, Vikram Shah', office: 'Rented', evil: 'x'})).data;
+check(
+  'after-payment answers are kept',
+  answeredPkg?.details?.directors === 'Asha Rao, Vikram Shah' && !answeredPkg.details.evil && answeredPkg.detailsAt,
+  answeredPkg,
+);
+// Later edits to the questions never change an order already placed.
+await setQs(null, null);
+const keptPkg = (await call(`/orders/${pkgOrder?._id}`, {token: boss})).data;
+check(
+  'a placed order keeps its questions',
+  keptPkg?.afterQuestions?.length === 2 && keptPkg.asked?.length === 3,
+  keptPkg,
+);
+check('back to the standard questions', !(await call('/catalog/services/' + pkg?.slug)).data?.questions);
+await call(`/catalog/staff/services/${pkg?.slug}`, {
+  method: 'PATCH',
+  token: boss,
+  body: {...packBody, product: undefined, price: 5499},
+});
+check('editing a package changes its price', (await call(`/catalog/services/${pkg?.slug}`)).data?.price === 5499);
+check(
+  'base services cannot be deleted',
+  (await call('/catalog/staff/services/gst-registration', {method: 'DELETE', token: boss})).status === 404,
+);
+await call(`/catalog/staff/services/${pkg?.slug}`, {method: 'DELETE', token: boss});
+check('a deleted package takes no orders', (await packOrder({phone: '9876500000'})).error?.code === 'NOT_FOR_SALE');
+check('its order stays', (await call(`/orders/${pkgOrder?._id}`, {token: user})).data?.serviceName === pack);
+
+// ── Contact form ────────────────────────────────────────────────────────
+const enquiry = {
+  name: 'Meera Iyer',
+  email: `m${Date.now()}@example.com`,
+  phone: '98765 43210',
+  product: 'legal',
+  service: 'gst-registration',
+  message: 'I run a small bakery and need GST. What papers do I need?',
+};
+const sent = await call('/support/enquiries', {method: 'POST', body: enquiry});
+check('anyone can send the contact form', sent.status === 201 && sent.data?.enquiryNo > 0, sent);
+check(
+  'a short message is refused',
+  (await call('/support/enquiries', {method: 'POST', body: {...enquiry, message: 'hi'}})).status === 400,
+);
+check(
+  'a bad phone is refused',
+  (await call('/support/enquiries', {method: 'POST', body: {...enquiry, phone: '12345'}})).status === 400,
+);
+const bot = await call('/support/enquiries', {method: 'POST', body: {...enquiry, website: 'spam.example'}});
+check('a bot is told it worked but nothing is kept', bot.status === 201 && !bot.data?.enquiryNo);
+check('customers cannot read enquiries', (await call('/support/staff/enquiries', {token: user})).status === 403);
+const inbox = (
+  await call(`/support/staff/enquiries?product=legal&q=${encodeURIComponent(enquiry.email)}`, {token: boss})
+).data;
+const mineEnq = inbox?.find((e) => e.enquiryNo === sent.data?.enquiryNo);
+check('the superadmin sees it, phone tidied', mineEnq?.phone === '+919876543210' && mineEnq.status === 'new', inbox);
+check(
+  'the bot’s message is not there',
+  !inbox?.some((e) => e.email === enquiry.email && e.enquiryNo !== sent.data?.enquiryNo),
+);
+const handled = (
+  await call(`/support/staff/enquiries/${mineEnq?._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {status: 'handled', note: 'Emailed the GST checklist'},
+  })
+).data;
+check('marked handled with a note', handled?.status === 'handled' && handled.handledBy === 'boss@example.com', handled);
+check(
+  'handled ones leave the new list',
+  !(await call('/support/staff/enquiries', {token: boss})).data?.some((e) => e._id === mineEnq?._id),
 );
 
 // ── AI ──────────────────────────────────────────────────────────────────

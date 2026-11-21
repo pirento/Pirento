@@ -11,6 +11,7 @@ import {Withdrawals} from './Withdrawals';
 import {Coupons} from './Coupons';
 import {Team} from './Team';
 import {Waitlist} from './Waitlist';
+import {Enquiries} from './Enquiries';
 import {Deletions} from './Deletions';
 import {MyWork} from './MyWork';
 import {BookService} from './BookService';
@@ -36,6 +37,7 @@ export const SECTIONS = {
   // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
   'bharat-id': () => <IdentityQueue />,
   tickets: () => <TicketQueue />,
+  enquiries: Enquiries,
   users: Users,
   payments: Payments,
   withdrawals: Withdrawals,

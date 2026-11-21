@@ -1,16 +1,21 @@
 // The section that differs per product site (prices, tracks, steps…).
 import {Link} from 'react-router-dom';
-import {ID_SECTIONS, LEGAL_CATALOGUE} from '@pirento/shared';
+import {ID_SECTIONS} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {inr} from '../../lib/format';
 import {Openings} from '../learning/Openings';
-import {useServicesFor} from '../../lib/prices';
+import {useLegalAreas, useServicesFor} from '../../lib/prices';
 
 export function Extra({product, n}) {
   const services = useServicesFor(product.slug).filter((s) => s.price);
+  const areas = useLegalAreas();
   if (services.length) {
-    const list = product.slug === 'legal' ? services.slice(0, 9) : services;
+    // Services and packages made in admin lead, so something new is seen on the home page.
+    const list =
+      product.slug === 'legal'
+        ? [...services.filter((s) => s.custom), ...services.filter((s) => !s.custom)].slice(0, 9)
+        : services;
     return (
       <Section id="services" className="pt-0! md:pt-0!">
         <SectionHeader
@@ -18,9 +23,7 @@ export function Extra({product, n}) {
           label="Services"
           title="Prices you / see first."
           intro={
-            product.slug === 'legal'
-              ? `${services.length} services across ${LEGAL_CATALOGUE.length} categories.`
-              : undefined
+            product.slug === 'legal' ? `${services.length} services across ${areas.length} categories.` : undefined
           }
         />
         <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -34,9 +37,9 @@ export function Extra({product, n}) {
                 <span className="text-sm text-muted">{s.category}</span>
                 <span className="mt-2 text-lg font-medium">{s.name}</span>
                 {s.description && <span className="mt-2 text-sm text-muted">{s.description}</span>}
-                {s.items && (
+                {(s.items ?? s.includes)?.length > 0 && (
                   <span className="mt-6 flex flex-wrap gap-2">
-                    {s.items.map((item) => (
+                    {(s.items ?? s.includes).map((item) => (
                       <span key={item} className="rounded-full border border-rule px-3 py-1 text-xs text-muted">
                         {item}
                       </span>
@@ -56,15 +59,15 @@ export function Extra({product, n}) {
           <>
             <h3 className="mt-20 text-2xl">Every category</h3>
             <ul className="mt-6 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
-              {LEGAL_CATALOGUE.map((c, i) => (
+              {areas.map((c, i) => (
                 <li key={c.title} className="bg-paper" data-reveal>
                   <Link
-                    to={`/legal/services#cat-${i}`}
+                    to={`/legal/services#${c.anchor}`}
                     className="flex h-full flex-col p-6 transition-colors duration-300 hover:bg-stone"
                   >
                     <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
                     <span className="mt-6 font-medium">{c.title}</span>
-                    <span className="mt-1 text-sm text-muted">{c.services.length} services</span>
+                    <span className="mt-1 text-sm text-muted">{c.count} services</span>
                   </Link>
                 </li>
               ))}

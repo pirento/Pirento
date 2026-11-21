@@ -2,7 +2,7 @@
 // their dashboard; they pay it there. The server prices it and checks the answers like a normal checkout.
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {PRODUCTS, checkoutQuestions, servicesFor} from '@pirento/shared';
+import {PRODUCTS, serviceQuestions, servicesFor} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Label} from '../../components/ui/Heading';
 import {TextArea} from '../../components/ui/TextArea';
@@ -178,7 +178,7 @@ export function BookService() {
         <div>
           <Label n={3}>Their answers</Label>
           <div className="mt-6 space-y-8">
-            {checkoutQuestions(service.product, service.slug).map((question) => (
+            {serviceQuestions(service).map((question) => (
               <Question
                 key={question.id}
                 q={question}

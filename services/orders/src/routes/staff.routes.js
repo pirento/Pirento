@@ -27,7 +27,7 @@ import {PAID_STATUSES, config} from '../config.js';
 import {liveService} from '../lib/catalog.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
-import {completionCode, findAccessible, nextOrderNo, refundCard, seesAllWork} from '../lib/orders.js';
+import {completionCode, findAccessible, nextOrderNo, questionsOf, refundCard, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
 export const staffRoutes = Router();
@@ -84,7 +84,7 @@ staffRoutes.get('/staff/daily', money, async (req, res) => {
 /** One customer's orders, for the admin user page. */
 staffRoutes.get('/staff/user/:userId', async (req, res) => {
   res.json({
-    data: await Order.find(scoped(req, {userId: req.params.userId}), {intake: 0})
+    data: await Order.find(scoped(req, {userId: req.params.userId}), {intake: 0, details: 0})
       .sort({createdAt: -1})
       .limit(100),
   });
@@ -166,7 +166,7 @@ staffRoutes.post(
     if (!customer || customer.role !== 'customer' || customer.suspended) {
       throw badInput('Choose an active customer account');
     }
-    const {answers, error} = validateIntake(service.product, service.slug, req.body.intake);
+    const {answers, error} = validateIntake(service, req.body.intake);
     if (error) throw badInput(error);
 
     const order = await Order.create({
@@ -179,6 +179,7 @@ staffRoutes.post(
       quantity: 1,
       amount: service.price * 100,
       intake: answers,
+      ...questionsOf(service),
       bookedBy: {id: req.user.sub, email: req.user.email},
       timeline: [{status: 'pending_payment', note: 'Booked for you by the Pirento team'}],
       ...(req.body.note ? {messages: [{from: 'team', body: req.body.note, by: req.user.email}]} : {}),

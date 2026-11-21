@@ -22,6 +22,7 @@ function BusinessOverview({me}) {
   const daily = useApi(may('orders') ? '/orders/staff/daily' : null);
   const kyc = useApi(may('bharat-id') ? '/identity/staff/queue' : null);
   const tickets = useApi(may('tickets') ? '/support/staff/queue' : null);
+  const enquiries = useApi(may('enquiries') ? '/support/staff/enquiries' : null);
   const d = orders.data;
   const top = Math.max(1, ...Object.values(d?.byProduct ?? {}).map((p) => p.amount));
 
@@ -33,6 +34,7 @@ function BusinessOverview({me}) {
           ...(may('orders') ? [{value: d ? inr(d.revenue / 100) : '—', label: 'paid order value'}] : []),
           ...(may('bharat-id') ? [{value: String(kyc.data?.length ?? '—'), label: 'Bharat IDs to review'}] : []),
           ...(may('tickets') ? [{value: String(tickets.data?.length ?? '—'), label: 'tickets waiting on us'}] : []),
+          ...(may('enquiries') ? [{value: String(enquiries.data?.length ?? '—'), label: 'new enquiries'}] : []),
         ]}
       />
       <div className="grid gap-4 lg:grid-cols-3">

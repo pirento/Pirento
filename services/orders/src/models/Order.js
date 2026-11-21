@@ -19,6 +19,11 @@ export const Order = mongoose.model(
       quantity: {type: Number, default: 1, min: 1},
       amount: {type: Number, required: true, min: 1}, // paise: catalog price × quantity
       intake: {type: Object, default: {}}, // answers to the checkout questions
+      asked: {type: [{_id: false, id: String, label: String}], default: undefined}, // those questions, as asked
+      // Asked once the order is paid (set per service in admin), and the customer's answers.
+      afterQuestions: {type: Array, default: undefined},
+      details: {type: Object},
+      detailsAt: Date,
       status: {type: String, required: true, default: 'pending_payment', index: true},
       timeline: [{_id: false, status: String, note: String, at: {type: Date, default: Date.now}}],
       // The conversation on this order between the customer and the team; status changes stay on the timeline.
