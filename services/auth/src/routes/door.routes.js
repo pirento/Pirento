@@ -29,7 +29,7 @@ doorRoutes.post(
   async (req, res) => {
     const {staffId, password} = req.body;
     const key = `staff:${staffId}`;
-    const wait = waitFor(key);
+    const wait = await waitFor(key);
     if (wait) throw new ApiError(429, 'SLOW_DOWN', `Too many wrong tries. Wait ${Math.ceil(wait / 1000)} seconds.`);
 
     const user = STAFF_ID.test(staffId) ? await User.findOne({staffId}).select('+passwordHash') : null;
@@ -37,7 +37,7 @@ doorRoutes.post(
     // so this door never tells anyone which staff IDs exist or which are privileged.
     const ok = user && STAFF.includes(user.role) && (await verifyPassword(password, user.passwordHash));
     if (!ok) {
-      recordFailure(key);
+      await recordFailure(key);
       await AuditLog.create({
         actorId: '-',
         actorEmail: '-',
@@ -47,7 +47,7 @@ doorRoutes.post(
       });
       throw new ApiError(401, 'BAD_CREDENTIALS', 'Wrong staff ID or password');
     }
-    clearFailures(key);
+    await clearFailures(key);
     await issueSession(res, user);
   },
 );
