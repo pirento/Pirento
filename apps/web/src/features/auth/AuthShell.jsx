@@ -29,7 +29,9 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
             </>
           ) : (
             <>
-              <span aria-hidden className="size-2.5 rounded-[3px] bg-accent" />
+              <span className="flex size-8 items-center justify-center rounded-[10px] bg-accent text-on-accent">
+                <Icon aria-hidden className="size-4" />
+              </span>
               {side.eyebrow}
             </>
           )}

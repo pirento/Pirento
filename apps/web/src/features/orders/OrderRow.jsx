@@ -5,6 +5,7 @@ import {ArrowUpRight} from 'lucide-react';
 import {ORDER_STEPS, getProduct, statusLabel} from '@pirento/shared';
 import {Tag} from '../../components/ui/Tag';
 import {formatDate, inr} from '../../lib/format';
+import {ProductIcon} from '../../components/ui/ProductIcon';
 
 /** Where an order is, as four joined dots: awaiting payment → paid → in progress → completed. */
 export function Progress({status}) {
@@ -39,8 +40,7 @@ export function OrderRow({order, showProduct = false}) {
           <span className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
             {product && (
               <span className="inline-flex items-center gap-1.5">
-                {/* The product's colour as a small identity mark. */}
-                <span aria-hidden className="size-2 rounded-[2px]" style={{background: product.color}} />
+                <ProductIcon product={product} className="size-4" />
                 {product.name} ·
               </span>
             )}

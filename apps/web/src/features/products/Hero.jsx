@@ -92,8 +92,9 @@ export function Hero({product, design}) {
 
   const reverse = hero === 'split-reverse';
   return shell(
-    <div className="grid gap-14 lg:grid-cols-12 lg:items-center">
-      <div className={`lg:col-span-7 ${reverse ? 'lg:order-2' : ''}`}>
+    // grid-cols-1 holds the column to the screen on phones; an auto column grows to the widest child.
+    <div className="grid grid-cols-1 gap-14 lg:grid-cols-12 lg:items-center">
+      <div className={`min-w-0 lg:col-span-7 ${reverse ? 'lg:order-2' : ''}`}>
         {meta}
         <Heading as="h1" text={title} hl={hl} className="h-hero mt-6" />
         <p className="body mt-8" data-hero-fade>
@@ -101,7 +102,7 @@ export function Hero({product, design}) {
         </p>
         {actions}
       </div>
-      <div id={covers} className={`scroll-mt-24 lg:col-span-5 ${reverse ? 'lg:order-1' : ''}`} data-hero-visual>
+      <div id={covers} className={`min-w-0 scroll-mt-24 lg:col-span-5 ${reverse ? 'lg:order-1' : ''}`} data-hero-visual>
         {widget}
       </div>
     </div>,

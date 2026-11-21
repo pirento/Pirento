@@ -179,26 +179,23 @@ h3,
   display: block;
 }
 
-/* Highlighter: accent bar behind a word, sweeps in when .is-on is added. */
+/* Highlighter: accent bar behind a phrase, sweeps in when .is-on is added. A background (not a ::before bar) so a
+   long phrase can wrap on a phone: box-decoration-break gives each line its own bar. */
 .hl {
-  position: relative;
-  z-index: 0;
-  white-space: nowrap;
-}
-.hl::before {
-  content: '';
-  position: absolute;
-  inset: 6% -0.08em;
-  background: var(--accent);
-  z-index: -1;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.9s var(--ease-ui);
-}
-.hl.is-on::before {
-  transform: scaleX(1);
+  background-image: linear-gradient(var(--accent), var(--accent));
+  background-repeat: no-repeat;
+  background-position: 0 50%;
+  background-size: 0% 88%;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-inline: 0.08em;
+  margin-inline: -0.08em;
+  transition:
+    background-size 0.9s var(--ease-ui),
+    color 0.9s var(--ease-ui);
 }
 .hl.is-on {
+  background-size: 100% 88%;
   color: var(--on-accent);
 }
 

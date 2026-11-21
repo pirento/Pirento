@@ -7,21 +7,21 @@ export function SampleIdCard() {
     <WidgetCard className="p-0! md:p-0!">
       <div className="inverse relative overflow-hidden rounded-t-[22px] p-6 md:p-8">
         <div aria-hidden className="grid-bg absolute inset-0 opacity-40" />
-        <div className="relative flex items-start justify-between gap-6">
-          <div>
+        <div className="relative flex items-start justify-between gap-4 sm:gap-6">
+          <div className="min-w-0">
             <p className="eyebrow">Bharat ID · Sample</p>
             <p className="mt-8 text-sm text-inverse-muted">Name</p>
             <p className="text-xl">Your name here</p>
             <p className="mt-5 text-sm text-inverse-muted">ID</p>
             <p className="num text-2xl! tracking-[0.08em] whitespace-nowrap sm:text-3xl!">0000 0000 00</p>
           </div>
-          <div className="rounded-[10px] bg-paper p-2">
+          <div className="shrink-0 rounded-[10px] bg-paper p-2">
             <QRCodeSVG
               value={`${location.origin}/verify`}
               size={84}
               bgColor="transparent"
               fgColor="currentColor"
-              className="text-ink"
+              className="size-16 text-ink sm:size-[84px]"
             />
           </div>
         </div>

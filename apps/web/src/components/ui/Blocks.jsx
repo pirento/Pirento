@@ -4,10 +4,11 @@ import {Check, Plus} from 'lucide-react';
 export function Steps({steps}) {
   return (
     <ol
-      className="relative grid gap-10 md:grid-cols-(--cols) md:gap-6"
+      // One row on a desktop; two across on a tablet, where four would be too narrow to read.
+      className="relative grid gap-10 sm:grid-cols-2 lg:grid-cols-(--cols) lg:gap-6"
       style={{'--cols': `repeat(${steps.length}, minmax(0, 1fr))`}}
     >
-      <span aria-hidden className="absolute top-5 right-0 left-0 hidden h-px bg-rule md:block" />
+      <span aria-hidden className="absolute top-5 right-0 left-0 hidden h-px bg-rule lg:block" />
       {steps.map((s, i) => (
         <li key={s.title} className="relative" data-reveal>
           <span className="num relative inline-flex size-10 items-center justify-center rounded-full border border-rule bg-paper text-base">

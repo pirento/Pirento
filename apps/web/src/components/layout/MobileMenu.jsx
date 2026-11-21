@@ -4,6 +4,7 @@ import {Link} from 'react-router-dom';
 import gsap from 'gsap';
 import {brand, socials} from '../../data/site';
 import {reducedMotion} from '../../lib/motion';
+import {ThemeToggle} from './ThemeToggle';
 
 export function MobileMenu({open, onClose, items}) {
   const ref = useRef(null);
@@ -54,7 +55,10 @@ export function MobileMenu({open, onClose, items}) {
           </li>
         ))}
       </ol>
-      <div className="mt-auto flex flex-wrap gap-x-6 gap-y-2 border-t border-rule pt-6 text-sm text-muted">
+      <div className="mt-auto flex items-center gap-3 pb-6 text-sm text-muted min-[360px]:hidden">
+        <ThemeToggle /> Light or dark
+      </div>
+      <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-rule pt-6 text-sm text-muted min-[360px]:mt-auto">
         <a href={`mailto:${brand.email}`}>{brand.email}</a>
         {socials.map((s) => (
           <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer">
