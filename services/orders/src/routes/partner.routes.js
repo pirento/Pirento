@@ -1,12 +1,12 @@
 // Pirento One: become a partner, and see the orders your code brought in.
 import crypto from 'node:crypto';
 import {Router} from 'express';
-import {requireAuth} from '@pirento/shared/server';
+import {requireAuth, requireBharatId} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 
 export const partnerRoutes = Router();
-partnerRoutes.use('/partner', requireAuth);
+partnerRoutes.use('/partner', requireAuth, requireBharatId); // Pirento One opens once a Bharat ID is issued
 
 /** Joining twice returns the same code. */
 partnerRoutes.post('/partner/join', async (req, res) => {

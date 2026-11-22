@@ -54,3 +54,17 @@ export async function callService(baseUrl, path, body) {
   }
   return json.data;
 }
+
+/**
+ * Lets a request through only when the signed-in person holds an issued (approved) Bharat ID.
+ * Pirento One and Pirento Vault open only after one. Use after requireAuth.
+ */
+export async function requireBharatId(req, _res, next) {
+  const {issued} = await callService(env('IDENTITY_URL', 'http://127.0.0.1:4005'), '/internal/issued', {
+    userId: req.user.sub,
+  });
+  if (!issued) {
+    throw new ApiError(403, 'NEEDS_BHARAT_ID', 'Get your Bharat ID first. This opens once your ID is issued.');
+  }
+  next();
+}

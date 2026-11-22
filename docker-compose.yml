@@ -7,6 +7,7 @@ x-service: &service
     INTERNAL_KEY: ${INTERNAL_KEY:?set INTERNAL_KEY in .env}
     SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
     AUTH_URL: http://auth:4001 # staff actions are written to its audit trail
+    IDENTITY_URL: http://identity:4005 # Pirento One and Vault check for an issued Bharat ID
 
 services:
   mongo:

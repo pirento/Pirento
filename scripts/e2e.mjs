@@ -314,6 +314,14 @@ check(
   'customer cannot play KYC videos',
   (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${user}`}})).status === 403,
 );
+check(
+  'vault waits for an issued Bharat ID',
+  (await call('/vault/credentials', {token: user})).error?.code === 'NEEDS_BHARAT_ID',
+);
+check(
+  'Pirento One waits for an issued Bharat ID',
+  (await call('/orders/partner/join', {method: 'POST', token: user})).error?.code === 'NEEDS_BHARAT_ID',
+);
 const appr = (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
   .data;
 check('approved with 10-digit ID', /^[1-9]\d{9}$/.test(appr?.bharatId ?? ''), appr);
@@ -633,11 +641,13 @@ check(
 );
 
 // ── Pirento One + Giftox ────────────────────────────────────────────────
-const partner = (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data;
+// The partner is `user`, who holds an issued Bharat ID by now; `buyer` orders through their link.
+const buyer = await login(`buyer${Date.now()}@example.com`);
+const partner = (await call('/orders/partner/join', {method: 'POST', token: user})).data;
 check('partner code', /^P[0-9A-F]{6}$/.test(partner?.code ?? ''), partner);
 check(
   'join is idempotent',
-  (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data?.code === partner.code,
+  (await call('/orders/partner/join', {method: 'POST', token: user})).data?.code === partner.code,
 );
 const gift = {
   phone: '9876500000',
@@ -653,7 +663,7 @@ check(
   (
     await call('/orders', {
       method: 'POST',
-      token: user,
+      token: buyer,
       body: {serviceSlug: 'giftox-diwali-collection', intake: {...gift, address: ''}},
     })
   ).status === 400,
@@ -661,7 +671,7 @@ check(
 const go = (
   await call('/orders', {
     method: 'POST',
-    token: user,
+    token: buyer,
     body: {serviceSlug: 'giftox-diwali-collection', quantity: 2, ref: partner.code.toLowerCase(), intake: gift},
   })
 ).data;
@@ -669,12 +679,12 @@ check('gift order with referral', go?.amount === 399800 && go.ref === partner.co
 const own = (
   await call('/orders', {
     method: 'POST',
-    token: staffToken,
+    token: user,
     body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
   })
 ).data;
 check('own code is ignored', own && !own.ref);
-const pm = (await call('/orders/partner/me', {token: staffToken})).data;
+const pm = (await call('/orders/partner/me', {token: user})).data;
 check(
   'partner sees referred order without customer data',
   pm?.orders.length === 1 && !JSON.stringify(pm).includes('9876500000') && !JSON.stringify(pm).includes('@'),
@@ -702,13 +712,13 @@ check(
   const ro = (
     await call('/orders', {
       method: 'POST',
-      token: user,
+      token: buyer,
       body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
     })
   ).data;
-  await call('/wallet/topup', {method: 'POST', token: user, body: {amount: ro.amount / 100}});
-  await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: user});
-  const before = (await call('/wallet', {token: staffToken})).data.balance;
+  await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: ro.amount / 100}});
+  await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: buyer});
+  const before = (await call('/wallet', {token: user})).data.balance;
   await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'in_progress', note: ''}});
   const fin = (
     await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'completed', note: ''}})
@@ -719,21 +729,21 @@ check(
     fin?.commission?.amount === due && fin.commission.pct === 10,
     fin?.commission,
   );
-  const after = (await call('/wallet', {token: staffToken})).data.balance;
+  const after = (await call('/wallet', {token: user})).data.balance;
   check('commission lands in the partner wallet', after - before === due, {before, after, due});
   const again = (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: boss})).data;
   check(
     'nothing owed, nothing paid twice',
-    again?.paid === 0 && (await call('/wallet', {token: staffToken})).data.balance === after,
+    again?.paid === 0 && (await call('/wallet', {token: user})).data.balance === after,
     again,
   );
   const row = (await call('/orders/staff/partners', {token: boss})).data?.find((p) => p.code === partner.code);
   check('admin sees commission paid', row?.earned === due && row.owed === 0, row);
   check(
     'a customer cannot send commission',
-    (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: user})).status === 403,
+    (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: buyer})).status === 403,
   );
-  const mine = (await call('/orders/partner/me', {token: staffToken})).data?.orders.find((x) => x._id === ro._id);
+  const mine = (await call('/orders/partner/me', {token: user})).data?.orders.find((x) => x._id === ro._id);
   check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
 }
 await call('/catalog/staff/settings', {

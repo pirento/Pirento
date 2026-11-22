@@ -4,6 +4,12 @@
 import {PRODUCT_COLOURS, textOn} from './brand.js';
 import {PRODUCT_DETAILS} from './productDetails.js';
 
+// Pirento One and Vault open only once the person's Bharat ID is issued (enforced by those services).
+const bharatIdFirst = (name) => ({
+  title: 'Get your Bharat ID',
+  body: `${name} opens once your Bharat ID is issued: seven short steps, a 20-second video, then a review by our team.`,
+});
+
 const signIn = {
   title: 'Sign in with email',
   body: 'A 6-digit code, no password. One account works on every Pirento site.',
@@ -111,6 +117,7 @@ const SITE = {
     pill: 'Encrypted at rest',
     steps: [
       signIn,
+      bharatIdFirst('Pirento Vault'),
       {title: 'Upload or save', body: 'Files up to 5 MB each, 50 MB in all, and any number of passwords.'},
       {title: 'Encrypted on arrival', body: 'Each item is sealed with AES-256-GCM and its own random IV.'},
       {title: 'Open when you need it', body: 'Download a file or reveal a password from your dashboard.'},
@@ -127,6 +134,7 @@ const SITE = {
     pill: 'Partners welcome',
     steps: [
       signIn,
+      bharatIdFirst('Pirento One'),
       {title: 'Get your code', body: 'One click gives you a partner code and a link.'},
       {title: 'Share the link', body: 'Clients who open it and order are credited to your code.'},
       {title: 'Watch it grow', body: 'See each referred order and its status in your dashboard.'},

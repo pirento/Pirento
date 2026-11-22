@@ -1,4 +1,4 @@
-// Called by the auth service: forget a deleted account, and find who holds an issued Bharat ID.
+// Called by other services: forget a deleted account, find who holds an issued Bharat ID, and whether someone has one.
 import {Router} from 'express';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
@@ -24,3 +24,8 @@ internalRoutes.post(
     res.json({data: {userId: doc.userId}});
   },
 );
+
+/** Whether this account holds an issued Bharat ID (Pirento One and Vault need one). */
+internalRoutes.post('/internal/issued', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
+  res.json({data: {issued: Boolean(await Identity.exists({userId: req.body.userId, status: 'approved'}))}});
+});

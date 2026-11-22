@@ -266,6 +266,24 @@ export const productDashboards = {
 };
 
 // The app products' dashboards (Intern, Vault, One, Bharat ID): headings and the words on each section.
+// Shown in place of the Pirento One and Vault dashboards until the person's Bharat ID is issued.
+export const bharatIdGate = {
+  title: 'Your Bharat ID / comes first.',
+  intro: (name) => `${name} opens once your Bharat ID is issued.`,
+  status: {
+    none: 'You have not started an application yet. It takes seven short steps and a 20-second video.',
+    draft: 'Your application is saved as a draft. Finish the steps and submit it.',
+    submitted: 'Your application is with our team for review. This opens as soon as your ID is issued.',
+    rejected: 'Your application needs changes. Open it to see what to fix, then submit it again.',
+  },
+  button: {
+    none: 'Start my Bharat ID',
+    draft: 'Continue my application',
+    submitted: 'See my application',
+    rejected: 'Fix my application',
+  },
+};
+
 export const appDashboards = {
   intern: {
     hello: 'Your exams / and certificates.',
