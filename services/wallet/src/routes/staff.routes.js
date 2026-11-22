@@ -7,41 +7,49 @@ import {
   audit,
   badInput,
   conflict,
-  isId,
   notFound,
   notify,
   requireAuth,
   requireRole,
   validate,
 } from '@pirento/shared/server';
-import {WITHDRAWAL_STATUSES, Withdrawal} from '../models/Withdrawal.js';
-import {move} from '../lib/move.js';
+import {query} from '../lib/db.js';
+import {balanceOf, move} from '../lib/move.js';
 import {toPaise} from '../lib/money.js';
-import {Transaction} from '../models/Transaction.js';
-import {Wallet} from '../models/Wallet.js';
+import {TX_COLUMNS, transaction, withdrawal} from '../lib/rows.js';
 import {PayoutRefused, createPayout, fetchPayout, payoutConfig} from '../lib/payouts.js';
-import {settle} from '../lib/withdrawals.js';
+import {findWithdrawal, settle} from '../lib/withdrawals.js';
+
+const WITHDRAWAL_STATUSES = ['requested', 'processing', 'paid', 'rejected'];
+const isWithdrawalId = (id) => /^[a-f0-9]{24}$/.test(String(id));
 
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.payments, 'support'));
 
 /** Latest movements, optionally only credits or debits, plus the totals held. */
 staffRoutes.get('/staff/transactions', requireRole(...ACCESS.payments), async (req, res) => {
-  const filter = ['credit', 'debit'].includes(req.query.type) ? {type: req.query.type} : {};
-  const [transactions, held] = await Promise.all([
-    Transaction.find(filter, {ref: 0}).sort({createdAt: -1}).limit(200),
-    Wallet.aggregate([{$group: {_id: null, total: {$sum: '$balance'}, wallets: {$sum: 1}}}]),
+  const type = ['credit', 'debit'].includes(req.query.type) ? req.query.type : null;
+  const [rows, held] = await Promise.all([
+    query(
+      `SELECT ${TX_COLUMNS} FROM transactions ${type ? 'WHERE type = $1' : ''} ORDER BY created_at DESC, id DESC LIMIT 200`,
+      type ? [type] : [],
+    ),
+    query('SELECT COALESCE(SUM(balance), 0) AS total, COUNT(*) AS wallets FROM wallets'),
   ]);
-  res.json({data: {transactions, held: held[0]?.total ?? 0, wallets: held[0]?.wallets ?? 0}});
+  res.json({
+    data: {transactions: rows.rows.map(transaction), held: held.rows[0].total, wallets: held.rows[0].wallets},
+  });
 });
 
 /** One person's balance and history, for the admin user page (support may look, not move money). */
 staffRoutes.get('/staff/user/:userId', async (req, res) => {
-  const [wallet, transactions] = await Promise.all([
-    Wallet.findOne({userId: req.params.userId}),
-    Transaction.find({userId: req.params.userId}, {ref: 0}).sort({createdAt: -1}).limit(50),
+  const [{balance}, rows] = await Promise.all([
+    balanceOf(req.params.userId),
+    query(`SELECT ${TX_COLUMNS} FROM transactions WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT 50`, [
+      req.params.userId,
+    ]),
   ]);
-  res.json({data: {balance: wallet?.balance ?? 0, transactions}});
+  res.json({data: {balance, transactions: rows.rows.map(transaction)}});
 });
 
 const finance = requireRole(...ACCESS.payments);
@@ -69,7 +77,8 @@ staffRoutes.post(
 
 staffRoutes.get('/staff/withdrawals', finance, async (req, res) => {
   const status = WITHDRAWAL_STATUSES.includes(req.query.status) ? req.query.status : 'requested';
-  res.json({data: await Withdrawal.find({status}).sort({createdAt: 1}).limit(200)});
+  const r = await query('SELECT * FROM withdrawals WHERE status = $1 ORDER BY created_at LIMIT 200', [status]);
+  res.json({data: r.rows.map(withdrawal)});
 });
 
 staffRoutes.patch(
@@ -84,23 +93,18 @@ staffRoutes.patch(
   ),
   async (req, res) => {
     const {decision, utr, reason} = req.body;
-    if (!isId(req.params.id)) throw notFound('Withdrawal not found');
+    if (!isWithdrawalId(req.params.id)) throw notFound('Withdrawal not found');
     if (decision === 'paid' && !utr) throw badInput('Enter the UTR of the payment you sent');
     if (decision === 'rejected' && !reason) throw badInput('Tell the customer why');
     // Conditional on 'requested', so a double click cannot pay or refund twice.
-    const doc = await Withdrawal.findOneAndUpdate(
-      {_id: req.params.id, status: 'requested'},
-      {
-        $set: {
-          status: decision,
-          utr: utr || undefined,
-          reason: reason || undefined,
-          decidedBy: req.user.email,
-          decidedAt: new Date(),
-        },
-        $unset: {open: 1},
-      },
-      {new: true},
+    const doc = withdrawal(
+      (
+        await query(
+          `UPDATE withdrawals SET status = $2, utr = $3, reason = $4, decided_by = $5, decided_at = now(), updated_at = now()
+           WHERE id = $1 AND status = 'requested' RETURNING *`,
+          [req.params.id, decision, utr || null, reason || null, req.user.email],
+        )
+      ).rows[0],
     );
     if (!doc) throw conflict('CHANGED', 'This withdrawal was already handled');
     if (decision === 'rejected') {
@@ -129,11 +133,16 @@ staffRoutes.get('/staff/payouts/config', finance, (_req, res) => res.json({data:
 staffRoutes.post('/staff/withdrawals/:id/payout', finance, async (req, res) => {
   const cfg = payoutConfig();
   if (!cfg) throw badInput('Payouts through the API are not set up; send it by hand and note the UTR');
-  if (!isId(req.params.id)) throw notFound('Withdrawal not found');
-  const w = await Withdrawal.findOneAndUpdate(
-    {_id: req.params.id, status: 'requested'},
-    {$set: {status: 'processing', decidedBy: req.user.email, decidedAt: new Date(), payout: {status: 'sending'}}},
-    {new: true},
+  if (!isWithdrawalId(req.params.id)) throw notFound('Withdrawal not found');
+  const w = withdrawal(
+    (
+      await query(
+        `UPDATE withdrawals SET status = 'processing', decided_by = $2, decided_at = now(), payout_id = NULL,
+         payout_status = 'sending', payout_error = NULL, updated_at = now()
+         WHERE id = $1 AND status = 'requested' RETURNING *`,
+        [req.params.id, req.user.email],
+      )
+    ).rows[0],
   );
   if (!w) throw conflict('CHANGED', 'This withdrawal was already handled');
   audit(req, 'withdrawal.payout', w.email, `₹${w.amount / 100} → ${w.upi}`);
@@ -144,7 +153,8 @@ staffRoutes.post('/staff/withdrawals/:id/payout', finance, async (req, res) => {
 staffRoutes.post('/staff/withdrawals/:id/check', finance, async (req, res) => {
   const cfg = payoutConfig();
   if (!cfg) throw badInput('Payouts through the API are not set up');
-  const w = isId(req.params.id) && (await Withdrawal.findOne({_id: req.params.id, status: 'processing'}));
+  const found = isWithdrawalId(req.params.id) && (await findWithdrawal(req.params.id));
+  const w = found?.status === 'processing' ? found : null;
   if (!w) throw notFound('No payout on its way with this id');
   if (!w.payout?.id) return res.json({data: await send(cfg, w)}); // same idempotency key: never a second payout
   try {
@@ -161,13 +171,18 @@ async function send(cfg, w) {
   } catch (err) {
     if (err instanceof PayoutRefused) {
       // Nothing was created, so the request goes back to "to pay" with the reason, still debited and open.
-      return Withdrawal.findOneAndUpdate(
-        {_id: w._id, status: 'processing', 'payout.id': {$exists: false}},
-        {$set: {status: 'requested', 'payout.status': 'refused', 'payout.error': err.message.slice(0, 200)}},
-        {new: true},
+      const r = await query(
+        `UPDATE withdrawals SET status = 'requested', payout_status = 'refused', payout_error = $2, updated_at = now()
+         WHERE id = $1 AND status = 'processing' AND payout_id IS NULL RETURNING *`,
+        [w._id, err.message.slice(0, 200)],
       );
+      return withdrawal(r.rows[0]) ?? findWithdrawal(w._id);
     }
     // Unknown (timeout, 5xx): it may exist. It stays processing; "check again" asks with the same key.
-    return Withdrawal.findByIdAndUpdate(w._id, {$set: {'payout.error': err.message.slice(0, 200)}}, {new: true});
+    const r = await query('UPDATE withdrawals SET payout_error = $2, updated_at = now() WHERE id = $1 RETURNING *', [
+      w._id,
+      err.message.slice(0, 200),
+    ]);
+    return withdrawal(r.rows[0]);
   }
 }

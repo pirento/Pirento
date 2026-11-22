@@ -3,3 +3,8 @@ dist/
 .env
 *.log
 apps/web/public/sitemap.xml
+
+# Terraform: local state, providers and real values
+deploy/aws/.terraform/
+deploy/aws/*.tfstate*
+deploy/aws/terraform.tfvars

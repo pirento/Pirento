@@ -1,10 +1,9 @@
-// Called by other services (orders, and auth when an account is deleted) only, never by a browser.
+// Called by other services (orders, learning, identity, and auth when an account is deleted) only, never by a browser.
 import {Router} from 'express';
 import {z} from 'zod';
 import {conflict, requireInternal, validate} from '@pirento/shared/server';
-import {move} from '../lib/move.js';
-import {Wallet} from '../models/Wallet.js';
-import {Withdrawal} from '../models/Withdrawal.js';
+import {query} from '../lib/db.js';
+import {balanceOf, move} from '../lib/move.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -13,10 +12,15 @@ internalRoutes.use('/internal', requireInternal);
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
   // 'processing' too: a payout already sent through RazorpayX can still come back and need crediting.
-  if (await Withdrawal.exists({userId, status: {$in: ['requested', 'processing']}})) {
+  const open = await query(`SELECT 1 FROM withdrawals WHERE user_id = $1 AND status IN ('requested', 'processing')`, [
+    userId,
+  ]);
+  if (open.rowCount)
     throw conflict('WITHDRAWAL_OPEN', 'A withdrawal is still being paid out. Finish it before deleting.');
-  }
-  await Withdrawal.updateMany({userId}, {$set: {email: `deleted-${userId}@deleted.invalid`, upi: 'removed'}});
+  await query(`UPDATE withdrawals SET email = $2, upi = 'removed', updated_at = now() WHERE user_id = $1`, [
+    userId,
+    `deleted-${userId}@deleted.invalid`,
+  ]);
   res.json({data: {forgotten: true}});
 });
 
@@ -30,13 +34,11 @@ const moveBody = z.object({
 for (const type of ['debit', 'credit']) {
   internalRoutes.post(`/internal/${type}`, validate(moveBody), async (req, res) => {
     const {userId, amount, ref, note} = req.body;
-    const wallet = await move(userId, type, amount, note, ref);
-    res.json({data: {balance: wallet.balance}});
+    res.json({data: await move(userId, type, amount, note, ref)});
   });
 }
 
 /** A balance, so auth can refuse to delete an account that still holds money. */
 internalRoutes.post('/internal/balance', validate(z.object({userId: z.string().min(1)})), async (req, res) => {
-  const wallet = await Wallet.findOne({userId: req.body.userId});
-  res.json({data: {balance: wallet?.balance ?? 0}});
+  res.json({data: await balanceOf(req.body.userId)});
 });

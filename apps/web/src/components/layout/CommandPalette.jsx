@@ -1,9 +1,11 @@
-// Ctrl/Cmd+K: jump to any product, page or priced service from anywhere in the app shell.
+// Ctrl/Cmd+K: jump to any product, page or priced service from anywhere in the app shell, plus Intern lessons
+// and open roles found on the server (OpenSearch when it is set up).
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {CornerDownLeft, FileText, Search} from 'lucide-react';
 import {PRODUCTS, SERVICES} from '@pirento/shared';
 import {inr} from '../../lib/format';
+import {api} from '../../lib/api/client';
 import {ProductIcon} from '../ui/ProductIcon';
 
 const OPEN_EVENT = 'pirento:command-palette';
@@ -41,7 +43,32 @@ export function CommandPalette() {
   const ref = useRef(null);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
+  const [found, setFound] = useState([]);
   const navigate = useNavigate();
+
+  // Server hits arrive a moment after typing stops; the local list shows at once.
+  useEffect(() => {
+    const term = q.trim();
+    if (term.length < 2) {
+      setFound([]);
+      return undefined;
+    }
+    let live = true;
+    const t = setTimeout(() => {
+      api(`/learning/search?q=${encodeURIComponent(term)}`).then(
+        (hits) => {
+          if (live) setFound(hits.map((h) => ({label: h.title, hint: 'Pirento Intern', to: h.to, kind: h.kind})));
+        },
+        () => {
+          if (live) setFound([]);
+        },
+      );
+    }, 250);
+    return () => {
+      live = false;
+      clearTimeout(t);
+    };
+  }, [q]);
 
   useEffect(() => {
     const open = () => {
@@ -68,8 +95,8 @@ export function CommandPalette() {
     const hits = words.length
       ? ITEMS.filter((it) => words.every((w) => `${it.label} ${it.hint} ${it.kind}`.toLowerCase().includes(w)))
       : ITEMS.filter((it) => it.kind !== 'Service');
-    return hits.slice(0, 8);
-  }, [q]);
+    return [...hits.slice(0, 8), ...found.filter((f) => !hits.some((h) => h.to === f.to))].slice(0, 12);
+  }, [q, found]);
 
   const go = (item) => {
     ref.current?.close();
@@ -105,7 +132,7 @@ export function CommandPalette() {
             setActive(0);
           }}
           onKeyDown={onKeyDown}
-          placeholder="Search products, pages and services"
+          placeholder="Search products, pages, services and courses"
           aria-label="Search"
           aria-controls="palette-results"
           aria-activedescendant={results[active] ? `palette-${active}` : undefined}

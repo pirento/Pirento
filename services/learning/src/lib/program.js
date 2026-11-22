@@ -64,12 +64,16 @@ export async function eligibility(userId, enrolment) {
   return {checks, eligible: Object.values(checks).every(Boolean)};
 }
 
-/** Buys a place from the wallet. The ref is per person, length and day: a double click pays and enrols once. */
+/**
+ * Buys a place from the wallet. The ref is per person, place number, length and day: a double click pays and
+ * enrols once, and a later place (after one finished) gets a new ref.
+ */
 export async function buyPlace(user, months, now = new Date()) {
   const program = await Program.findOne({months, active: true}).lean();
   if (!program) throw notFound('This programme is not on sale yet');
   if (await running(user.sub)) throw conflict('ENROLLED', 'You are already on a programme');
-  const ref = `intern-program-${user.sub}-${months}-${now.toISOString().slice(0, 10)}`;
+  const nth = await Enrolment.countDocuments({userId: user.sub});
+  const ref = `intern-program-${user.sub}-${nth + 1}-${months}-${now.toISOString().slice(0, 10)}`;
   const done = await Enrolment.findOne({ref});
   if (done) return done;
   if (program.price) {
@@ -90,11 +94,20 @@ export async function buyPlace(user, months, now = new Date()) {
       endsAt: new Date(now.getTime() + months * 30 * DAY),
     });
   } catch (err) {
-    // Same ref (a retry) or a place opened meanwhile: the money moved once, so return what is there.
     if (err.code !== 11000) throw err;
-    const existing = (await Enrolment.findOne({ref})) ?? (await running(user.sub));
-    if (!existing) throw new ApiError(409, 'ENROLLED', 'You are already on a programme');
-    return existing;
+    // The same ref (a retry): the money moved once, so this is the place it bought.
+    const same = await Enrolment.findOne({ref});
+    if (same) return same;
+    // Another place opened meanwhile (two lengths bought at once): this payment bought nothing, so it goes back.
+    if (program.price) {
+      await callService(WALLET_URL, '/internal/credit', {
+        userId: user.sub,
+        amount: program.price,
+        ref: `${ref}-refund`,
+        note: `Pirento Intern · refund, you are already on a programme`,
+      });
+    }
+    throw conflict('ENROLLED', 'You are already on a programme; this payment was returned');
   }
 }
 

@@ -1,10 +1,29 @@
 // Connecting a service to its own database and starting it.
 import mongoose from 'mongoose';
 
-/** Connects to the service's own database (if it has one) and starts listening. */
+/** True once this service has asked for Mongo; /health then reports whether it is connected. */
+export const usesMongo = {on: false};
+
+/**
+ * Connects to the service's own database (if it has one) and starts listening. Ready for many copies behind a
+ * load balancer: a bounded connection pool per copy, keep-alive longer than the balancer's idle timeout (so it
+ * never reuses a socket we just closed), and on SIGTERM (a deploy or scale-in) it stops taking requests, lets
+ * the ones in flight finish, then closes the database.
+ */
 export async function start(app, {name, port, mongoUri}) {
-  if (mongoUri) await mongoose.connect(mongoUri);
-  app.listen(port, () => console.log(`${name} listening on :${port}`));
+  if (mongoUri) {
+    usesMongo.on = true;
+    await mongoose.connect(mongoUri, {maxPoolSize: Number(process.env.MONGO_POOL ?? 20)});
+  }
+  const server = app.listen(port, () => console.log(`${name} listening on :${port}`));
+  server.keepAliveTimeout = 65_000;
+  server.headersTimeout = 66_000;
+  process.once('SIGTERM', () => {
+    console.log(`${name} draining`);
+    server.close(() => mongoose.disconnect().finally(() => process.exit(0)));
+    setTimeout(() => process.exit(0), 25_000).unref(); // the balancer gives up on a copy after 30 s
+  });
+  return server;
 }
 
 /**

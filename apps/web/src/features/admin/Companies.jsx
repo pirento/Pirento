@@ -7,6 +7,7 @@ import {Tag} from '../../components/ui/Tag';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
+import {safeHref} from '../../lib/links';
 
 const ACTIONS = {
   requested: [
@@ -35,7 +36,12 @@ function Company({c, onChange}) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-lg font-medium">{c.company}</p>
-          <a href={c.website} target="_blank" rel="noreferrer noopener" className="break-all text-sm underline">
+          <a
+            href={safeHref(c.website)}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="break-all text-sm underline"
+          >
             {c.website}
           </a>
         </div>

@@ -220,6 +220,16 @@ h3,
   top: 16px;
 }
 
+/* RouteLoader: the bar sweeps across while a page's code loads. */
+@keyframes route-load {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 @keyframes pulse-dot {
   0%,
   100% {

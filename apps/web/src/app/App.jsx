@@ -11,6 +11,7 @@ import {Cursor} from '../components/layout/Cursor';
 import {AppLayout} from '../components/layout/AppLayout';
 import {RouteEffects} from './RouteEffects';
 import {ROUTES} from './routes';
+import {RouteLoader} from '../components/layout/RouteLoader';
 
 /** Marketing pages: navbar on top, footer below. */
 function SiteLayout({children}) {
@@ -43,7 +44,7 @@ export function App() {
       <Preloader />
       <Cursor />
       <RouteEffects />
-      <Suspense fallback={<div className="min-h-dvh" />}>
+      <Suspense fallback={<RouteLoader />}>
         <Routes>
           {ROUTES.map(({path, element, Page, layout = 'site'}) => {
             const Frame = LAYOUTS[layout];

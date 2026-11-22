@@ -26,4 +26,5 @@ const schema = new mongoose.Schema(
   {timestamps: true},
 );
 schema.index({userId: 1, cadence: 1, period: 1}, {unique: true});
+schema.index({status: 1, submittedAt: 1}); // tasks waiting for staff to grade
 export const Assignment = mongoose.model('Assignment', schema);

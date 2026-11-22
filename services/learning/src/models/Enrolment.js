@@ -29,5 +29,6 @@ const schema = new mongoose.Schema(
   },
   {timestamps: true},
 );
+schema.index({status: 1, updatedAt: -1}); // the matcher's pool and the staff list
 schema.index({userId: 1}, {name: 'one_running', unique: true, partialFilterExpression: {status: 'active'}});
 export const Enrolment = mongoose.model('Enrolment', schema);

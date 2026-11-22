@@ -2,6 +2,7 @@
 // and paid work from across Pirento: the AI suggests an intern, staff assign, review, and approval pays the wallet.
 import {Router} from 'express';
 import {z} from 'zod';
+import {httpUrl} from '../lib/urls.js';
 import {PROGRAM_MONTHS} from '@pirento/shared';
 import {
   ACCESS,
@@ -127,7 +128,7 @@ const classBody = z.object({
   about: z.string().trim().max(1000).default(''),
   startsAt: z.coerce.date(),
   minutes: z.number().int().min(10).max(600),
-  link: z.url('Paste the Meet or Zoom link').max(300),
+  link: httpUrl('Paste the Meet or Zoom link'),
 });
 
 staff.get('/classes', async (_req, res) => {

@@ -57,3 +57,7 @@ Copy `.env.example` to `.env`. Required in production: `JWT_SECRET`, `INTERNAL_K
 On one server with Docker: point your domain's DNS at it, fill `.env`, then `docker compose up -d --build`. Caddy gets the HTTPS certificate itself. Back up the `mongo-data` volume. CI runs prettier, tests, the build, the full e2e suite and a Docker build on every push.
 
 © Venturecore Solutions Private Limited (Pirento Ecosystem is its brand) · CIN U63121UP2023PTC188021
+
+## AWS
+
+For large traffic, `deploy/aws` holds the Terraform for the whole stack (CDN, load balancer, auto-scaling services, Atlas, Aurora PostgreSQL, Redis, OpenSearch, S3, backups); start with `deploy/aws/README.md` and `docs/SCALING.md`.

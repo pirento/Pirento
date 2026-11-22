@@ -2,6 +2,7 @@
 // an approved company posts its own openings and runs its applicants through the same pipeline.
 import {Router} from 'express';
 import {z} from 'zod';
+import {httpUrl} from '../lib/urls.js';
 import {
   ACCESS,
   ApiError,
@@ -146,7 +147,7 @@ employerStaff.patch(
 
 const employerBody = z.object({
   company: z.string().trim().min(2).max(100),
-  website: z.url('Enter the company website, starting with https://').max(200),
+  website: httpUrl('Enter the company website, starting with https://'),
   about: z.string().trim().min(30, 'Say what the company does in a few lines').max(1500),
   contactName: z.string().trim().min(2).max(80),
   phone: z.string().regex(/^[6-9]\d{9}$/, 'Enter a 10-digit mobile number'),

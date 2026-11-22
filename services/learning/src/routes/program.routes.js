@@ -2,9 +2,11 @@
 // classes and recordings, lesson videos, paid work, the final mark, the certificate and an AI resume draft.
 import {Router} from 'express';
 import {z} from 'zod';
+import {httpUrl} from '../lib/urls.js';
 import {PROGRAM_MONTHS} from '@pirento/shared';
 import {
   ApiError,
+  cached,
   conflict,
   isId,
   isStaff,
@@ -29,7 +31,7 @@ export const programRoutes = Router();
 
 /** The four lengths, with a price once a superadmin has put them on sale. */
 programRoutes.get('/programs', async (_req, res) => {
-  const rows = await Program.find({active: true}).lean();
+  const rows = await cached('learning:programs', 300, () => Program.find({active: true}, {months: 1, price: 1}).lean());
   res.json({
     data: PROGRAM_MONTHS.map((months) => {
       const p = rows.find((r) => r.months === months);
@@ -107,7 +109,7 @@ me.get('/program/tasks', async (req, res) => {
 });
 
 const answerBody = z
-  .object({answer: z.string().trim().max(4000).default(''), link: z.url().max(300).or(z.literal('')).default('')})
+  .object({answer: z.string().trim().max(4000).default(''), link: httpUrl().or(z.literal('')).default('')})
   .refine((b) => b.answer || b.link, {message: 'Write your answer or add a link'});
 
 /** Sends a task once, before it is due; the AI grades it at once when it can, else staff do. */

@@ -11,6 +11,7 @@ import {api} from '../../lib/api/client';
 import {saveFile} from '../../lib/api/binary';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, formatDay} from '../../lib/format';
+import {safeHref} from '../../lib/links';
 
 const STATUS = appDashboards.intern.applicationStatus;
 const LIVE = ['accepted', 'offered', 'interview'];
@@ -83,7 +84,7 @@ function TaskReview({task, act}) {
       {task.detail && <p className="whitespace-pre-line text-sm text-muted">{task.detail}</p>}
       {task.answer && <p className="whitespace-pre-line text-sm">{task.answer}</p>}
       {task.link && (
-        <a href={task.link} target="_blank" rel="noreferrer noopener" className="break-all text-sm underline">
+        <a href={safeHref(task.link)} target="_blank" rel="noreferrer noopener" className="break-all text-sm underline">
           {task.link}
         </a>
       )}

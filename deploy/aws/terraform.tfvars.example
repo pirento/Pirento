@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars (kept out of git) and fill in.
+domain       = "pirento.com"
+atlas_org_id = "your-atlas-org-id"
+alert_email  = "ops@example.com"
+image_tag    = "2026-11-22-1"
+
+# Not secret: shown to browsers or harmless if seen.
+plain_env = {
+  SUPERADMIN_EMAILS     = ""
+  SUPERADMIN_STAFF_ID   = ""
+  EMAIL_FROM            = ""
+  RAZORPAY_KEY_ID       = ""
+  GOOGLE_CLIENT_ID      = ""
+  DIGIO_ENV             = "production"
+  DIGIO_KYC_TEMPLATE    = ""
+  DIGIO_AADHAAR_TEMPLATE = ""
+  DIGIO_FACE_TEMPLATE   = ""
+  DIGIO_ESTAMP_TAG      = ""
+  SMS_WEBHOOK_URL       = ""
+}

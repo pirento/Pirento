@@ -1,16 +1,19 @@
 // The Express app every service starts from: JSON, security headers, rate limits, errors.
 import express from 'express';
 import helmet from 'helmet';
+import mongoose from 'mongoose';
 import {ApiError} from './errors.js';
+import {usesMongo} from './db.js';
 
 /**
  * A new Express app with the defaults every Pirento service shares:
  * security headers, a small JSON body limit, and GET /health.
  *
  * `json: false` is for the gateway, which must pass request bodies through
- * untouched. `csp` replaces helmet's Content-Security-Policy directives.
+ * untouched. `csp` replaces helmet's Content-Security-Policy directives. `ready` (async, throws when not)
+ * adds a check to /health.
  */
-export function createApp(name, {json = true, csp} = {}) {
+export function createApp(name, {json = true, csp, ready} = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet(csp ? {contentSecurityPolicy: {directives: csp}} : {}));
@@ -18,7 +21,18 @@ export function createApp(name, {json = true, csp} = {}) {
   // rawBody keeps the exact bytes: payment webhooks are signed over them.
   if (json) app.use(express.json({limit: '100kb', verify: (req, _res, buf) => (req.rawBody = buf)}));
 
-  app.get('/health', (_req, res) => res.json({data: {service: name, ok: true}}));
+  // The load balancer's check: a copy that lost its database is taken out of rotation until it reconnects.
+  // `ready` is a service's own check of its other stores (the wallet's PostgreSQL).
+  app.get('/health', async (_req, res) => {
+    const ok =
+      (!usesMongo.on || mongoose.connection.readyState === 1) &&
+      (!ready ||
+        (await ready().then(
+          () => true,
+          () => false,
+        )));
+    res.status(ok ? 200 : 503).json({data: {service: name, ok}});
+  });
   return app;
 }
 

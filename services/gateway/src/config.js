@@ -21,6 +21,7 @@ export const config = {
   port: Number(env('PORT', 4000)),
   webDist: env('WEB_DIST', '../../apps/web/dist'),
   rateLimitPerMinute: Number(env('RATE_LIMIT_PER_MIN', 300)),
+  trustProxy: Number(env('TRUST_PROXY', 1)),
   otpRequestsPer15Min: Number(env('RATE_LIMIT_OTP', 20)),
   enquiriesPer15Min: Number(env('RATE_LIMIT_ENQUIRY', 10)),
 };

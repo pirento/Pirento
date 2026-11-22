@@ -1,7 +1,8 @@
 // The applicant's side of Pirento Intern: open roles, a resume, applying, answering an offer and sending tasks.
 import express, {Router} from 'express';
 import {z} from 'zod';
-import {badInput, conflict, encrypt, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {httpUrl} from '../lib/urls.js';
+import {badInput, cached, conflict, encrypt, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Application} from '../models/Application.js';
 import {Opening} from '../models/Opening.js';
@@ -14,7 +15,9 @@ export const applicantRoutes = Router();
 const PUBLIC_OPENING = {createdBy: 0, employerId: 0, review: 0};
 
 applicantRoutes.get('/openings', async (_req, res) => {
-  res.json({data: await Opening.find({open: true}, PUBLIC_OPENING).sort({createdAt: -1}).limit(100)});
+  // The public list is the same for everyone, so it is cached; any opening change forgets it.
+  const list = () => Opening.find({open: true}, PUBLIC_OPENING).sort({createdAt: -1}).limit(100).lean();
+  res.json({data: await cached('learning:openings', 60, list)});
 });
 
 applicantRoutes.get('/openings/mine', requireAuth, async (req, res) => {
@@ -119,7 +122,7 @@ applicantRoutes.post(
   requireAuth,
   validate(
     z
-      .object({answer: z.string().trim().max(2000).default(''), link: z.url().max(300).or(z.literal('')).default('')})
+      .object({answer: z.string().trim().max(2000).default(''), link: httpUrl().or(z.literal('')).default('')})
       .refine((b) => b.answer || b.link, {message: 'Write your answer or add a link'}),
   ),
   async (req, res) => {

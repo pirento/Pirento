@@ -10,6 +10,7 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDay, inr} from '../../lib/format';
 import {selectCls} from '../learning/Pipeline';
+import {safeHref} from '../../lib/links';
 
 const SOURCES = ['Pirento Ecosystem', 'Pirento Foundation', ...PRODUCTS.map((p) => p.name)];
 const EMPTY = {title: '', brief: '', source: SOURCES[0], track: '', skills: '', pay: '', due: ''};
@@ -150,7 +151,7 @@ function Row({w, onChange}) {
           <div className="rounded-[14px] border border-rule p-4">
             <p className="whitespace-pre-line">{w.answer}</p>
             {w.link && (
-              <a href={w.link} target="_blank" rel="noreferrer noopener" className="break-all underline">
+              <a href={safeHref(w.link)} target="_blank" rel="noreferrer noopener" className="break-all underline">
                 {w.link}
               </a>
             )}

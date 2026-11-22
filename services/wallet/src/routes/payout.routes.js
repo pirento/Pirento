@@ -1,9 +1,10 @@
 // RazorpayX tells us what happened to a payout. Signed over the raw body; needs no sign-in.
 import {Router} from 'express';
 import {ApiError} from '@pirento/shared/server';
-import {Withdrawal} from '../models/Withdrawal.js';
+import {query} from '../lib/db.js';
 import {payoutConfig, webhookSignatureOk} from '../lib/payouts.js';
-import {settle} from '../lib/withdrawals.js';
+import {withdrawal} from '../lib/rows.js';
+import {findWithdrawal, settle} from '../lib/withdrawals.js';
 
 export const payoutRoutes = Router();
 
@@ -16,8 +17,8 @@ payoutRoutes.post('/payouts/razorpayx/webhook', async (req, res) => {
   if (payout?.id) {
     // Found by the payout id, or by our reference when the webhook beat our own save of that id.
     const w =
-      (await Withdrawal.findOne({'payout.id': payout.id})) ??
-      (/^[a-f0-9]{24}$/.test(payout.reference_id ?? '') ? await Withdrawal.findById(payout.reference_id) : null);
+      withdrawal((await query('SELECT * FROM withdrawals WHERE payout_id = $1', [payout.id])).rows[0]) ??
+      (/^[a-f0-9]{24}$/.test(payout.reference_id ?? '') ? await findWithdrawal(payout.reference_id) : null);
     // Only a payout for the same amount settles it; anything else is not ours to act on.
     if (w?.status === 'processing' && payout.amount === w.amount) await settle(w, payout);
   }
