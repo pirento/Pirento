@@ -8,7 +8,7 @@ import {api} from '../../lib/api/client';
 export function Review({doc, email, onEdit, onSubmitted}) {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const ready = kycDone(doc) && declarationSigned(doc);
+  const ready = kycDone(doc) && declarationSigned(doc) && doc?.pinSet;
   const submit = async () => {
     setBusy(true);
     setError('');

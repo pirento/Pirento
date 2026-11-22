@@ -14,12 +14,15 @@ import {ApiKeys} from './ApiKeys';
 import {ConsentLog} from './ConsentLog';
 import {ApiReference} from './ApiReference';
 import {Billing} from './Billing';
+import {ChecksLog} from './ChecksLog';
+import {Console} from './Console';
 
 const SECTIONS = {
   overview: BusinessOverview,
   company: CompanyDetails,
   keys: ApiKeys,
   consents: ConsentLog,
+  checks: ChecksLog,
   billing: Billing,
   docs: ApiReference,
 };
@@ -54,5 +57,8 @@ export function BusinessDashboard() {
     );
   }
   const Section = SECTIONS[section];
-  return <Section frame={frame} data={me.data} reload={me.reload} />;
+  // Every console page carries the company, test or live, and the credit left.
+  return (
+    <Section frame={{...frame, action: <Console business={me.data.business} />}} data={me.data} reload={me.reload} />
+  );
 }

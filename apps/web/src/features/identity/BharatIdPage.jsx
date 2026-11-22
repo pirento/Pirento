@@ -147,6 +147,14 @@ export function BharatId({product, section}) {
                   </Link>
                 </p>
               )}
+              {doc?.status === 'approved' && !doc.pinSet && (
+                <p className="body mb-4">
+                  <Link to="/bharat-id/dashboard/pin" className="text-ink underline underline-offset-4">
+                    Set your 6-digit PIN
+                  </Link>{' '}
+                  to sign in with your Bharat ID, the PIN and your date of birth.
+                </p>
+              )}
               {doc?.status === 'approved' && (
                 <p className="body">
                   Issued on {formatDate(doc.issuedAt)}. Anyone you share your ID with can check it on{' '}

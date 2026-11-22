@@ -348,6 +348,14 @@ check(
   'signed declaration downloads, with the details and no full Aadhaar',
   decl.status === 200 && declPdf.startsWith('%PDF') && declPdf.includes('Asha Verma') && !declPdf.includes(aadhaarNo),
 );
+check(
+  'a PIN is set while applying, before submit',
+  /PIN/.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+check(
+  'the PIN step',
+  (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916'}})).data?.pinSet === true,
+);
 const app1 = (await call('/identity/submit', {method: 'POST', token: user})).data;
 check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma' && app1.consentAt, app1);
 check('locked after submit', (await put('contact', steps.contact)).status === 409);
@@ -680,10 +688,7 @@ check(
     'a weak PIN is refused',
     (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '123456'}})).status === 400,
   );
-  check(
-    'PIN set',
-    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916'}})).data?.pinSet === true,
-  );
+  check('the PIN set while applying is kept', (await call('/identity/me', {token: user})).data?.pinSet === true);
   check(
     'the PIN hash never leaves',
     !JSON.stringify((await call('/identity/me', {token: user})).data).includes('scrypt'),
@@ -691,6 +696,11 @@ check(
   check(
     'changing the PIN needs the current one',
     (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '582917'}})).status === 401,
+  );
+  check(
+    'the PIN changes with the current one',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916', currentPin: '482916'}})).status ===
+      200,
   );
   const pinLogin = (pin, dob = DOB) =>
     call('/auth/otp/bharat-id/pin', {method: 'POST', body: {bharatId: appr.bharatId, pin, dob}});

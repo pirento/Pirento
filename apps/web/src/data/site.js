@@ -374,13 +374,15 @@ export const bharatIdBusiness = {
       suspended: 'Your API keys are paused.',
     },
     steps: ['Approved', 'Company details', 'Your Bharat ID', 'Live review', 'Live'],
+    // The console's sidebar, in groups: day-to-day work, building with the API, and the account.
     sections: [
-      {id: 'overview', label: 'Overview', icon: 'overview'},
-      {id: 'company', label: 'Company', icon: 'company'},
-      {id: 'keys', label: 'API keys', icon: 'passwords'},
-      {id: 'consents', label: 'Consent log', icon: 'consents'},
-      {id: 'billing', label: 'Billing', icon: 'wallet'},
-      {id: 'docs', label: 'API reference', icon: 'docs'},
+      {id: 'overview', label: 'Overview', icon: 'overview', group: 'Console'},
+      {id: 'checks', label: 'Checks', icon: 'checks', group: 'Console'},
+      {id: 'consents', label: 'Consents', icon: 'consents', group: 'Console'},
+      {id: 'keys', label: 'API keys', icon: 'passwords', group: 'Build'},
+      {id: 'docs', label: 'API reference', icon: 'docs', group: 'Build'},
+      {id: 'company', label: 'Company', icon: 'company', group: 'Account'},
+      {id: 'billing', label: 'Billing', icon: 'wallet', group: 'Account'},
     ],
   },
 };

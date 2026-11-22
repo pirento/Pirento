@@ -125,7 +125,10 @@ staffRoutes.patch(
       big: decision === 'approve' ? doc.bharatId : 'Needs changes',
       note:
         decision === 'approve'
-          ? 'Your Bharat ID is issued. Open the Bharat ID dashboard to see and download your card.'
+          ? // The PIN itself is never emailed: only how to use it, or where to set it.
+            doc.pin?.hash
+            ? 'Your Bharat ID is issued. You can now sign in with your Bharat ID, the PIN you set and your date of birth. Open the Bharat ID dashboard to see and download your card.'
+            : 'Your Bharat ID is issued. Set your 6-digit PIN in the Bharat ID dashboard (PIN) to sign in with it, and open the dashboard to see your card.'
           : `Our team could not approve it yet: ${reason}. Fix it and submit again from your dashboard.`,
     });
     res.json({data: doc});

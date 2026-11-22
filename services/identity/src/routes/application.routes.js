@@ -103,7 +103,7 @@ applicationRoutes.get('/declaration', async (req, res) => {
   res.send(Buffer.from(await file.arrayBuffer()));
 });
 
-/** Sends the application to the team: every step, a finished video KYC and a signed declaration. */
+/** Sends the application to the team: every step, a finished video KYC, a signed declaration and a PIN. */
 applicationRoutes.post('/submit', async (req, res) => {
   const doc = await Identity.findOne({userId: req.user.sub, status: EDITABLE});
   if (!doc) throw conflict('LOCKED', 'There is nothing to submit');
@@ -111,6 +111,7 @@ applicationRoutes.post('/submit', async (req, res) => {
   if (missing) throw new ApiError(400, 'INCOMPLETE', `Finish the "${missing.title}" step first`);
   if (!kycDone(doc)) throw new ApiError(400, 'INCOMPLETE', 'Finish your video KYC first');
   if (!signed(doc)) throw new ApiError(400, 'INCOMPLETE', 'Sign your declaration first');
+  if (!doc.pin?.hash) throw new ApiError(400, 'INCOMPLETE', 'Set your 6-digit PIN first');
 
   const submitted = await Identity.findOneAndUpdate(
     {_id: doc._id, status: doc.status, 'digio.docStatus': 'signed'},

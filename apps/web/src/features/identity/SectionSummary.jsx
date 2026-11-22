@@ -6,6 +6,7 @@ import {DeclarationLink} from './DeclarationLink';
 
 const KYC_STEP = ID_SECTIONS.length;
 const SIGN_STEP = KYC_STEP + 1;
+const PIN_STEP = SIGN_STEP + 1;
 
 /** The video KYC line: Digio's state, or a video recorded on Pirento by older applications. */
 function kycLine(doc) {
@@ -85,6 +86,11 @@ export function SectionSummary({doc, email, onEdit, declarationPath}) {
               : 'Not signed yet'}
           </p>
           {signed && <DeclarationLink path={declarationPath} />}
+        </Row>
+      )}
+      {doc?.status !== 'approved' && (
+        <Row title="PIN" onEdit={onEdit ? () => onEdit(PIN_STEP) : null} editLabel={doc?.pinSet ? 'Change' : 'Set'}>
+          <p>{doc?.pinSet ? 'Set. It is never shown, to you or to us.' : 'Not set yet'}</p>
         </Row>
       )}
     </div>

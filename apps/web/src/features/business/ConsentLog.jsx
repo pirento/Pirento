@@ -13,7 +13,7 @@ export function ConsentLog({frame}) {
   return (
     <AppFrame
       {...frame}
-      title="Consent / log."
+      title="Consents."
       intro="What you asked for, of which Bharat ID, and whether the holder allowed it."
     >
       <div role="tablist" aria-label="Mode" className="flex gap-2">

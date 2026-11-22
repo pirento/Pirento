@@ -8,6 +8,8 @@ import {ApiKey} from '../models/ApiKey.js';
 import {Business} from '../models/Business.js';
 import {Consent} from '../models/Consent.js';
 import {Identity} from '../models/Identity.js';
+import {AccessLog} from '../models/AccessLog.js';
+import {AuthSession} from '../models/AuthSession.js';
 import {MAY_USE, newKey} from '../lib/business.js';
 import {readPrices} from '../models/BusinessPricing.js';
 
@@ -45,19 +47,23 @@ const ownerIdIssued = (userId) => Identity.exists({userId, status: 'approved'}).
 businessRoutes.get('/business/me', async (req, res) => {
   const business = await mine(req);
   const id = String(business._id);
-  const [keys, test, live, approved] = await Promise.all([
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const [keys, test, live, approved, calls30d, checksPassed] = await Promise.all([
     ApiKey.find({businessId: id, revokedAt: null}, {hash: 0}).sort({createdAt: -1}),
     Consent.countDocuments({businessId: id, mode: 'test'}),
     Consent.countDocuments({businessId: id, mode: 'live'}),
     Consent.countDocuments({businessId: id, mode: 'live', status: 'approved'}),
+    AccessLog.countDocuments({businessId: id, mode: 'live', createdAt: {$gte: since}}),
+    AuthSession.countDocuments({businessId: id, mode: 'live', status: 'passed'}),
   ]);
+
   res.json({
     data: {
       business,
       ownerIdIssued: await ownerIdIssued(req.user.sub),
       keys,
       prices: await readPrices(),
-      usage: {testConsents: test, liveConsents: live, liveApproved: approved},
+      usage: {testConsents: test, liveConsents: live, liveApproved: approved, calls30d, checksPassed},
     },
   });
 });
@@ -142,6 +148,17 @@ businessRoutes.get('/business/me/consents', async (req, res) => {
   const mode = req.query.mode === 'live' ? 'live' : 'test';
   res.json({
     data: await Consent.find({businessId: String(business._id), mode}, {userId: 0})
+      .sort({createdAt: -1})
+      .limit(200),
+  });
+});
+
+/** The checks this business started: who, how, and whether each passed. */
+businessRoutes.get('/business/me/sessions', async (req, res) => {
+  const business = await mine(req);
+  const mode = req.query.mode === 'live' ? 'live' : 'test';
+  res.json({
+    data: await AuthSession.find({businessId: String(business._id), mode}, {tokenHash: 0, userId: 0, provider: 0})
       .sort({createdAt: -1})
       .limit(200),
   });

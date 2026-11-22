@@ -5,18 +5,26 @@ import {Label} from '../../components/ui/Heading';
 import {Review} from './ReviewStep';
 import {StepForm} from './StepForm';
 import {DigioStep} from './DigioStep';
+import {PinSettings} from './PinSettings';
 
-// The form's sections, then the video KYC and the signed declaration on Digio, then review.
+// The form's sections, the video KYC and the signed declaration on Digio, the PIN, then review.
 export const STEPS = [
   ...ID_SECTIONS,
   {id: 'kyc', title: 'Video KYC'},
   {id: 'sign', title: 'Sign the declaration'},
+  {id: 'pin', title: 'Set your PIN'},
   {id: 'review', title: 'Review and submit'},
 ];
 const REVIEW = STEPS.length - 1;
 
 const isDone = (doc, step) =>
-  step.id === 'kyc' ? kycDone(doc) : step.id === 'sign' ? declarationSigned(doc) : Boolean(doc?.sections?.[step.id]);
+  step.id === 'kyc'
+    ? kycDone(doc)
+    : step.id === 'sign'
+      ? declarationSigned(doc)
+      : step.id === 'pin'
+        ? Boolean(doc?.pinSet)
+        : Boolean(doc?.sections?.[step.id]);
 
 /** The first step still to do (review once everything is done). */
 export const firstOpen = (doc) => {
@@ -74,6 +82,8 @@ export function Wizard({doc, email, onChange}) {
         <div className="mt-6">
           {current.id === 'review' ? (
             <Review doc={doc} email={email} onEdit={setStep} onSubmitted={onChange} />
+          ) : current.id === 'pin' ? (
+            <PinSettings doc={doc} onChange={onChange} onContinue={() => advance()} onBack={() => setStep(step - 1)} />
           ) : current.id === 'kyc' || current.id === 'sign' ? (
             <DigioStep
               key={current.id}

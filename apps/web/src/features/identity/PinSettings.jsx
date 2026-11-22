@@ -1,4 +1,5 @@
-// Bharat ID dashboard: set or change the 6-digit PIN (used with the date of birth to sign in and for checks).
+// The 6-digit Bharat ID PIN (used with the date of birth to sign in and for checks): a step of the application
+// (with `onContinue`), and the PIN section of the dashboard.
 import {useState} from 'react';
 import {pinProblem} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
@@ -7,14 +8,13 @@ import {api} from '../../lib/api/client';
 
 const digits = (v) => v.replace(/\D/g, '').slice(0, 6);
 
-export function PinSettings({doc, onChange}) {
+export function PinSettings({doc, onChange, onContinue, onBack}) {
   const [pin, setPin] = useState('');
   const [again, setAgain] = useState('');
   const [current, setCurrent] = useState('');
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
-  if (doc?.status !== 'approved')
-    return <p className="body text-muted">You can set a PIN once your Bharat ID is issued.</p>;
+  if (!doc) return <p className="body text-muted">Start your Bharat ID application first.</p>;
 
   const save = async (e) => {
     e.preventDefault();
@@ -26,6 +26,7 @@ export function PinSettings({doc, onChange}) {
       setPin('');
       setAgain('');
       setCurrent('');
+      if (onContinue) return onContinue();
       setNote('Saved. Use it with your date of birth to sign in and when a business checks your Bharat ID.');
     } catch (err) {
       setError(err.message);
@@ -70,9 +71,21 @@ export function PinSettings({doc, onChange}) {
           {error ? `⚠ ${error}` : note}
         </p>
       )}
-      <Button type="submit" variant="accent">
-        {doc.pinSet ? 'Change PIN' : 'Set PIN'}
-      </Button>
+      <div className="flex flex-wrap gap-3">
+        <Button type="submit" variant="accent">
+          {doc.pinSet ? 'Change PIN' : onContinue ? 'Set PIN and continue' : 'Set PIN'}
+        </Button>
+        {onContinue && doc.pinSet && (
+          <Button type="button" variant="outline" onClick={onContinue}>
+            Keep this PIN and continue
+          </Button>
+        )}
+        {onBack && (
+          <Button type="button" variant="outline" icon={null} onClick={onBack}>
+            Back
+          </Button>
+        )}
+      </div>
       <p className="text-sm text-muted">Five wrong tries in a row lock the PIN for 15 minutes.</p>
     </form>
   );
