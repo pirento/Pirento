@@ -8,6 +8,7 @@ import {
   Briefcase,
   RefreshCw,
   FileText,
+  Gem,
   MessagesSquare,
   LayoutDashboard,
   Receipt,
@@ -53,6 +54,7 @@ const SECTION_ICONS = {
   passwords: KeyRound,
   chat: MessageSquare,
   referrals: Share2,
+  plans: Gem,
   apply: ClipboardList,
 };
 

@@ -426,7 +426,10 @@ check(
 );
 check(
   'other user cannot download',
-  (await fetch(B + `/vault/files/${file._id}`, {headers: {authorization: `Bearer ${boss}`}})).status === 404,
+  // 403 for someone without a Bharat ID, 404 for anyone else: either way, never the file.
+  [403, 404].includes(
+    (await fetch(B + `/vault/files/${file._id}`, {headers: {authorization: `Bearer ${boss}`}})).status,
+  ),
 );
 const cred = (
   await call('/vault/credentials', {
@@ -468,7 +471,9 @@ check(
 );
 check(
   'health is per person',
-  (await call('/vault/credentials/health', {token: boss})).data?.items.every((i) => i._id !== cred._id),
+  ((r) => r.status === 403 || r.data?.items.every((i) => i._id !== cred._id))(
+    await call('/vault/credentials/health', {token: boss}),
+  ),
 );
 const usage = (await call('/ai/usage', {token: user})).data;
 check('AI usage meter', usage?.limit === 30 && usage.used === 0, usage);
@@ -691,24 +696,48 @@ check(
   pm,
 );
 
-// Commission: the rate in site settings, paid to the partner's wallet once when a referred order completes.
-await call('/catalog/staff/settings', {
-  method: 'PATCH',
-  token: boss,
-  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 10},
-});
-check('commission rate is public', (await call('/catalog/settings')).data?.commissionPct === 10);
+// Plans: made in admin; the free plan's rate, then a paid plan bought from the wallet, decide the commission.
+const planBody = {features: ['Your own link'], recommended: false, active: true, sort: 0};
 check(
-  'rate is capped',
+  'staff cannot make plans',
   (
-    await call('/catalog/staff/settings', {
-      method: 'PATCH',
+    await call('/orders/staff/partner-plans', {
+      method: 'POST',
+      token: staffToken,
+      body: {...planBody, name: 'X', price: 0, months: 0, commissionPct: 5},
+    })
+  ).status === 403,
+);
+check(
+  'a paid plan needs months',
+  (
+    await call('/orders/staff/partner-plans', {
+      method: 'POST',
       token: boss,
-      body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 90},
+      body: {...planBody, name: 'Bad', price: 999, months: 0, commissionPct: 10},
     })
   ).status === 400,
 );
-{
+const freeP = (
+  await call('/orders/staff/partner-plans', {
+    method: 'POST',
+    token: boss,
+    body: {...planBody, name: 'Free', price: 0, months: 0, commissionPct: 5},
+  })
+).data;
+const proP = (
+  await call('/orders/staff/partner-plans', {
+    method: 'POST',
+    token: boss,
+    body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 15, recommended: true, sort: 1},
+  })
+).data;
+check('plans are public', (await call('/orders/partner-plans')).data?.length >= 2);
+check(
+  'a new partner is on the free plan',
+  (await call('/orders/partner/me', {token: user})).data?.plan?.name === 'Free',
+);
+const completeReferred = async () => {
   const ro = (
     await call('/orders', {
       method: 'POST',
@@ -718,15 +747,19 @@ check(
   ).data;
   await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: ro.amount / 100}});
   await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: buyer});
-  const before = (await call('/wallet', {token: user})).data.balance;
   await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'in_progress', note: ''}});
   const fin = (
     await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'completed', note: ''}})
   ).data;
-  const due = Math.floor(ro.amount / 10);
+  return {ro, fin};
+};
+{
+  const before = (await call('/wallet', {token: user})).data.balance;
+  const {ro, fin} = await completeReferred();
+  const due = Math.floor((ro.amount * 5) / 100);
   check(
-    'commission fixed on completion',
-    fin?.commission?.amount === due && fin.commission.pct === 10,
+    'free plan rate fixed on completion',
+    fin?.commission?.amount === due && fin.commission.pct === 5,
     fin?.commission,
   );
   const after = (await call('/wallet', {token: user})).data.balance;
@@ -746,11 +779,47 @@ check(
   const mine = (await call('/orders/partner/me', {token: user})).data?.orders.find((x) => x._id === ro._id);
   check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
 }
-await call('/catalog/staff/settings', {
+{
+  // Two buys at once, the way a double click sends them: one charge, one plan.
+  check(
+    'the free plan is not bought',
+    (await call('/orders/partner/plan', {method: 'POST', token: user, body: {planId: freeP._id}})).error?.code ===
+      'FREE_PLAN',
+  );
+  await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 999}});
+  const start = (await call('/wallet', {token: user})).data.balance;
+  const buys = await Promise.all(
+    [1, 2].map(() => call('/orders/partner/plan', {method: 'POST', token: user, body: {planId: proP._id}})),
+  );
+  check(
+    'buy a paid plan',
+    buys.every((b) => b.data?.plan?.name === 'Pro'),
+    buys.map((b) => b.error),
+  );
+  check('a double click pays once', start - (await call('/wallet', {token: user})).data.balance === 99900);
+  const {ro, fin} = await completeReferred();
+  check('paid plan rate', fin?.commission?.pct === 15 && fin.commission.amount === Math.floor((ro.amount * 15) / 100));
+  await call(`/orders/staff/partner-plans/${proP._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 20, recommended: true, sort: 1},
+  });
+  check(
+    'a bought plan keeps its rate',
+    (await call('/orders/partner/me', {token: user})).data?.plan?.commissionPct === 15,
+  );
+  check(
+    'admin lists the plan',
+    (await call('/orders/staff/partners', {token: boss})).data?.find((p) => p.code === partner.code)?.plan?.name ===
+      'Pro',
+  );
+}
+await call(`/orders/staff/partner-plans/${proP._id}`, {
   method: 'PATCH',
   token: boss,
-  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 0},
+  body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 20, active: false},
 });
+check('a retired plan is not offered', !(await call('/orders/partner-plans')).data?.some((p) => p._id === proP._id));
 
 // ── Admin: coupons ──────────────────────────────────────────────────────
 const code = `E2E${Date.now().toString().slice(-6)}`;

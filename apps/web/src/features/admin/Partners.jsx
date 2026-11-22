@@ -1,4 +1,4 @@
-// Partners: Pirento One codes, what each brought in, and the commission paid or still owed.
+// Partners: Pirento One plans, then the codes, what each brought in, and the commission paid or still owed.
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Button} from '../../components/ui/Button';
@@ -6,10 +6,10 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {DataTable} from './DataTable';
+import {PartnerPlans} from './PartnerPlans';
 
 export function Partners() {
   const partners = useApi('/orders/staff/partners');
-  const pct = useApi('/catalog/settings').data?.commissionPct ?? 0;
   const [note, setNote] = useState('');
   const owed = (partners.data ?? []).reduce((n, p) => n + p.owed, 0);
 
@@ -25,11 +25,10 @@ export function Partners() {
   };
 
   return (
-    <div className="space-y-6">
-      <p className="body">
-        Commission: {pct}% of each completed order, paid to the partner's wallet. A superadmin sets the rate in Site
-        settings.
-      </p>
+    <div className="space-y-10">
+      <PartnerPlans />
+      <h2 className="text-2xl">Partners</h2>
+      <p className="body">Each partner earns their plan's rate on every completed order, paid to their wallet.</p>
       {owed > 0 && (
         <div className="flex flex-wrap items-center gap-4">
           <p className="text-sm">{inr(owed / 100)} in commission did not reach a wallet when its order completed.</p>
@@ -58,6 +57,7 @@ export function Partners() {
               </Link>
             ),
           },
+          {label: 'Plan', cell: (p) => p.plan?.name ?? 'Free'},
           {label: 'Orders', right: true, cell: (p) => p.orders},
           {label: 'Paid value', right: true, cell: (p) => inr(p.paid / 100)},
           {label: 'Commission paid', right: true, cell: (p) => inr(p.earned / 100)},

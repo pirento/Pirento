@@ -3,16 +3,17 @@ import {callService, notify} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
+import {rateFor} from './plans.js';
 
 /** Paise for `pct` percent of `amount` paise, rounded down. */
 export const commissionOf = (amount, pct) => Math.floor((amount * pct) / 100);
 
-/** The commission this order earns at today's rate, or null. Throws if the rate cannot be read. */
+/** The commission this order earns at the partner's plan rate today, or null. */
 export async function commissionFor(order) {
   if (!order.ref || !order.amount) return null;
   const partner = await Partner.findOne({code: order.ref}).lean();
   if (!partner) return null;
-  const {commissionPct: pct = 0} = await callService(config.catalogUrl, '/internal/settings', {});
+  const pct = await rateFor(partner);
   const amount = commissionOf(order.amount, pct);
   return amount > 0 ? {userId: partner.userId, pct, amount} : null;
 }

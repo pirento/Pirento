@@ -142,7 +142,7 @@ const SITE = {
     faq: [
       {
         q: 'Do I earn commission?',
-        a: 'When Pirento has set a rate, a share of each order completed through your link goes to your Pirento wallet. Your dashboard shows the current rate. No income is guaranteed.',
+        a: 'Yes, at your plan’s rate: a share of each order completed through your link goes to your Pirento wallet. Everyone starts on the free plan; a paid plan raises the rate while it runs. No income is guaranteed.',
       },
       {
         q: 'Can I see my clients’ details?',
@@ -305,7 +305,7 @@ export const PRODUCTS = [
       {title: 'Referred orders', body: 'See each order placed with your code and its status.'},
       {title: 'Client privacy', body: 'You see the order, never your client’s contact details or answers.'},
     ],
-    caveat: 'Commission depends on the rate Pirento sets and on orders being completed. No income is guaranteed.',
+    caveat: 'Commission depends on your plan’s rate and on orders being completed. No income is guaranteed.',
     status: 'now',
   },
   {

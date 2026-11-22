@@ -261,7 +261,10 @@ export const productDashboards = {
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
   ),
   ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, ...SHARED_SECTIONS],
-  one: APP_SECTIONS({id: 'referrals', label: 'Referrals', icon: 'referrals'}),
+  one: APP_SECTIONS(
+    {id: 'referrals', label: 'Referrals', icon: 'referrals'},
+    {id: 'plans', label: 'Plans', icon: 'plans'},
+  ),
   'bharat-id': APP_SECTIONS({id: 'apply', label: 'Application', icon: 'apply'}),
 };
 
@@ -331,11 +334,31 @@ export const appDashboards = {
     link: {label: 'Your link', title: 'Share it / anywhere.'},
     glance: {label: 'At a glance', title: 'What your / link brought.'},
     referrals: {label: 'Referrals', title: 'Orders through / your link.', empty: 'No orders through your link yet.'},
-    // The rate is set in admin → Site settings; 0 means no commission is paid yet.
-    commission: (pct) =>
-      pct > 0
-        ? `You earn ${pct}% of each order placed through your link, paid to your Pirento wallet when the order is completed. No income is guaranteed.`
-        : 'No commission is being paid right now. Today this tracks your referrals.',
+    // The rate comes from the partner's plan (made in admin → Partners); 0 means no commission.
+    commission: (plan) =>
+      plan?.commissionPct > 0
+        ? `On the ${plan.name} plan you earn ${plan.commissionPct}% of each order placed through your link, paid to your Pirento wallet when the order is completed. No income is guaranteed.`
+        : 'No commission is being paid on your plan right now. Today this tracks your referrals.',
+    plans: {
+      label: 'Plans',
+      title: 'Free to start, / more with a plan.',
+      intro: 'Every partner starts on the free plan. A paid plan raises your commission for as long as it runs.',
+      rate: (pct) => `${pct}% commission on each completed order`,
+      period: (months) => `for ${months} months`,
+      until: (date) => `Runs until ${date}`,
+      free: 'Free',
+      current: 'Your plan',
+      recommended: 'Recommended',
+      join: 'Become a partner',
+      choose: 'Choose this plan',
+      buy: (price) => `Buy for ${price}`,
+      renew: (price) => `Renew for ${price}`,
+      confirm: (name, price) => `${price} will be taken from your Pirento wallet for the ${name} plan. Go ahead?`,
+      bought: 'Done. Your new rate applies to orders completed from now on.',
+      topUp: 'Add money to your wallet',
+      paid: 'Paid from your Pirento wallet. A renewal adds to the time left.',
+      empty: 'No plans are on offer yet.',
+    },
   },
   'bharat-id': {
     hello: 'One identity, / checked once.',

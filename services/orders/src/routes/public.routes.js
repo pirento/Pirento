@@ -2,12 +2,22 @@
 import {Router} from 'express';
 import {ApiError, notFound, razorpayConfig, webhookSignatureOk} from '@pirento/shared/server';
 import {Order} from '../models/Order.js';
+import {PartnerPlan} from '../models/PartnerPlan.js';
 import {markPaid, noteExtraPayment} from '../lib/orders.js';
 
 export const publicRoutes = Router();
 
 /** Tells the browser whether card/UPI payments are switched on. */
 publicRoutes.get('/config', (_req, res) => res.json({data: {razorpayKeyId: razorpayConfig()?.keyId ?? null}}));
+
+/** The Pirento One plans on offer, for its home page and dashboard. */
+publicRoutes.get('/partner-plans', async (_req, res) => {
+  const plans = await PartnerPlan.find({active: true}, {active: 0, createdAt: 0, updatedAt: 0, __v: 0}).sort({
+    sort: 1,
+    price: 1,
+  });
+  res.json({data: plans});
+});
 
 /** Public check of a completion code. Shows only what proves the work exists, never the customer. */
 publicRoutes.get('/verify/:code', async (req, res) => {

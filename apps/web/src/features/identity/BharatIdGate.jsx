@@ -2,15 +2,18 @@
 import {Button} from '../../components/ui/Button';
 import {appDashboards, bharatIdGate as copy} from '../../data/site';
 import {useApi} from '../../lib/api/useApi';
+import {useSignedIn} from '../auth/useSignedIn';
 import {AppFrame} from '../products/AppFrame';
 
 export function BharatIdGate({product, section, children}) {
-  const me = useApi('/identity/me');
+  const {redirect, user} = useSignedIn();
+  const me = useApi(user ? '/identity/me' : null);
+  if (redirect) return redirect;
   const status = me.data?.status ?? 'none';
   if (status === 'approved') return children;
 
-  const frame = {product, section, ready: !me.loading};
-  if (me.loading) return <AppFrame {...frame} title={appDashboards[product.slug]?.hello ?? product.name} />;
+  const frame = {product, section, ready: Boolean(user) && !me.loading};
+  if (!user || me.loading) return <AppFrame {...frame} title={appDashboards[product.slug]?.hello ?? product.name} />;
   return (
     <AppFrame {...frame} title={copy.title} intro={copy.intro(product.name)}>
       <div className="max-w-2xl rounded-[22px] border border-rule p-6 md:p-8" data-reveal>
