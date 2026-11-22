@@ -2,7 +2,8 @@
 // but the person's email and everything they wrote are removed, and so are their contact-form enquiries.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {ApiError, nextSeq, requireInternal, validate} from '@pirento/shared/server';
+import {PRODUCTS} from '@pirento/shared';
 import {Ticket} from '../models/Ticket.js';
 import {Enquiry} from '../models/Enquiry.js';
 
@@ -43,5 +44,39 @@ internalRoutes.post(
       .limit(10)
       .lean();
     res.json({data: tickets.map(({_id, ...t}) => ({...t, link: `/support/${_id}`}))});
+  },
+);
+
+/**
+ * Pirento AI opens a ticket for the signed-in person when they ask it to. At most three a day per person, so a
+ * confused conversation cannot flood the desk.
+ */
+internalRoutes.post(
+  '/internal/tickets',
+  validate(
+    z.object({
+      userId: z.string().min(1).max(40),
+      email: z.email(),
+      subject: z.string().trim().min(3).max(120),
+      message: z.string().trim().min(2).max(4000),
+      product: z.enum(PRODUCTS.map((p) => p.slug)).optional(),
+    }),
+  ),
+  async (req, res) => {
+    const {userId, email, subject, message, product} = req.body;
+    const since = new Date(Date.now() - 86_400_000);
+    if ((await Ticket.countDocuments({userId, via: 'ai', createdAt: {$gte: since}})) >= 3) {
+      throw new ApiError(429, 'TOO_MANY', 'Three requests were already opened through the assistant today');
+    }
+    const ticket = await Ticket.create({
+      ticketNo: (await nextSeq('ticket')) + 10_000_000,
+      userId,
+      email,
+      subject,
+      product,
+      via: 'ai',
+      messages: [{from: 'customer', body: message}],
+    });
+    res.status(201).json({data: {ticketNo: ticket.ticketNo, link: `/support/${ticket._id}`}});
   },
 );

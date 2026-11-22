@@ -2,18 +2,19 @@
 import Anthropic from '@anthropic-ai/sdk';
 import {config} from '../config.js';
 import {buildRequest} from './prompt.js';
-import {TOOLS, runTool} from './tools.js';
+import {TOOLS, WEB_SEARCH, runTool} from './tools.js';
 
 const client = config.enabled ? new Anthropic() : null;
 const MAX_ROUNDS = 4; // account lookups per turn: enough for two or three areas; then it must answer
 
 /**
- * Streams one assistant turn, calling the account tool when the model asks, for `userId` only. Calls `onText`
+ * Streams one assistant turn, calling our tools when the model asks, always for the signed-in person (`who`). Calls `onText`
  * for each piece of text as it arrives and resolves with the final message, so the caller can check why it
  * stopped (a refusal, or running out of room). Tool rounds are not saved: the chat keeps questions and answers.
  */
-export async function streamReply(history, onText, {userId, product, knowledge} = {}) {
+export async function streamReply(history, onText, {who, product, knowledge, webSearch, attachment} = {}) {
   const extra = [];
+  const tools = webSearch ? [...TOOLS, WEB_SEARCH] : TOOLS;
   for (let round = 0; ; round++) {
     const stream = client.beta.messages.stream(buildRequest(history, {knowledge, product, tools: TOOLS, extra}));
     stream.on('text', onText);
@@ -31,7 +32,7 @@ export async function streamReply(history, onText, {userId, product, knowledge} 
         type: 'tool_result',
         tool_use_id: u.id,
         ...(round < MAX_ROUNDS
-          ? await runTool(u.name, u.input, userId)
+          ? await runTool(u.name, u.input, who)
           : {content: 'Enough lookups for this question: answer with what you have.', is_error: true}),
       })),
     );

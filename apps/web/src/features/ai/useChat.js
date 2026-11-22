@@ -21,17 +21,21 @@ export function useChat({product = '', onSent} = {}) {
     }
   };
 
-  /** Sends `content`; returns false (and keeps nothing) when it failed, so the caller can put the text back. */
-  const send = async (content) => {
+  /**
+   * Sends `content`, with an optional file ({name, type, data} base64); returns false (and keeps nothing) when it
+   * failed, so the caller can put the text back.
+   */
+  const send = async (content, file) => {
     if (!content || busy) return true;
     setError('');
     setBusy(true);
-    setMessages((m) => [...m, {role: 'user', content}, {role: 'assistant', content: ''}]);
+    const shown = file ? `[Attached: ${file.name}]\n${content}` : content;
+    setMessages((m) => [...m, {role: 'user', content: shown}, {role: 'assistant', content: ''}]);
     try {
       const res = await authFetch(`/api/ai/chats/${chatId ?? 'new'}/messages`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({content, product}),
+        body: JSON.stringify({content, product, ...(file && {file})}),
       });
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error?.message ?? 'Something went wrong');
       if (!chatId) setChatId(res.headers.get('x-chat-id'));

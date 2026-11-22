@@ -24,12 +24,60 @@ async function save(fn, setNote, done) {
   }
 }
 
+/** What people ask about, grouped by the AI, and where the assistant falls short. */
+function Insights() {
+  const [data, setData] = useState(null);
+  const [note, setNote] = useState('');
+  const load = async () => {
+    setNote('Reading recent questions…');
+    try {
+      setData(await api('/ai/staff/ai/insights', {method: 'POST'}));
+      setNote('');
+    } catch (err) {
+      setNote(`⚠ ${err.message}`);
+    }
+  };
+  return (
+    <div className="space-y-4 rounded-[18px] border border-rule p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="font-medium">What people ask</p>
+        <Button variant="outline" icon={null} onClick={load}>
+          {data ? 'Refresh' : 'Summarise the last two weeks'}
+        </Button>
+      </div>
+      {note && <p className="text-sm">{note}</p>}
+      {data && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ol className="space-y-2 text-sm">
+            {data.themes.map((t) => (
+              <li key={t.theme}>
+                <span className="font-medium">{t.theme}</span> <span className="text-muted">· {t.count}</span>
+                <span className="block text-muted">“{t.example}”</span>
+              </li>
+            ))}
+          </ol>
+          <div className="space-y-2 text-sm">
+            <p className="eyebrow">Notes to write</p>
+            {data.gaps.length === 0 && <p className="text-muted">No gaps found.</p>}
+            {data.gaps.map((g) => (
+              <p key={g.topic}>
+                <span className="font-medium">{g.topic}:</span> {g.noteToWrite}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
+      <p className="text-xs text-muted">Made by the AI from questions without names, at most once an hour.</p>
+    </div>
+  );
+}
+
 function Overview({canEdit}) {
   const o = useApi('/ai/staff/ai/overview');
   const [form, setForm] = useState(null);
   const [note, setNote] = useState('');
   if (!o.data) return o.error ? <p className="body">⚠ {o.error.message}</p> : null;
-  const f = form ?? {on: o.data.on, freeDailyLimit: o.data.freeDailyLimit};
+  const f = form ?? {on: o.data.on, freeDailyLimit: o.data.freeDailyLimit, webSearch: o.data.webSearch};
   return (
     <div className="space-y-8">
       {!o.data.keySet && (
@@ -47,6 +95,7 @@ function Overview({canEdit}) {
           {label: 'On a paid plan', value: String(o.data.subscribers)},
         ]}
       />
+      {o.data.keySet && <Insights />}
       {canEdit && (
         <form
           onSubmit={(e) => {
@@ -63,6 +112,15 @@ function Overview({canEdit}) {
               onChange={(e) => setForm({...f, on: e.target.checked})}
             />{' '}
             Assistant on
+          </label>
+          <label className="flex items-center gap-2 pb-3 text-sm">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={f.webSearch}
+              onChange={(e) => setForm({...f, webSearch: e.target.checked})}
+            />{' '}
+            Web search for current facts
           </label>
           <Field
             label="Free messages a day"

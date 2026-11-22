@@ -19,3 +19,23 @@ test('unknown tools and areas, and failures, come back as errors', async () => {
   };
   assert.equal((await runTool('my_account', {area: 'orders'}, 'me', down)).is_error, true);
 });
+
+test('a ticket is opened for the signed-in person only', async () => {
+  const calls = [];
+  const fake = async (url, path, body) => (calls.push({path, body}), {ticketNo: 10000001, link: '/support/x'});
+  const out = await runTool(
+    'open_support_ticket',
+    {subject: 'Late order', message: 'Order 100 is late', userId: 'x'},
+    {userId: 'me', email: 'me@example.com', product: 'legal'},
+    fake,
+  );
+  assert.equal(calls[0].path, '/internal/tickets');
+  assert.deepEqual(calls[0].body, {
+    userId: 'me',
+    email: 'me@example.com',
+    subject: 'Late order',
+    message: 'Order 100 is late',
+    product: 'legal',
+  });
+  assert.match(out.content, /10000001/);
+});

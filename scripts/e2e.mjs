@@ -2689,7 +2689,7 @@ const wrong = await call('/auth/staff/login', {method: 'POST', body: {staffId: s
 check('wrong password', wrong.status === 401 && wrong.error.message === 'Wrong staff ID or password');
 const unknown = await call('/auth/staff/login', {
   method: 'POST',
-  body: {staffId: 'nobody.here', password: 'whatever-123'},
+  body: {staffId: `nobody.${Date.now()}`, password: 'whatever-123'}, // new each run: the backoff remembers a day
 });
 check('unknown staff ID answers the same', unknown.status === 401 && unknown.error.message === wrong.error.message);
 check(
@@ -3199,6 +3199,8 @@ check(
   (await call('/ai/chats/new/messages', {method: 'POST', token: user, body: {content: 'hi', product: 'nope'}}))
     .status === 400,
 );
+// Back to the default, so the next run starts where a fresh database does.
+await call('/ai/staff/ai/settings', {method: 'PUT', token: boss, body: {on: true, freeDailyLimit: 30}});
 check(
   'account summaries stay internal',
   (await call('/wallet/internal/assistant', {method: 'POST', token: user, body: {userId: 'x'}})).status === 404,

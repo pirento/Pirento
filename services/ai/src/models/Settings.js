@@ -9,6 +9,7 @@ const schema = new mongoose.Schema(
     _id: {type: String, default: 'ai'},
     on: {type: Boolean, default: true}, // off: chats answer "paused" even with a key
     freeDailyLimit: {type: Number, default: FREE_DAILY_DEFAULT, min: 0, max: 1000},
+    webSearch: {type: Boolean, default: true}, // current public facts from the web, a few searches per answer
   },
   {timestamps: true},
 );
@@ -20,5 +21,6 @@ export const readSettings = () =>
   cached(
     'ai:settings',
     60,
-    async () => (await Settings.findById('ai').lean()) ?? {on: true, freeDailyLimit: FREE_DAILY_DEFAULT},
+    async () =>
+      (await Settings.findById('ai').lean()) ?? {on: true, freeDailyLimit: FREE_DAILY_DEFAULT, webSearch: true},
   );

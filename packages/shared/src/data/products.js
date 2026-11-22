@@ -304,7 +304,7 @@ export const PRODUCTS = [
       },
       {
         title: 'Everywhere you work',
-        body: 'Ask from any Pirento dashboard; chats stay in your account until you delete them. Free daily messages, more with a plan.',
+        body: 'Ask from any Pirento dashboard, by typing or speaking, or attach a notice or bill to have it explained. Free daily messages, more with a plan.',
       },
     ],
     caveat: 'AI answers can be wrong and are not legal, tax or financial advice. Check before you act.',

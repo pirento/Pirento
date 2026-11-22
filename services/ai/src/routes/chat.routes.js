@@ -75,6 +75,14 @@ chatRoutes.post(
         .max(30)
         .refine((s) => !s || PRODUCTS.some((p) => p.slug === s))
         .default(''),
+      // One PDF or photo to explain (a notice, a letter, a bill), sent with this question only and never stored.
+      file: z
+        .object({
+          name: z.string().trim().min(1).max(120),
+          type: z.enum(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif']),
+          data: z.base64().max(7_000_000, 'Attach a file up to 5 MB'),
+        })
+        .optional(),
     }),
   ),
   async (req, res) => {
@@ -99,7 +107,16 @@ chatRoutes.post(
             messages: [],
           })
         : await findOwnChat(req);
-    chat.messages.push({role: 'user', content: req.body.content});
+    const {file} = req.body;
+    // The saved question names the file; its bytes go to the model for this turn only.
+    chat.messages.push({
+      role: 'user',
+      content: file ? `[Attached: ${file.name}]\n${req.body.content}` : req.body.content,
+    });
+    const attachment = file && {
+      type: file.type === 'application/pdf' ? 'document' : 'image',
+      source: {type: 'base64', media_type: file.type, data: file.data},
+    };
     await chat.save();
 
     res.set({'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'x-chat-id': String(chat._id)});
@@ -111,7 +128,13 @@ chatRoutes.post(
           reply += text;
           res.write(text);
         },
-        {userId: req.user.sub, product: productName(chat.product), knowledge: await knowledgeText()},
+        {
+          who: {userId: req.user.sub, email: req.user.email, product: chat.product || undefined},
+          product: productName(chat.product),
+          knowledge: await knowledgeText(),
+          webSearch: settings.webSearch !== false,
+          attachment,
+        },
       );
       if (final.stop_reason === 'refusal') {
         reply = 'Sorry, I can’t help with that. For anything about your account or an order, write to /support.';

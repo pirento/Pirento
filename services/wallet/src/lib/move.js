@@ -24,7 +24,13 @@ export async function move(userId, type, amount, note, ref) {
         'UPDATE wallets SET balance = balance + $2 WHERE user_id = $1 AND balance + $2 >= 0 RETURNING balance',
         [userId, type === 'debit' ? -amount : amount],
       );
-      if (!updated.rowCount) throw new ApiError(400, 'INSUFFICIENT_BALANCE', 'Your wallet balance is too low');
+      if (!updated.rowCount) {
+        // A parallel try with the same ref may have taken the money while this one waited on the row lock: that
+        // is success, not "too low". The lock wait ended at its commit, so this read sees it.
+        if (ref && (await c.query('SELECT 1 FROM transactions WHERE ref = $1', [ref])).rowCount)
+          return balanceOf(userId, c);
+        throw new ApiError(400, 'INSUFFICIENT_BALANCE', 'Your wallet balance is too low');
+      }
       const balance = updated.rows[0].balance;
       await c.query(
         'INSERT INTO transactions (user_id, type, amount, balance_after, note, ref) VALUES ($1, $2, $3, $4, $5, $6)',

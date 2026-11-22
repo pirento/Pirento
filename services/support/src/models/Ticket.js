@@ -16,6 +16,7 @@ export const Ticket = mongoose.model(
       userId: {type: String, required: true, index: true},
       email: {type: String, required: true},
       subject: {type: String, required: true, maxlength: 120},
+      via: String, // 'ai' when Pirento AI opened it at the customer's request
       orderNo: Number,
       // Which product it came from (its slug), or none for the account and wallet: one support desk for all.
       product: {type: String, index: true},

@@ -7,7 +7,8 @@ import {internalRoutes} from './routes/internal.routes.js';
 import {chatRoutes} from './routes/chat.routes.js';
 import {staffRoutes} from './routes/staff.routes.js';
 
-const app = createApp('ai');
+// A chat message may carry one PDF or photo (5 MB, base64), so bodies here can be larger than elsewhere.
+const app = createApp('ai', {jsonLimit: '8mb'});
 // Internal routes go first: they carry the service key, not a user's token.
 app.use(internalRoutes, staffRoutes);
 app.use(requireAuth);
