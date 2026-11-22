@@ -337,6 +337,10 @@ export const productDashboards = {
   green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
+    {id: 'programme', label: 'Programme', icon: 'programme'},
+    {id: 'tasks', label: 'Tasks', icon: 'tasks'},
+    {id: 'classes', label: 'Live classes', icon: 'classes'},
+    {id: 'work', label: 'Paid work', icon: 'work'},
     {id: 'learn', label: 'Learn', icon: 'learn'},
     {id: 'exams', label: 'Exams', icon: 'exams'},
     {id: 'certificates', label: 'Certificates', icon: 'certificates'},
@@ -603,6 +607,26 @@ export const appDashboards = {
       noMine: 'You have not applied yet.',
     },
     learn: {label: 'Lessons', title: 'Learn a track, / one lesson at a time.'},
+    programme: {
+      label: 'Programmes',
+      title: 'Three months / to a year.',
+      packageLabel: 'Internship programme',
+      soon: 'Price coming soon',
+      buy: 'Join from my wallet',
+      includes: [
+        'Lessons, recorded videos and live classes',
+        'A daily, weekly and monthly task set for you by AI',
+        'Paid work from across Pirento once you are eligible',
+        'A final mark, a grade and a certificate',
+        'An AI resume draft from your record',
+      ],
+      note: 'Paid from your Pirento wallet. A Bharat ID is needed to join. Paid work depends on the work available and is paid only once approved; joining does not guarantee income or a job.',
+      resumeNote:
+        'Written by AI from your profile, certificates and approved work only. Check it before you use it; once a day.',
+    },
+    tasks: {title: 'Your tasks, / set for you.'},
+    classes: {title: 'Live classes / and recordings.'},
+    work: {title: 'Real work, / paid on approval.'},
     internships: {label: 'Your applications', title: 'From applied / to certified.'},
     company: {title: 'Hire interns / on Pirento.'},
     applicationStatus: {

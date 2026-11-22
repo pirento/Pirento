@@ -16,6 +16,8 @@ export const Lesson = mongoose.model(
       body: {type: String, required: true, maxlength: 20000},
       practice: [practice],
       published: {type: Boolean, default: false},
+      // A recorded video in S3-compatible storage (lib/video.js); only enrolled interns and staff can play it.
+      video: {_id: false, key: String, name: String, size: Number, type: String},
     },
     {timestamps: true},
   ),

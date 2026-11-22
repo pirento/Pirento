@@ -210,6 +210,24 @@ export const ADMIN_SECTIONS = [
     intro: 'Pirento Intern certificates issued.',
   },
   {
+    id: 'programme',
+    group: 'Work',
+    label: 'Intern programme',
+    icon: GraduationCap,
+    roles: OPS, // ACCESS.openings; prices are superadmin only
+    intro:
+      'The 3, 6, 9 and 12-month programmes: prices, who is enrolled and their mark, live classes and recordings, and practice tasks the AI could not grade.',
+  },
+  {
+    id: 'intern-work',
+    group: 'Work',
+    label: 'Intern paid work',
+    icon: Briefcase,
+    roles: OPS,
+    intro:
+      'Paid work from across Pirento for eligible interns. The AI suggests who fits and why; you confirm, review, and approving pays their wallet.',
+  },
+  {
     id: 'courses',
     group: 'Records',
     label: 'Intern courses',

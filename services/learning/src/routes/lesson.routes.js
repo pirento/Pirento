@@ -11,7 +11,9 @@ lessonRoutes.get('/lessons', async (req, res) => {
   const filter = {published: true};
   if (typeof req.query.track === 'string' && req.query.track) filter.track = req.query.track;
   const rows = await Lesson.find(filter, {body: 0}).sort({track: 1, order: 1}).lean();
-  res.json({data: rows.map(({practice, ...l}) => ({...l, practice: practice.length}))});
+  res.json({
+    data: rows.map(({practice, video, ...l}) => ({...l, practice: practice.length, hasVideo: Boolean(video?.key)})),
+  });
 });
 
 lessonRoutes.get('/lessons/progress', requireAuth, async (req, res) => {
@@ -22,7 +24,14 @@ lessonRoutes.get('/lessons/progress', requireAuth, async (req, res) => {
 lessonRoutes.get('/lessons/:id', async (req, res) => {
   const lesson = isId(req.params.id) && (await Lesson.findOne({_id: req.params.id, published: true}).lean());
   if (!lesson) throw notFound('Lesson not found');
-  res.json({data: {...lesson, practice: lesson.practice.map(({question, options}) => ({question, options}))}});
+  const {video, ...rest} = lesson; // the storage key stays here; enrolled interns ask /lesson-video/:id to play it
+  res.json({
+    data: {
+      ...rest,
+      hasVideo: Boolean(video?.key),
+      practice: lesson.practice.map(({question, options}) => ({question, options})),
+    },
+  });
 });
 
 /** Marks practice answers ([optionIndex, ...]); all right once and the lesson counts as done. */

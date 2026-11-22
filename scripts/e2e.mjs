@@ -2281,6 +2281,214 @@ check(
     .status === 404,
 );
 
+// ── Intern programme: places, AI-set tasks, live classes, paid work ─────
+check('programmes are listed', (await call('/learning/programs')).data?.length === 4);
+check(
+  'only a superadmin sets a programme price',
+  (await call('/learning/staff/program/programs/3', {method: 'PUT', token: user, body: {price: 50000, active: true}}))
+    .status === 403,
+);
+await call('/learning/staff/program/programs/3', {method: 'PUT', token: boss, body: {price: 50000, active: true}});
+check('price shows', (await call('/learning/programs')).data?.find((p) => p.months === 3)?.price === 50000);
+check(
+  'a place needs a Bharat ID',
+  (await call('/learning/program/buy', {method: 'POST', token: co, body: {months: 3}})).error?.code ===
+    'NEEDS_BHARAT_ID',
+);
+const progWalletBefore = (await call('/wallet', {token: user})).data.balance;
+const progPlace = (await call('/learning/program/buy', {method: 'POST', token: user, body: {months: 3}})).data;
+check('buy a place from the wallet', progPlace?.status === 'active' && progPlace.paid === 50000, progPlace);
+check('paid once', (await call('/wallet', {token: user})).data.balance === progWalletBefore - 50000);
+check(
+  'one running place',
+  (await call('/learning/program/buy', {method: 'POST', token: user, body: {months: 3}})).status === 409,
+);
+let progMe = (await call('/learning/program/me', {token: user})).data;
+check(
+  'paid work waits for a profile',
+  !progMe?.eligible && progMe.checks.bharatId && progMe.checks.certified && !progMe.checks.profile,
+  progMe,
+);
+check('tasks wait for a profile', (await call('/learning/program/tasks', {token: user})).status === 409);
+await call('/learning/program/profile', {
+  method: 'PUT',
+  token: user,
+  body: {fullName: 'Asha Verma', track: 'web-development', skills: ['html', 'css']},
+});
+progMe = (await call('/learning/program/me', {token: user})).data;
+check('eligible for paid work', progMe?.eligible === true, progMe);
+const progTasks = (await call('/learning/program/tasks', {token: user})).data;
+check(
+  'daily, weekly and monthly tasks are written',
+  progTasks?.current?.map((t) => t.cadence).join() === 'daily,weekly,monthly' &&
+    progTasks.current.every((t) => t.by !== 'pending'),
+  progTasks,
+);
+check(
+  'the same progTasks come back',
+  (await call('/learning/program/tasks', {token: user})).data?.current?.[0]?._id === progTasks.current[0]._id,
+);
+const dailyTask = progTasks.current[0];
+const sendDaily = () =>
+  call(`/learning/program/tasks/${dailyTask._id}/submit`, {
+    method: 'POST',
+    token: user,
+    body: {answer: 'I built a page.'},
+  });
+check('send a task', ['submitted', 'graded'].includes((await sendDaily()).data?.status));
+check('a task is sent once', (await sendDaily()).status === 409);
+check(
+  'staff grade a task',
+  (await call(`/learning/staff/program/tasks/${dailyTask._id}`, {method: 'PATCH', token: boss, body: {grade: 80}})).data
+    ?.status === 'graded',
+);
+const liveNow = (
+  await call('/learning/staff/program/classes', {
+    method: 'POST',
+    token: boss,
+    body: {
+      title: 'Intro to the web',
+      startsAt: new Date().toISOString(),
+      minutes: 60,
+      link: 'https://meet.example.com/abc',
+    },
+  })
+).data;
+const laterClass = (
+  await call('/learning/staff/program/classes', {
+    method: 'POST',
+    token: boss,
+    body: {
+      title: 'CSS layout',
+      startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+      minutes: 60,
+      link: 'https://meet.example.com/def',
+    },
+  })
+).data;
+const myClasses = (await call('/learning/classes', {token: user})).data;
+check(
+  'classes listed without their links',
+  myClasses?.some((c) => c._id === liveNow._id) && !myClasses.some((c) => c.link),
+);
+check('classes need a place', (await call('/learning/classes', {token: co})).status === 403);
+check(
+  'join a running class',
+  (await call(`/learning/classes/${liveNow._id}/join`, {method: 'POST', token: user})).data?.link ===
+    'https://meet.example.com/abc',
+);
+check(
+  'a future class is not open yet',
+  (await call(`/learning/classes/${laterClass._id}/join`, {method: 'POST', token: user})).status === 409,
+);
+check(
+  'attendance kept',
+  (await call('/learning/classes', {token: user})).data?.find((c) => c._id === liveNow._id)?.attended === true,
+);
+check(
+  'video storage says when it is not set up',
+  (await call('/learning/staff/program/video-ready', {token: boss})).data?.ready === false &&
+    (
+      await call(`/learning/staff/program/classes/${liveNow._id}/recording`, {
+        method: 'POST',
+        token: boss,
+        body: {name: 'class.mp4', type: 'video/mp4', size: 1000},
+      })
+    ).status === 503,
+);
+const paidJob = (
+  await call('/learning/staff/program/work', {
+    method: 'POST',
+    token: boss,
+    body: {
+      title: 'Build the Foundation donors page',
+      brief: 'A simple page listing the Foundation drives with their dates.',
+      source: 'Pirento Foundation',
+      track: 'web-development',
+      skills: ['html'],
+      pay: 20000,
+    },
+  })
+).data;
+const paidSug = (await call(`/learning/staff/program/work/${paidJob._id}/suggest`, {method: 'POST', token: boss})).data;
+check('a suggestion with its reason', Boolean(paidSug?.suggestion?.userId && paidSug.suggestion.reason), paidSug);
+check(
+  'only eligible interns get paid work',
+  (
+    await call(`/learning/staff/program/work/${paidJob._id}/assign`, {
+      method: 'POST',
+      token: boss,
+      body: {userId: 'nobody'},
+    })
+  ).status === 409,
+);
+check(
+  'assign',
+  (
+    await call(`/learning/staff/program/work/${paidJob._id}/assign`, {
+      method: 'POST',
+      token: boss,
+      body: {userId: progMe.enrolment.userId},
+    })
+  ).data?.status === 'assigned',
+);
+check(
+  'the intern sees their work',
+  (await call('/learning/work/mine', {token: user})).data?.some((x) => x._id === paidJob._id),
+);
+check(
+  'intern sends the work',
+  (
+    await call(`/learning/work/${paidJob._id}/submit`, {
+      method: 'POST',
+      token: user,
+      body: {answer: 'Done', link: 'https://example.com/donors'},
+    })
+  ).data?.status === 'submitted',
+);
+const progBeforePay = (await call('/wallet', {token: user})).data.balance;
+const approvedJob = (
+  await call(`/learning/staff/program/work/${paidJob._id}/review`, {
+    method: 'PATCH',
+    token: boss,
+    body: {status: 'approved', grade: 90},
+  })
+).data;
+check(
+  'approval pays the wallet once',
+  approvedJob?.paid && (await call('/wallet', {token: user})).data.balance === progBeforePay + 20000,
+  approvedJob,
+);
+check(
+  'nothing more to pay',
+  (await call(`/learning/staff/program/work/${paidJob._id}/pay`, {method: 'POST', token: boss})).status === 404,
+);
+check(
+  'resume draft needs the AI',
+  (await call('/learning/program/resume', {method: 'POST', token: user})).status === 503,
+);
+const progEnded = (
+  await call(`/learning/staff/program/enrolments/${progPlace._id}/finish`, {method: 'POST', token: boss})
+).data;
+check(
+  'finishing fixes the mark and issues the certificate',
+  progEnded?.status === 'finished' &&
+    progEnded.score.work === 90 &&
+    progEnded.score.tasks === 80 &&
+    /^PC-/.test(progEnded.certificateCode ?? ''),
+  progEnded,
+);
+const progCert = (await call(`/learning/verify/${progEnded.certificateCode}`)).data;
+check(
+  'programme certificate verifies',
+  progCert?.kind === 'program' && progCert.percent === progEnded.score.total,
+  progCert,
+);
+check(
+  'a finished progPlace is not finished twice',
+  (await call('/learning/program/finish', {method: 'POST', token: user})).status === 404,
+);
+
 // ── Admin: prices, coupon given back ────────────────────────────────────
 check(
   'staff cannot change prices',

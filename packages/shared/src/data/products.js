@@ -86,7 +86,14 @@ const SITE = {
       {title: 'Share your certificate', body: 'A PC- code and QR open its public verify page.'},
     ],
     faq: [
-      {q: 'Is there a fee?', a: 'No. The exam and certificate are free.'},
+      {
+        q: 'Is there a fee?',
+        a: 'The track exams and their certificates are free. The 3, 6, 9 and 12-month programmes are paid from your Pirento wallet; their prices show on the Programme page.',
+      },
+      {
+        q: 'How does paid work happen?',
+        a: 'On a programme, once your Bharat ID is issued, you have passed a track exam and filled your profile, work from across Pirento is matched to you. The AI suggests who fits, the team confirms, and approved work is paid into your wallet, which you can withdraw.',
+      },
       {
         q: 'Does a certificate get me a job?',
         a: 'It proves you passed our exam. It does not guarantee placement, accreditation or income.',
@@ -262,13 +269,24 @@ export const PRODUCTS = [
     name: 'Pirento Intern',
     short: 'Intern',
     quote: 'The expert in anything was once a beginner.',
-    overview: 'Pick a track, take the final exam, and earn a certificate anyone can verify.',
+    overview:
+      'Learn a track, prove it in the exam, then join a 3 to 12-month programme: live classes, AI-set tasks, paid work across Pirento and a graded certificate.',
     highlights: [
-      {title: 'Five tracks', body: 'General, web development, data science, marketing and design.'},
-      {title: 'Final exam', body: 'Ten questions, 30 minutes. Pass with 60% or more.'},
-      {title: 'Certificates', body: 'Each certificate has a code and a QR that open its public verify page.'},
+      {
+        title: 'Programmes',
+        body: '3, 6, 9 or 12 months of lessons, recorded videos, live classes and daily, weekly and monthly tasks.',
+      },
+      {
+        title: 'Paid work',
+        body: 'Eligible interns get real work from across Pirento, reviewed and paid into their wallet on approval.',
+      },
+      {
+        title: 'Exams and certificates',
+        body: 'A timed final exam per track; passing gives a certificate with a code and QR anyone can verify.',
+      },
     ],
-    caveat: 'Participation does not guarantee employment, placement, accreditation or income.',
+    caveat:
+      'Participation does not guarantee employment, placement, accreditation or income. Paid work depends on the work available and is paid only once approved.',
     status: 'now',
   },
   {

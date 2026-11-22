@@ -15,6 +15,8 @@ import {Openings} from './Openings';
 import {Company} from './Company';
 import {Internships} from './Internships';
 import {Learn} from './Learn';
+import {Programme} from './Programme';
+import {Classes, PaidWork, Tasks} from './ProgramWork';
 import {StartForm} from './StartForm';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
@@ -98,6 +100,38 @@ export function Intern({product, section}) {
     const v = [...new Set(tracks.data?.map((t) => t[k]))].sort((a, b) => a - b);
     return v.length ? (v.length > 1 ? `${v[0]}–${v.at(-1)}${unit}` : `${v[0]}${unit}`) : '—';
   };
+
+  if (section === 'programme') {
+    return (
+      <AppFrame {...frame} title={copy.programme.title} intro={copy.intro}>
+        <Programme tracks={tracks.data} />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'tasks') {
+    return (
+      <AppFrame {...frame} title={copy.tasks.title}>
+        <Tasks />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'classes') {
+    return (
+      <AppFrame {...frame} title={copy.classes.title}>
+        <Classes />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'work') {
+    return (
+      <AppFrame {...frame} title={copy.work.title}>
+        <PaidWork />
+      </AppFrame>
+    );
+  }
 
   if (section === 'learn') {
     return (
@@ -279,6 +313,12 @@ export function Intern({product, section}) {
               body="An offer to answer or a task to send."
             />
           )}
+          <NextLink
+            to="/intern/dashboard/programme"
+            icon={Briefcase}
+            title="The 3 to 12-month programme"
+            body="Live classes, AI-set tasks, paid work across Pirento, and a graded certificate."
+          />
           <NextLink
             to="/intern/dashboard/learn"
             icon={BookOpen}

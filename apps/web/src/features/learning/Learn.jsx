@@ -1,11 +1,13 @@
 // Intern → Learn: each track's lessons in order, read one, answer its practice questions. A lesson counts as done
 // once every practice answer is right; the right answer and why are shown after each check.
 import {useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {Check} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Tag} from '../../components/ui/Tag';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
+import {VideoPlayer} from './Video';
 
 function Lesson({id, done, onDone, onBack}) {
   const lesson = useApi(`/learning/lessons/${id}`);
@@ -43,6 +45,7 @@ function Lesson({id, done, onDone, onBack}) {
           </p>
         )}
       </header>
+      {l.hasVideo && <VideoPlayer path={`/learning/lesson-video/${l._id}`} />}
       <div className="body space-y-4 whitespace-pre-line">{l.body}</div>
       {l.practice.length > 0 && (
         <form onSubmit={check} className="space-y-6 rounded-[22px] border border-rule p-6">
@@ -90,7 +93,9 @@ function Lesson({id, done, onDone, onBack}) {
 export function Learn({tracks}) {
   const lessons = useApi('/learning/lessons');
   const progress = useApi('/learning/lessons/progress');
-  const [openId, setOpenId] = useState(null);
+  // ?lesson=<id> opens one directly: a review's "watch this lesson" link lands here.
+  const [params] = useSearchParams();
+  const [openId, setOpenId] = useState(params.get('lesson'));
   const done = new Set(progress.data?.map((p) => p.lessonId));
 
   if (openId) {

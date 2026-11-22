@@ -8,6 +8,7 @@ import {TextArea} from '../../components/ui/TextArea';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {selectCls} from '../learning/Pipeline';
+import {VideoUpload} from '../learning/Video';
 
 const NEW_TRACK = {slug: '', name: '', minutes: 30, passPercent: 60, questions: 10, active: true};
 const lines = (text) =>
@@ -200,6 +201,13 @@ function LessonForm({track, initial, onSaved, nextOrder}) {
   };
   return (
     <form onSubmit={submit} className="space-y-4 rounded-[18px] border border-rule p-5">
+      {initial && (
+        <VideoUpload
+          path={`/learning/staff/courses/lessons/${initial._id}/video`}
+          current={initial.video}
+          onDone={onSaved}
+        />
+      )}
       <div className="grid gap-3 sm:grid-cols-[8rem_1fr]">
         <Field
           label="Order"

@@ -41,12 +41,12 @@ export function notify(userId, {brand = 'Pirento', label, big, note}) {
 }
 
 /** POST to another service's /internal route. Throws that service's error if it refuses. */
-export async function callService(baseUrl, path, body) {
+export async function callService(baseUrl, path, body, {timeoutMs = 10_000} = {}) {
   const res = await fetch(baseUrl + path, {
     method: 'POST',
     headers: {'content-type': 'application/json', 'x-internal-key': internalKey()},
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {

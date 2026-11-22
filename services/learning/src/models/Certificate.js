@@ -1,10 +1,11 @@
 // A Pirento Intern certificate, checked publicly by its code: for passing a track's exam, or for finishing an
-// internship (then `track` is `internship-<application id>` and `title` names the role).
+// internship (then `track` is `internship-<application id>` and `title` names the role), or for finishing a paid
+// programme (`program-<enrolment id>`, with the final mark and its parts).
 import mongoose from 'mongoose';
 
 const schema = new mongoose.Schema({
   code: {type: String, required: true, unique: true}, // PC-XXXXXXXX, public
-  kind: {type: String, enum: ['exam', 'internship'], default: 'exam'},
+  kind: {type: String, enum: ['exam', 'internship', 'program'], default: 'exam'},
   userId: {type: String, required: true},
   fullName: {type: String, required: true},
   track: {type: String, required: true},
