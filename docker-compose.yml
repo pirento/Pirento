@@ -82,6 +82,12 @@ services:
       SERVICE: identity
       MONGO_URI: mongodb://mongo:27017/pirento_identity
       KYC_ENCRYPTION_KEY: ${KYC_ENCRYPTION_KEY:?set KYC_ENCRYPTION_KEY in .env}
+      DIGIO_ENV: ${DIGIO_ENV:-sandbox}
+      DIGIO_CLIENT_ID: ${DIGIO_CLIENT_ID:-}
+      DIGIO_CLIENT_SECRET: ${DIGIO_CLIENT_SECRET:-}
+      DIGIO_WEBHOOK_SECRET: ${DIGIO_WEBHOOK_SECRET:-}
+      DIGIO_KYC_TEMPLATE: ${DIGIO_KYC_TEMPLATE:-VIDEO_KYC}
+      DIGIO_ESTAMP_TAG: ${DIGIO_ESTAMP_TAG:-}
     depends_on: [mongo]
 
   learning:

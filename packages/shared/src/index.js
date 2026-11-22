@@ -37,6 +37,7 @@ export {
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';
 export {ID_SECTIONS, RELATIONS, validateSection} from './identity/form.js';
+export {KYC_DONE, KYC_FAILED, declarationSigned, kycDone, kycFailed} from './identity/verification.js';
 
 // Money helpers
 export {emi} from './money/emi.js';

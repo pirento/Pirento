@@ -7,7 +7,7 @@ import {PRODUCT_DETAILS} from './productDetails.js';
 // Pirento One and Vault open only once the person's Bharat ID is issued (enforced by those services).
 const bharatIdFirst = (name) => ({
   title: 'Get your Bharat ID',
-  body: `${name} opens once your Bharat ID is issued: seven short steps, a 20-second video, then a review by our team.`,
+  body: `${name} opens once your Bharat ID is issued: seven short steps, a video KYC and an Aadhaar eSign on Digio, then a review by our team.`,
 });
 
 const signIn = {
@@ -171,8 +171,12 @@ const SITE = {
         body: 'Contact, personal, documents, address, work, bank, nominee. Each one is saved as you go.',
       },
       {
-        title: 'Record a 20-second video',
-        body: 'Say your name and a one-time code on camera, so we know it is really you.',
+        title: 'Video KYC on Digio',
+        body: 'A short video KYC on Digio checks it is really you; it may ask for your Aadhaar and PAN from DigiLocker.',
+      },
+      {
+        title: 'Sign with Aadhaar',
+        body: 'You sign your declaration with Aadhaar eSign on Digio, with a one-time code to your Aadhaar mobile.',
       },
       {title: 'We review by hand', body: 'Our team checks your details. If something needs a change, we tell you why.'},
       {title: 'Get your ID', body: 'A 10-digit Bharat ID with a QR to its public verify page.'},
@@ -186,7 +190,11 @@ const SITE = {
       {q: 'Can I stop halfway?', a: 'Yes. Each step is saved; come back and continue where you left off.'},
       {
         q: 'What happens to my video?',
-        a: 'Our team watches it to check it is you, then it is deleted once your ID is issued.',
+        a: 'Your video KYC runs on Digio and stays with Digio; Pirento does not store it. Our team opens it from Digio to check it is you.',
+      },
+      {
+        q: 'Why do I sign a declaration?',
+        a: 'It records your details and your consent. You sign it with Aadhaar eSign on Digio and can download the signed copy from your dashboard.',
       },
     ],
   },

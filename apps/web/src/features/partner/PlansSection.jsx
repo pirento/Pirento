@@ -14,7 +14,11 @@ export function PlansSection({plans, n}) {
         <PlanCards
           plans={plans}
           action={(p) => (
-            <Button to="/one/dashboard/plans" variant={p.recommended ? 'accent' : 'outline'}>
+            <Button
+              to="/one/dashboard/plans"
+              variant={p.recommended ? 'accent' : 'outline'}
+              className="w-full justify-center"
+            >
               {p.price ? copy.choose : copy.join}
             </Button>
           )}

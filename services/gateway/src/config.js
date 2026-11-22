@@ -27,13 +27,25 @@ export const config = {
 
 /**
  * Content-Security-Policy additions on top of helmet's strict defaults:
- * Razorpay Checkout (its script and frame), and blob: media so staff can play
- * a Bharat ID video recording and people can preview their own.
+ * Razorpay Checkout (its script and frame), Digio's web SDK for Bharat ID's video KYC and
+ * eSign (sandbox ext.digio.in, production app.digio.in), and blob: media so staff can play a KYC video.
  */
 export const CSP = {
   // accounts.google.com: Google sign-in (its script, button frame and token check).
-  scriptSrc: ["'self'", 'https://checkout.razorpay.com', 'https://accounts.google.com'],
-  frameSrc: ['https://api.razorpay.com', 'https://checkout.razorpay.com', 'https://accounts.google.com'],
+  scriptSrc: [
+    "'self'",
+    'https://checkout.razorpay.com',
+    'https://accounts.google.com',
+    'https://app.digio.in',
+    'https://ext.digio.in',
+  ],
+  frameSrc: [
+    'https://api.razorpay.com',
+    'https://checkout.razorpay.com',
+    'https://accounts.google.com',
+    'https://app.digio.in',
+    'https://ext.digio.in',
+  ],
   connectSrc: ["'self'", 'https://api.razorpay.com', 'https://lumberjack.razorpay.com', 'https://accounts.google.com'],
   imgSrc: ["'self'", 'data:', 'https:'],
   mediaSrc: ["'self'", 'blob:'],

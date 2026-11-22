@@ -269,12 +269,39 @@ export const productDashboards = {
 };
 
 // The app products' dashboards (Intern, Vault, One, Bharat ID): headings and the words on each section.
+// The Bharat ID steps done on Digio: the video KYC, then the Aadhaar eSign of the declaration.
+export const bharatIdVerify = {
+  off: 'Verification with Digio is not switched on yet. Your saved steps are kept; come back soon.',
+  waiting: 'Digio has not finished yet. It can take a few minutes; check again shortly.',
+  check: 'Check again',
+  continue: 'Continue',
+  busy: 'Opening Digio',
+  kyc: {
+    intro:
+      'A short video KYC on Digio checks that it is really you. Keep your Aadhaar and PAN with you; Digio may ask you to share them from DigiLocker.',
+    start: 'Start video KYC',
+    resume: 'Continue video KYC',
+    again: 'Start again',
+    done: 'Your video KYC is done.',
+    failed: 'Digio could not complete this KYC. Start it again.',
+    closed: 'Digio closed before your video KYC was finished.',
+  },
+  sign: {
+    intro: (stamped) =>
+      `Sign your declaration with Aadhaar eSign on Digio. It lists your details and your consent${stamped ? ', on e-stamp paper' : ''}; you confirm with a one-time code sent to the mobile linked to your Aadhaar.`,
+    start: 'Sign with Aadhaar',
+    resume: 'Continue signing',
+    done: 'Your declaration is signed.',
+    closed: 'Digio closed before the declaration was signed.',
+  },
+};
+
 // Shown in place of the Pirento One and Vault dashboards until the person's Bharat ID is issued.
 export const bharatIdGate = {
   title: 'Your Bharat ID / comes first.',
   intro: (name) => `${name} opens once your Bharat ID is issued.`,
   status: {
-    none: 'You have not started an application yet. It takes seven short steps and a 20-second video.',
+    none: 'You have not started an application yet. It takes seven short steps, a video KYC and an Aadhaar eSign on Digio.',
     draft: 'Your application is saved as a draft. Finish the steps and submit it.',
     submitted: 'Your application is with our team for review. This opens as soon as your ID is issued.',
     rejected: 'Your application needs changes. Open it to see what to fix, then submit it again.',
@@ -343,10 +370,10 @@ export const appDashboards = {
       label: 'Plans',
       title: 'Free to start, / more with a plan.',
       intro: 'Every partner starts on the free plan. A paid plan raises your commission for as long as it runs.',
-      rate: (pct) => `${pct}% commission on each completed order`,
+      rateLabel: 'commission on each completed order',
+      forever: 'Free, with no end date',
       period: (months) => `for ${months} months`,
       until: (date) => `Runs until ${date}`,
-      free: 'Free',
       current: 'Your plan',
       recommended: 'Recommended',
       join: 'Become a partner',
@@ -362,9 +389,9 @@ export const appDashboards = {
   },
   'bharat-id': {
     hello: 'One identity, / checked once.',
-    intro: 'Seven short steps, a 20-second video, then a review by our team.',
+    intro: 'Seven short steps, a video KYC and an Aadhaar eSign on Digio, then a review by our team.',
     status: {label: 'Status', title: 'Where your / application is.'},
-    steps: ['Fill the steps', 'Record the video', 'Submit', 'Team review', 'ID issued'],
+    steps: ['Fill the steps', 'Video KYC on Digio', 'Sign the declaration', 'Submit and review', 'ID issued'],
     card: {label: 'Your ID', title: 'Your Bharat ID / card.'},
     apply: {label: 'Application', title: 'Your details, / step by step.'},
   },
@@ -500,7 +527,7 @@ export const dashboard = {
     {
       id: 'identity',
       title: 'Apply for Bharat ID',
-      body: 'Seven short steps and a 20-second video.',
+      body: 'Seven short steps, a video KYC and an Aadhaar eSign.',
       to: '/bharat-id/dashboard',
     },
     {

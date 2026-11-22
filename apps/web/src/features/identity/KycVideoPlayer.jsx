@@ -1,4 +1,4 @@
-// Staff: play an applicant's KYC video, with the code they were asked to say.
+// Staff: play a KYC video recorded on Pirento before KYC moved to Digio, with the code they were asked to say.
 import {useEffect, useState} from 'react';
 import {Play} from 'lucide-react';
 import {authFetch} from '../../lib/api/client';
@@ -9,7 +9,11 @@ export function KycVideoPlayer({doc}) {
   const [error, setError] = useState('');
 
   // The object URL holds the whole video in memory; free it when we leave.
-  useEffect(() => () => url && URL.revokeObjectURL(url), [url]);
+  useEffect(() => {
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [url]);
 
   const load = async () => {
     setError('');

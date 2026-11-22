@@ -256,32 +256,105 @@ check(
     !JSON.stringify(draft).includes(aadhaarNo),
   draft,
 );
-check(
-  'consent required',
-  (await call('/identity/submit', {method: 'POST', token: user, body: {consent: false}})).status === 400,
-);
+// Verification runs on Digio; the stack points DIGIO_URL at scripts/digio-standin.mjs, which /__test drives.
+const DIGIO = process.env.DIGIO_STANDIN ?? 'http://127.0.0.1:4090';
+const digioTest = (path, body) =>
+  fetch(DIGIO + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {'content-type': 'application/json'},
+    body: body && JSON.stringify(body),
+  }).then((r) => r.json());
+const WEBHOOK_SECRET = process.env.DIGIO_WEBHOOK_SECRET ?? 'test-digio-webhook';
+const digioHook = (event, payload, secret = WEBHOOK_SECRET) => {
+  const body = JSON.stringify({
+    id: `WHN${Date.now()}`,
+    created_at: Date.now(),
+    event,
+    entities: Object.keys(payload),
+    payload,
+  });
+  return fetch(B + '/identity/digio/webhook', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-digio-checksum': crypto.createHmac('sha256', secret).update(body).digest('hex'),
+    },
+    body,
+  });
+};
+check('Digio is on', (await call('/identity/digio/config')).data?.on === true);
 check(
   'video KYC required before submit',
-  /video/i.test(
-    (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).error?.message ?? '',
-  ),
+  /video KYC/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
 );
-const challenge = (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data;
-check('4-digit KYC challenge', /^\d{4}$/.test(challenge?.challenge ?? ''), challenge);
 check(
-  'same challenge on reload',
-  (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data?.challenge === challenge.challenge,
+  'sign waits for the KYC',
+  (await call('/identity/sign/start', {method: 'POST', token: user})).error?.code === 'KYC_FIRST',
 );
-const fakeVideo = Buffer.alloc(4096, 7); // the service stores bytes; it does not decode video
-const upload = await fetch(B + '/identity/kyc/video', {
-  method: 'POST',
-  headers: {authorization: `Bearer ${user}`, 'content-type': 'video/webm'},
-  body: fakeVideo,
-});
-check('KYC video uploaded', upload.status === 201 && (await upload.json()).data?.kyc?.size === 4096);
-const app1 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
-check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma', app1);
+const kyc1 = (await call('/identity/kyc/start', {method: 'POST', token: user})).data;
+check(
+  'Digio tokens never sent back with the application',
+  !JSON.stringify(kyc1?.doc ?? {}).includes(kyc1?.token ?? 'x'),
+);
+check('KYC request made on Digio', /^KID/.test(kyc1?.kycId ?? '') && /^GWT/.test(kyc1.token ?? ''), kyc1);
+check(
+  'reopening resumes the same KYC request',
+  (await call('/identity/kyc/start', {method: 'POST', token: user})).data?.kycId === kyc1.kycId,
+);
+check(
+  'a forged webhook is refused',
+  (await digioHook('KYC_REQUEST_APPROVED', {KYC_REQUEST: {id: kyc1.kycId, status: 'APPROVED'}}, 'wrong')).status ===
+    400,
+);
+await digioTest(`/__test/kyc/${kyc1.kycId}`, {status: 'approval_pending'});
+const afterKyc = (await call('/identity/kyc/refresh', {method: 'POST', token: user})).data;
+check(
+  'KYC result read from Digio',
+  afterKyc?.digio?.kycStatus === 'approval_pending' && afterKyc.digio.kycActions[0]?.fileId,
+  afterKyc?.digio,
+);
+check(
+  'a signed webhook updates the KYC',
+  (await digioHook('KYC_REQUEST_APPROVED', {KYC_REQUEST: {id: kyc1.kycId, status: 'APPROVED'}})).status === 200 &&
+    (await call('/identity/me', {token: user})).data?.digio?.kycStatus === 'approved',
+);
+check('an unknown event still answers 200', (await digioHook('SOMETHING.NEW', {thing: {id: 'x'}})).status === 200);
+check(
+  'signature required before submit',
+  /sign/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+const sign1 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+check('declaration sent for eSign', /^DID/.test(sign1?.docId ?? '') && sign1.token, sign1);
+if (process.env.DIGIO_ESTAMP_TAG) {
+  const stamp = (await digioTest(`/__test/doc/${sign1.docId}`)).estamp;
+  check('e-stamp attached', stamp?.tags?.[process.env.DIGIO_ESTAMP_TAG] === 1, stamp);
+}
+check(
+  'reopening resumes the same sign request',
+  (await call('/identity/sign/start', {method: 'POST', token: user})).data?.docId === sign1.docId,
+);
+check(
+  'not signed yet',
+  (await call('/identity/sign/refresh', {method: 'POST', token: user})).data?.digio?.docStatus === 'requested',
+);
+await digioTest(`/__test/doc/${sign1.docId}`, {status: 'completed'});
+check(
+  'signature read from Digio',
+  (await call('/identity/sign/refresh', {method: 'POST', token: user})).data?.digio?.docStatus === 'signed',
+);
+const decl = await fetch(B + '/identity/declaration', {headers: {authorization: `Bearer ${user}`}});
+const declPdf = Buffer.from(await decl.arrayBuffer()).toString('latin1');
+check(
+  'signed declaration downloads, with the details and no full Aadhaar',
+  decl.status === 200 && declPdf.startsWith('%PDF') && declPdf.includes('Asha Verma') && !declPdf.includes(aadhaarNo),
+);
+const app1 = (await call('/identity/submit', {method: 'POST', token: user})).data;
+check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma' && app1.consentAt, app1);
 check('locked after submit', (await put('contact', steps.contact)).status === 409);
+check(
+  'KYC cannot restart after submit',
+  (await call('/identity/kyc/start', {method: 'POST', token: user})).status === 409,
+);
 check(
   'reject needs reason',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'reject'}})).status ===
@@ -294,25 +367,60 @@ const rej = (
     body: {decision: 'reject', reason: 'Name does not match PAN'},
   })
 ).data;
-check('rejected with reason', rej?.status === 'rejected' && rej.reason === 'Name does not match PAN');
+check(
+  'rejected with reason, signature voided',
+  rej?.status === 'rejected' && rej.reason === 'Name does not match PAN' && !rej.digio?.docId,
+  rej,
+);
 check(
   'editable after rejection',
   (await put('personal', {...steps.personal, fullName: 'Asha Rani Verma'})).status === 200,
 );
-const again2 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
+check(
+  'resubmit needs a new signature',
+  /sign/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+const sign2 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+check('a new declaration with the fixed name', sign2?.docId && sign2.docId !== sign1.docId, sign2);
+await digioHook('DOC.SIGNED', {document: {id: sign2.docId, agreement_status: 'completed'}});
+check(
+  'a signed webhook records the signature',
+  (await call('/identity/me', {token: user})).data?.digio?.docStatus === 'signed',
+);
+check(
+  'editing a step voids the signature',
+  !(await put('work', {...steps.work, occupation: 'Self-employed'})).data?.digio?.docId,
+);
+const sign3 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+await digioTest(`/__test/doc/${sign3.docId}`, {status: 'completed'});
+await call('/identity/sign/refresh', {method: 'POST', token: user});
+const again2 = (await call('/identity/submit', {method: 'POST', token: user})).data;
 check(
   'resubmitted, reason cleared',
   again2?.status === 'submitted' && !again2.reason && again2.fullName === 'Asha Rani Verma',
   again2,
 );
-const played = await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}});
+const media = await fetch(B + `/identity/staff/${app1._id}/media/${afterKyc.digio.kycActions[0].fileId}`, {
+  headers: {authorization: `Bearer ${boss}`},
+});
+check('staff can open the KYC video from Digio', media.status === 200);
 check(
-  'staff can play the KYC video',
-  played.status === 200 && Buffer.from(await played.arrayBuffer()).equals(fakeVideo),
+  'only this application’s files',
+  (await fetch(B + `/identity/staff/${app1._id}/media/FILEOTHER`, {headers: {authorization: `Bearer ${boss}`}}))
+    .status === 404,
 );
 check(
-  'customer cannot play KYC videos',
-  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${user}`}})).status === 403,
+  'customer cannot open KYC files',
+  (
+    await fetch(B + `/identity/staff/${app1._id}/media/${afterKyc.digio.kycActions[0].fileId}`, {
+      headers: {authorization: `Bearer ${user}`},
+    })
+  ).status === 403,
+);
+check(
+  'staff can read the signed declaration',
+  (await fetch(B + `/identity/staff/${app1._id}/declaration`, {headers: {authorization: `Bearer ${boss}`}})).status ===
+    200,
 );
 check(
   'vault waits for an issued Bharat ID',
@@ -325,10 +433,6 @@ check(
 const appr = (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
   .data;
 check('approved with 10-digit ID', /^[1-9]\d{9}$/.test(appr?.bharatId ?? ''), appr);
-check(
-  'KYC video deleted once approved',
-  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}})).status === 404,
-);
 check(
   'no double approve',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).status ===

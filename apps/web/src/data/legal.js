@@ -2,7 +2,7 @@
 // actually do; change the text here when the code changes. The Terms live in site.js (they carry TERMS_VERSION).
 
 export const privacy = {
-  updated: '20 November 2026',
+  updated: '22 November 2026',
   intro:
     'How Venturecore Solutions Private Limited, which runs the Pirento Ecosystem brand, collects, uses and protects your personal data on its websites.',
   sections: [
@@ -13,14 +13,16 @@ export const privacy = {
         'What you order: the service, your answers to its questions, messages with our team and the documents you share.',
         'Payments: wallet entries in your account. Card and UPI payments are handled by Razorpay; we never see your card details.',
         'Bharat ID: the details in your application. Of your Aadhaar and bank account numbers we keep only the last 4 digits.',
+        'Bharat ID verification is done with Digio: it receives your name, email and the declaration you sign, and runs your video KYC and Aadhaar eSign.',
         'Support tickets, Pirento AI chats, Intern exam attempts and Vault files you choose to store.',
       ],
     },
     {
       title: 'How we keep it safe',
       list: [
-        'Vault files and passwords, and Bharat ID KYC videos, are encrypted at rest (AES-256-GCM).',
-        'A KYC video is deleted once your Bharat ID is approved.',
+        'Vault files and passwords are encrypted at rest (AES-256-GCM).',
+        'Bharat ID video KYC and the Aadhaar eSign of your declaration run on Digio; the KYC video and the signed document stay with Digio, and Pirento keeps only their result.',
+        'Videos recorded on Pirento before KYC moved to Digio stay encrypted at rest (AES-256-GCM) and are deleted once the ID is approved.',
         'Your sign-in stays in a cookie the page itself cannot read; the short-lived access key is kept only in memory.',
         'Staff see only what their role needs, and every staff change is recorded in an audit trail.',
       ],
@@ -133,7 +135,7 @@ export const PRODUCT_LEGAL = {
   'bharat-id': {
     keeps: [
       'The details in your application. Of your Aadhaar and bank account numbers we keep only the last 4 digits.',
-      'Your KYC video, encrypted at rest and deleted once your Bharat ID is approved.',
+      'Where your Digio video KYC and declaration signing stand. The KYC video and the signed declaration stay with Digio; staff open them from there.',
     ],
     public:
       'Your Bharat ID’s verify page shows anyone with the ID your first name and last initial, your state and the issue date.',

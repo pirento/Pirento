@@ -127,12 +127,16 @@ export function One({product, section}) {
             action={(p, mine) =>
               !p.price ? (
                 !d && (
-                  <Button onClick={join} variant="outline">
+                  <Button onClick={join} variant="outline" className="w-full justify-center">
                     {copy.plans.join}
                   </Button>
                 )
               ) : (
-                <Button onClick={() => buy(p)} variant={p.recommended ? 'accent' : 'outline'}>
+                <Button
+                  onClick={() => buy(p)}
+                  variant={p.recommended ? 'accent' : 'outline'}
+                  className="w-full justify-center"
+                >
                   {(mine ? copy.plans.renew : copy.plans.buy)(inr(p.price / 100))}
                 </Button>
               )
