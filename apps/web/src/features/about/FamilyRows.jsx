@@ -1,9 +1,10 @@
-// The Pirento family beyond the ten products, in the design system's own patterns: Pirento Foundation as a
-// feature row (illustration, meta line, highlights, link), then the other parts as card rows grouped like the
+// The Pirento family beyond the ten products, in the design system's own patterns: Pirento Foundation as one
+// large card (illustration, tags, link, its programmes along the bottom), then the other parts as card rows grouped like the
 // products above them. A card with a website opens it in a new tab.
 import {ArrowUpDown, ArrowUpRight, Gem, HandHeart, Receipt, Sofa, Sparkles, TrendingUp} from 'lucide-react';
 import {Illustration} from '../../components/Illustration';
 import {Button} from '../../components/ui/Button';
+import {Tag} from '../../components/ui/Tag';
 import {FAMILY_GROUPS, FOUNDATION, PEOPLE} from '../../data/group';
 
 const ICONS = {
@@ -18,38 +19,52 @@ const ICONS = {
 
 function FoundationRow() {
   return (
-    <div className="grid gap-10 lg:grid-cols-12 lg:items-center" data-reveal>
-      <Illustration name="leaf" className="lg:col-span-6" />
-      <div className="lg:col-span-6">
-        <p className="text-sm text-muted">Foundation · {FOUNDATION.status.split('.')[0]}</p>
-        <h3 className="mt-4 text-[clamp(1.75rem,3.6vw,3.25rem)] leading-[1.02]">{FOUNDATION.name}</h3>
-        <p className="mt-2 text-muted">{FOUNDATION.tagline}</p>
-        <p className="body mt-6">{FOUNDATION.body}</p>
-        <ul className="mt-8 space-y-3 border-l border-rule pl-5">
-          {FOUNDATION.programmes.map((p) => (
-            <li key={p.title}>
-              <span className="font-medium">{p.title}</span>
-              <span className="text-muted"> · {p.body}</span>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-10">
-          <Button href={FOUNDATION.href} target="_blank" rel="noopener noreferrer" variant="outline">
-            Visit Pirento Foundation <span className="sr-only">(opens in a new tab)</span>
-          </Button>
+    <article
+      className="group/foundation overflow-hidden rounded-[22px] border border-rule bg-paper transition-colors duration-500 ease-ui hover:border-ink"
+      data-reveal
+    >
+      <div className="grid lg:grid-cols-12">
+        <div className="flex items-center border-b border-rule bg-stone lg:col-span-5 lg:border-r lg:border-b-0">
+          <Illustration name="leaf" className="w-full rounded-none border-0" />
+        </div>
+        <div className="p-6 md:p-10 lg:col-span-7">
+          <div className="flex flex-wrap items-center gap-2">
+            <Tag>Foundation</Tag>
+            <Tag>{FOUNDATION.status.split('.')[0]}</Tag>
+          </div>
+          <h3 className="mt-6 text-[clamp(1.75rem,3.6vw,3rem)] leading-[1.02]">{FOUNDATION.name}</h3>
+          <p className="mt-2 text-muted">{FOUNDATION.tagline}</p>
+          <p className="body mt-6 max-w-xl">{FOUNDATION.body}</p>
+          <div className="mt-8">
+            <Button href={FOUNDATION.href} target="_blank" rel="noopener noreferrer" variant="outline">
+              Visit Pirento Foundation <span className="sr-only">(opens in a new tab)</span>
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
+      <ul className="grid border-t border-rule sm:grid-cols-2 lg:grid-cols-4">
+        {FOUNDATION.programmes.map((p, i) => (
+          <li
+            key={p.title}
+            className={`p-6 ${i ? 'border-t border-rule sm:border-t-0' : ''} ${i % 2 ? 'sm:border-l' : ''} ${i > 1 ? 'sm:border-t lg:border-t-0' : ''} ${i === 2 ? 'lg:border-l' : ''} border-rule`}
+          >
+            <p className="text-xs text-muted">0{i + 1}</p>
+            <p className="mt-3 font-medium">{p.title}</p>
+            <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{p.body}</p>
+          </li>
+        ))}
+      </ul>
+    </article>
   );
 }
 
 function Card({item}) {
   const Icon = ICONS[item.icon] ?? Sparkles;
   const lead = item.lead && PEOPLE[item.lead];
-  const Tag = item.href ? 'a' : 'article';
+  const El = item.href ? 'a' : 'article';
   const link = item.href ? {href: item.href, target: '_blank', rel: 'noopener noreferrer', 'data-cursor': 'Visit'} : {};
   return (
-    <Tag
+    <El
       {...link}
       data-reveal
       className={`group flex flex-col rounded-[18px] border border-rule bg-paper p-6 transition-[border-color,transform] duration-500 ease-ui ${
@@ -78,7 +93,7 @@ function Card({item}) {
           )}
         </div>
       )}
-    </Tag>
+    </El>
   );
 }
 
