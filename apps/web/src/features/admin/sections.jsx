@@ -19,6 +19,7 @@ import {Settings} from './Settings';
 import {Openings} from './Openings';
 import {Companies} from './Companies';
 import {Courses} from './Courses';
+import {AiAdmin} from './AiAdmin';
 import {Programme} from './Programme';
 import {InternWork} from './InternWork';
 import {IdentityQueue} from '../identity/IdentityQueue';
@@ -59,6 +60,7 @@ export const SECTIONS = {
   openings: Openings,
   companies: Companies,
   courses: Courses,
+  ai: AiAdmin,
   programme: Programme,
   'intern-work': InternWork,
   certificates: Certificates,

@@ -5,14 +5,21 @@ import {ApiError, requireInternal, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Chat} from '../models/Chat.js';
 import {Usage} from '../models/Usage.js';
-import {JOBS, runJob} from '../lib/intern.js';
+import {Feedback} from '../models/Feedback.js';
+import {Subscription} from '../models/Subscription.js';
+import {JOBS, runJob} from '../lib/jobs.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
 
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
-  await Promise.all([Chat.deleteMany({userId}), Usage.deleteMany({userId})]);
+  await Promise.all([
+    Chat.deleteMany({userId}),
+    Usage.deleteMany({userId}),
+    Feedback.deleteMany({userId}),
+    Subscription.deleteMany({userId}),
+  ]);
   res.json({data: {forgotten: true}});
 });
 

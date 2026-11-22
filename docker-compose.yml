@@ -151,6 +151,11 @@ services:
       <<: *env
       SERVICE: ai
       MONGO_URI: mongodb://mongo:27017/pirento_ai
+      # The assistant reads a person's own account in these (each one's /internal/assistant); plans use the wallet.
+      WALLET_URL: http://wallet:4002
+      ORDERS_URL: http://orders:4004
+      LEARNING_URL: http://learning:4006
+      SUPPORT_URL: http://support:4008
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on: [mongo]
 

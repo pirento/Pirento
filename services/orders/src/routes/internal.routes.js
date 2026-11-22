@@ -34,3 +34,29 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   ]);
   res.json({data: {forgotten: true}});
 });
+
+/** Pirento AI's look at a person's own orders: number, service, status and amount of the latest ten. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const orders = await Order.find(
+      {userId: req.body.userId},
+      {orderNo: 1, product: 1, serviceName: 1, status: 1, amount: 1, createdAt: 1},
+    )
+      .sort({createdAt: -1})
+      .limit(10)
+      .lean();
+    res.json({
+      data: orders.map((o) => ({
+        orderNo: o.orderNo,
+        product: o.product,
+        service: o.serviceName,
+        status: o.status,
+        rupees: o.amount / 100,
+        placed: o.createdAt,
+        link: `/${o.product}/dashboard/orders/${o._id}`,
+      })),
+    });
+  },
+);

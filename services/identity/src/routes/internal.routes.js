@@ -1,5 +1,6 @@
 // Called by other services: forget a deleted account, find who holds an issued Bharat ID, and whether someone has one.
 import {Router} from 'express';
+import {nextStep} from '../lib/reminders.js';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
@@ -75,5 +76,23 @@ internalRoutes.post(
   async (req, res) => {
     const doc = await checkPin(req.body.bharatId, req.body.pin, req.body.dob);
     res.json({data: {userId: doc.userId}});
+  },
+);
+
+/** Pirento AI's look at a person's own Bharat ID: where the application stands and what is next. No details. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const doc = await Identity.findOne({userId: req.body.userId}).sort({createdAt: -1}).lean();
+    res.json({
+      data: doc
+        ? {
+            status: doc.status,
+            issued: doc.status === 'approved',
+            nextStep: ['draft', 'rejected'].includes(doc.status) ? nextStep(doc) : null,
+          }
+        : {status: 'not started', issued: false, nextStep: 'Start your application at /bharat-id/dashboard/apply'},
+    });
   },
 );

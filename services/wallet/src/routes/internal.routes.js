@@ -42,3 +42,24 @@ for (const type of ['debit', 'credit']) {
 internalRoutes.post('/internal/balance', validate(z.object({userId: z.string().min(1)})), async (req, res) => {
   res.json({data: await balanceOf(req.body.userId)});
 });
+
+/** Pirento AI's look at a person's own wallet: the balance and the last few movements, nothing else. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const [{balance}, rows] = await Promise.all([
+      balanceOf(req.body.userId),
+      query(
+        'SELECT type, amount, note, created_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5',
+        [req.body.userId],
+      ),
+    ]);
+    res.json({
+      data: {
+        balanceRupees: balance / 100,
+        recent: rows.rows.map((t) => ({type: t.type, rupees: t.amount / 100, note: t.note, at: t.created_at})),
+      },
+    });
+  },
+);

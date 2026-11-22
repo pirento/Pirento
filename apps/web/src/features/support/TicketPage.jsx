@@ -27,6 +27,7 @@ export function Ticket() {
   const [reply, setReply] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [checks, setChecks] = useState([]);
   usePageMeta({title: ticket.data ? `#${ticket.data.ticketNo} — Support` : 'Support — Pirento'});
   if (redirect) return redirect;
   if (ticket.error) return <NotFound />;
@@ -34,6 +35,27 @@ export function Ticket() {
   if (!t) return <div className="min-h-dvh" />;
   const staffView = t.userId !== me?._id;
 
+  // Staff: a draft from Pirento AI (the conversation and the team's knowledge base) to read and edit before sending.
+  const draft = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      const d = await api('/ai/staff/ai/draft-reply', {
+        method: 'POST',
+        body: {
+          subject: t.subject,
+          product: t.product ?? '',
+          messages: t.messages.slice(-30).map((m) => ({from: m.from === 'staff' ? 'team' : 'customer', body: m.body})),
+        },
+      });
+      setReply(d.reply);
+      setChecks(d.checks);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
   const act = async (path, body) => {
     setBusy(true);
     setError('');
@@ -99,10 +121,22 @@ export function Ticket() {
                 ⚠ {error}
               </p>
             )}
+            {checks.length > 0 && (
+              <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+                {checks.map((c) => (
+                  <li key={c}>Check: {c}</li>
+                ))}
+              </ul>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button type="submit" variant="accent" disabled={busy}>
                 Send reply
               </Button>
+              {staffView && (
+                <Button type="button" variant="outline" icon={null} disabled={busy} onClick={draft}>
+                  Draft with AI
+                </Button>
+              )}
               <Button type="button" variant="outline" icon={null} disabled={busy} onClick={() => act('/close')}>
                 Close request
               </Button>

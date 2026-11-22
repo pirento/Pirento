@@ -3125,6 +3125,85 @@ check(
   !(await call('/support/staff/enquiries', {token: boss})).data?.some((e) => e._id === mineEnq?._id),
 );
 
+// ── Pirento AI: allowance, plans, knowledge, admin ─────────────────────
+check('AI status gives the free allowance', (await call('/ai/status', {token: user})).data?.dailyLimit >= 0);
+check(
+  'only a superadmin changes AI settings',
+  (await call('/ai/staff/ai/settings', {method: 'PUT', token: user, body: {on: true, freeDailyLimit: 5}})).status ===
+    403,
+);
+await call('/ai/staff/ai/settings', {method: 'PUT', token: boss, body: {on: true, freeDailyLimit: 7}});
+check('the free allowance follows admin', (await call('/ai/usage', {token: user})).data?.limit === 7);
+const aiPlan = (
+  await call('/ai/staff/ai/plans', {
+    method: 'POST',
+    token: boss,
+    body: {name: 'Pro', price: 9900, dailyLimit: 200, months: 1},
+  })
+).data;
+check('superadmin makes an AI plan', aiPlan?.name === 'Pro', aiPlan);
+check(
+  'plans are listed',
+  (await call('/ai/plans', {token: user})).data?.plans?.some((p) => p._id === aiPlan._id),
+);
+const aiWalletBefore = (await call('/wallet', {token: user})).data.balance;
+const bought = (await call(`/ai/plans/${aiPlan._id}/buy`, {method: 'POST', token: user})).data;
+check('buy an AI plan from the wallet', bought?.dailyLimit === 200, bought);
+check('paid once', (await call('/wallet', {token: user})).data.balance === aiWalletBefore - 9900);
+await call(`/ai/plans/${aiPlan._id}/buy`, {method: 'POST', token: user});
+check('a double click pays once', (await call('/wallet', {token: user})).data.balance === aiWalletBefore - 9900);
+check('the plan raises the allowance', (await call('/ai/usage', {token: user})).data?.limit === 200);
+const note = (
+  await call('/ai/staff/ai/knowledge', {
+    method: 'POST',
+    token: boss,
+    body: {title: 'Refund timing', body: 'Card refunds reach the bank in 5 to 7 working days.', published: true},
+  })
+).data;
+check('a knowledge note is saved', Boolean(note?._id), note);
+check('customers cannot edit knowledge', (await call('/ai/staff/ai/knowledge', {token: user})).status === 403);
+const aiOverview = (await call('/ai/staff/ai/overview', {token: boss})).data;
+check('AI overview counts the plan', aiOverview?.subscribers >= 1 && aiOverview.freeDailyLimit === 7, aiOverview);
+check(
+  'rating needs your own chat',
+  (
+    await call('/ai/chats/000000000000000000000000/feedback', {
+      method: 'POST',
+      token: user,
+      body: {index: 1, rating: 'up'},
+    })
+  ).status === 404,
+);
+check(
+  'reply drafts need the AI',
+  (
+    await call('/ai/staff/ai/draft-reply', {
+      method: 'POST',
+      token: boss,
+      body: {subject: 'Refund', messages: [{from: 'customer', body: 'Where is my refund?'}]},
+    })
+  ).status === 503,
+);
+check(
+  'customers cannot ask for drafts',
+  (
+    await call('/ai/staff/ai/draft-reply', {
+      method: 'POST',
+      token: user,
+      body: {subject: 'x', messages: [{from: 'customer', body: 'x'}]},
+    })
+  ).status === 403,
+);
+check(
+  'a product the assistant does not know is refused',
+  (await call('/ai/chats/new/messages', {method: 'POST', token: user, body: {content: 'hi', product: 'nope'}}))
+    .status === 400,
+);
+check(
+  'account summaries stay internal',
+  (await call('/wallet/internal/assistant', {method: 'POST', token: user, body: {userId: 'x'}})).status === 404,
+);
+
 // ── AI ──────────────────────────────────────────────────────────────────
 const ai = (await call('/ai/status', {token: user})).data;
 if (ai?.enabled) console.log('note: ANTHROPIC_API_KEY is set; skipping the AI-off check');

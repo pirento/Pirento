@@ -43,3 +43,36 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   await Work.updateMany({'suggestion.userId': userId}, {$unset: {suggestion: 1}});
   res.json({data: {forgotten: true}});
 });
+
+/** Pirento AI's look at a person's own Pirento Intern: programme and mark, open tasks, applications, certificates. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const {userId} = req.body;
+    const [enrolment, tasks, apps, certs, work] = await Promise.all([
+      Enrolment.findOne({userId}).sort({createdAt: -1}).lean(),
+      Assignment.find({userId, status: 'open', due: {$gt: new Date()}}, {title: 1, cadence: 1, due: 1}).lean(),
+      Application.find({userId}, {status: 1, openingId: 1, updatedAt: 1}).sort({updatedAt: -1}).limit(10).lean(),
+      Certificate.find({userId}, {code: 1, title: 1, track: 1, percent: 1}).lean(),
+      Work.find(
+        {'assignee.userId': userId, status: {$in: ['assigned', 'redo', 'submitted']}},
+        {title: 1, status: 1, pay: 1},
+      ).lean(),
+    ]);
+    res.json({
+      data: {
+        programme: enrolment && {
+          months: enrolment.months,
+          status: enrolment.status,
+          endsAt: enrolment.endsAt,
+          mark: enrolment.score ?? null,
+        },
+        openTasks: tasks.map((t) => ({title: t.title, cadence: t.cadence, due: t.due})),
+        paidWork: work.map((w) => ({title: w.title, status: w.status, rupees: w.pay / 100})),
+        applications: apps.map((a) => ({status: a.status, since: a.updatedAt})),
+        certificates: certs.map((c) => ({code: c.code, name: c.title ?? c.track, percent: c.percent})),
+      },
+    });
+  },
+);

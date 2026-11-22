@@ -294,11 +294,18 @@ export const PRODUCTS = [
     name: 'Pirento AI',
     short: 'AI',
     quote: 'The future belongs to those who prepare for it today.',
-    overview: 'Ask the Pirento assistant which service fits your need, in English or Hindi.',
+    overview:
+      'Ask the Pirento assistant which service fits your need, or about your own orders, wallet, Bharat ID and Intern, in English or Hindi.',
     highlights: [
       {title: 'Knows the catalog', body: 'Answers with real Pirento services, prices and links.'},
-      {title: 'Saved chats', body: 'Your conversations stay in your account until you delete them.'},
-      {title: 'Fair use', body: '30 messages a day per account.'},
+      {
+        title: 'Knows your account',
+        body: 'When you ask, it reads your own orders, wallet, Bharat ID, Intern and tickets, and nobody else’s.',
+      },
+      {
+        title: 'Everywhere you work',
+        body: 'Ask from any Pirento dashboard; chats stay in your account until you delete them. Free daily messages, more with a plan.',
+      },
     ],
     caveat: 'AI answers can be wrong and are not legal, tax or financial advice. Check before you act.',
     status: 'now',

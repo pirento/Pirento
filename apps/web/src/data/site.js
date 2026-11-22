@@ -352,7 +352,7 @@ export const productDashboards = {
     {id: 'files', label: 'Files', icon: 'files'},
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
   ),
-  ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, ...SHARED_SECTIONS],
+  ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, {id: 'plans', label: 'Plans', icon: 'plans'}, ...SHARED_SECTIONS],
   one: APP_SECTIONS(
     {id: 'referrals', label: 'Referrals', icon: 'referrals'},
     {id: 'plans', label: 'Plans', icon: 'plans'},
@@ -583,6 +583,35 @@ export const bharatIdGate = {
 };
 
 export const appDashboards = {
+  ai: {
+    hello: 'Ask Pirento AI.',
+    intro:
+      'It knows every Pirento service and price, and, when you ask, it reads your own orders, wallet, Bharat ID, Pirento Intern and tickets. General information, not legal or tax advice.',
+    examples: [
+      'I want to start a company with two friends. What do I need?',
+      'What is happening with my latest order?',
+      'How much is in my wallet?',
+      'What is left in my Bharat ID application?',
+    ],
+    askExamples: {
+      default: [
+        'What is happening with my latest order?',
+        'How much is in my wallet?',
+        'Which Pirento service fits me?',
+      ],
+      legal: ['Which legal service do I need to register a trademark?', 'What is happening with my latest order?'],
+      intern: ['What tasks are due for me?', 'How is my programme mark looking?', 'Which track should I take?'],
+      'bharat-id': ['What is left in my Bharat ID application?', 'How do I sign in with my Bharat ID?'],
+      one: ['How does the Pirento One commission work?', 'How much is in my wallet?'],
+    },
+    plans: {
+      page: 'More messages, / when you need them.',
+      label: 'Your allowance',
+      title: 'Messages / a day.',
+      none: 'No paid plans yet; the free allowance is for everyone.',
+      note: 'Paid from your Pirento wallet. A plan adds messages a day for its months; buying the same plan again adds months.',
+    },
+  },
   intern: {
     hello: 'Learn, prove it, / get the internship.',
     intro:

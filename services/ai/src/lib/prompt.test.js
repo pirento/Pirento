@@ -16,3 +16,17 @@ test('request trims history, starts on a user turn and keeps the prompt cacheabl
   assert.equal(req.system[0].cache_control.type, 'ephemeral');
   assert.equal(req.model, 'claude-opus-5-5');
 });
+
+test('knowledge is its own cached block, and the product goes last as a system message', () => {
+  const req = buildRequest([{role: 'user', content: 'hi'}], {
+    knowledge: 'Refunds take 7 days.',
+    product: 'Pirento Legal',
+  });
+  assert.equal(req.system.length, 2);
+  assert.equal(req.system[0].text, SYSTEM);
+  assert.match(req.system[1].text, /Refunds take 7 days/);
+  assert.deepEqual(req.messages.at(-1), {
+    role: 'system',
+    content: 'The person is asking from the Pirento Legal part of Pirento.',
+  });
+});

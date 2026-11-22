@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
+import {AskAi} from '../../features/ai/AskAi';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
@@ -345,6 +346,7 @@ export function AppLayout({children}) {
           {children}
         </main>
         <CommandPalette />
+        <AskAi />
       </div>
     </InApp.Provider>
   );

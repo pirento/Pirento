@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {JOBS, buildJob} from './intern.js';
+import {JOBS, buildJob} from './jobs.js';
 
 test('every job keeps a frozen system prompt and asks for JSON', () => {
   for (const kind of Object.keys(JOBS)) {

@@ -29,3 +29,19 @@ internalRoutes.post(
     res.json({data: {forgotten: true}});
   },
 );
+
+/** Pirento AI's look at a person's own support tickets: number, subject and status of the latest ten. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const tickets = await Ticket.find(
+      {userId: req.body.userId},
+      {ticketNo: 1, subject: 1, status: 1, product: 1, updatedAt: 1},
+    )
+      .sort({updatedAt: -1})
+      .limit(10)
+      .lean();
+    res.json({data: tickets.map(({_id, ...t}) => ({...t, link: `/support/${_id}`}))});
+  },
+);
