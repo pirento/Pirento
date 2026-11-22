@@ -123,7 +123,7 @@ export function Extra({product, n}) {
   const b = blocks[product.slug];
   if (!b) return null;
   return (
-    <Section className="pt-0! md:pt-0!">
+    <Section id="more" className="pt-0! md:pt-0!">
       <SectionHeader n={n} label={product.short} title={b.title} />
       <ol className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {b.items.map((item, i) => (

@@ -48,8 +48,15 @@ export function Navbar() {
               <ThemeToggle />
             </span>
             {/* Always on screen, phones included: signing in is one tap from any page. */}
-            <Button to={cta[1]} className="px-3.5! py-2! sm:px-5! sm:py-2.5!">
-              {cta[0]}
+            <Button to={cta[1]} className="whitespace-nowrap px-3.5! py-2! sm:px-5! sm:py-2.5!">
+              {cta[2] ? (
+                <>
+                  <span className="sm:hidden">{cta[2]}</span>
+                  <span className="hidden sm:inline">{cta[0]}</span>
+                </>
+              ) : (
+                cta[0]
+              )}
             </Button>
             <button
               onClick={() => setOpen(!open)}

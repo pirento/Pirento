@@ -13,6 +13,91 @@ export const brand = {
   motto: 'One account. Every record in one place.',
 };
 
+// Each product site's navbar: its own three links and its main button, which leads into what the product does.
+// Signed out, the bar adds "Sign in"; signed in, "Dashboard".
+export const productNav = {
+  legal: {
+    links: [
+      ['Services', '/legal/services'],
+      ['How it works', '/legal#how'],
+      ['Questions', '/legal#faq'],
+    ],
+    cta: ['Book a service', '/legal/services', 'Book'],
+  },
+  black: {
+    links: [
+      ['Services', '/black#services'],
+      ['How it works', '/black#how'],
+      ['Questions', '/black#faq'],
+    ],
+    cta: ['See services', '/black#services', 'Services'],
+  },
+  green: {
+    links: [
+      ['Drives', '/green#services'],
+      ['How it works', '/green#how'],
+      ['Questions', '/green#faq'],
+    ],
+    cta: ['Plant trees', '/green#services', 'Plant'],
+  },
+  giftox: {
+    links: [
+      ['Gift boxes', '/giftox#services'],
+      ['How it works', '/giftox#how'],
+      ['Questions', '/giftox#faq'],
+    ],
+    cta: ['Send a gift', '/giftox#services', 'Gift'],
+  },
+  intern: {
+    links: [
+      ['Tracks', '/intern#more'],
+      ['How it works', '/intern#how'],
+      ['Questions', '/intern#faq'],
+    ],
+    cta: ['Take an exam', '/intern/dashboard/exams', 'Exams'],
+  },
+  vault: {
+    links: [
+      ['What you get', '/vault#features'],
+      ['How it works', '/vault#how'],
+      ['Questions', '/vault#faq'],
+    ],
+    cta: ['Open my vault', '/vault/dashboard', 'Open'],
+  },
+  ai: {
+    links: [
+      ['What it does', '/ai#features'],
+      ['How it works', '/ai#how'],
+      ['Questions', '/ai#faq'],
+    ],
+    cta: ['Start a chat', '/ai/dashboard', 'Chat'],
+  },
+  one: {
+    links: [
+      ['Plans', '/one/dashboard/plans'],
+      ['How it works', '/one#how'],
+      ['Questions', '/one#faq'],
+    ],
+    cta: ['Become a partner', '/one/dashboard', 'Join'],
+  },
+  capital: {
+    links: [
+      ['What it does', '/capital#features'],
+      ['How it works', '/capital#how'],
+      ['Questions', '/capital#faq'],
+    ],
+    cta: ['Join the waitlist', '/capital/dashboard', 'Join'],
+  },
+  'bharat-id': {
+    links: [
+      ['Apply', '/bharat-id#apply'],
+      ['Checks', '/bharat-id#checks'],
+      ['For business', '/bharat-id/business'],
+    ],
+    cta: ['Apply now', '/bharat-id/start', 'Apply'],
+  },
+};
+
 export const nav = [
   {label: 'Home', to: '/'},
   {label: 'Products', to: '/products'},

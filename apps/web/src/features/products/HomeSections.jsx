@@ -19,7 +19,7 @@ export function Features({product, variant = 'bento', n}) {
 /** Rows: the heading stays put on the left while numbered lines scroll by on the right. */
 function FeatureRows({product, n}) {
   return (
-    <Section className="pt-0! md:pt-0!">
+    <Section id="features" className="pt-0! md:pt-0!">
       <div className="grid gap-12 lg:grid-cols-12">
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-28">
@@ -45,7 +45,7 @@ function FeatureRows({product, n}) {
 /** Cards: six even cards on stone, two rows of three. */
 function FeatureCards({product, n}) {
   return (
-    <Section className="pt-0! md:pt-0!">
+    <Section id="features" className="pt-0! md:pt-0!">
       <SectionHeader n={n} label="What you get" title="Everything / in one place." intro={product.overview} />
       <div className="mt-16 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
         {featuresOf(product).map((h, i) => (
@@ -70,7 +70,7 @@ function FeatureCards({product, n}) {
 function FeatureBento({product, n}) {
   const [lead, ...rest] = featuresOf(product);
   return (
-    <Section className="pt-0! md:pt-0!">
+    <Section id="features" className="pt-0! md:pt-0!">
       <SectionHeader n={n} label="What you get" title="What it does / today." intro={product.overview} />
       <div className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <div
@@ -107,7 +107,7 @@ function FeatureBento({product, n}) {
 export function Audience({product, n}) {
   if (!product.audience) return null;
   return (
-    <Section>
+    <Section id="who">
       <SectionHeader n={n} label="Who it is for" title="Made for / people like you." />
       <ul className="mt-16 grid border-t border-rule lg:grid-cols-3">
         {product.audience.map((a, i) => (

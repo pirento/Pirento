@@ -7,7 +7,7 @@ import {bharatIdHome as copy} from '../../data/site';
 
 export function WaysSection({n}) {
   return (
-    <Section>
+    <Section id="apply">
       <SectionHeader n={n} label={copy.ways.label} title={copy.ways.title} intro={copy.ways.intro} />
       <ol className="mt-16 grid gap-4 md:grid-cols-3">
         {copy.ways.items.map((w, i) => (
@@ -32,7 +32,7 @@ export function WaysSection({n}) {
 
 export function AuthSection({n}) {
   return (
-    <Section>
+    <Section id="checks">
       <SectionHeader n={n} label={copy.auth.label} title={copy.auth.title} intro={copy.auth.intro} />
       <ul className="mt-16 grid gap-3 md:grid-cols-2">
         {AUTH_METHODS.map((m) => (

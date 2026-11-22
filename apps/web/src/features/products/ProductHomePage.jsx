@@ -21,7 +21,7 @@ import {useServicesFor} from '../../lib/prices';
 
 function Questions({product, n}) {
   return (
-    <Section>
+    <Section id="faq">
       <div className="grid gap-12 md:grid-cols-12">
         <div className="md:col-span-4">
           <SectionHeader n={n} label="Questions" title="Before you / begin." />
