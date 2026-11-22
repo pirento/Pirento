@@ -8,7 +8,7 @@ export const Employer = mongoose.model(
       userId: {type: String, required: true, unique: true}, // the account that runs it
       email: {type: String, required: true},
       company: {type: String, required: true, maxlength: 100},
-      website: {type: String, required: true, maxlength: 200},
+      website: {type: String, required: true, maxlength: 300},
       about: {type: String, required: true, maxlength: 1500},
       contactName: {type: String, required: true, maxlength: 80},
       phone: {type: String, required: true, maxlength: 15},

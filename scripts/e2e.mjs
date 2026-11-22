@@ -2437,6 +2437,16 @@ check(
   (await call('/learning/work/mine', {token: user})).data?.some((x) => x._id === paidJob._id),
 );
 check(
+  'a javascript: link is refused',
+  (
+    await call(`/learning/work/${paidJob._id}/submit`, {
+      method: 'POST',
+      token: user,
+      body: {answer: 'Done', link: 'javascript:alert(1)'},
+    })
+  ).status === 400,
+);
+check(
   'intern sends the work',
   (
     await call(`/learning/work/${paidJob._id}/submit`, {

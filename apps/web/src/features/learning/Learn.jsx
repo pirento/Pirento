@@ -28,7 +28,16 @@ function Lesson({id, done, onDone, onBack}) {
       setError(err.message);
     }
   };
-  if (lesson.error) return <p className="body">⚠ {lesson.error.message}</p>;
+  if (lesson.error) {
+    return (
+      <div className="space-y-4">
+        <p className="body">⚠ {lesson.error.message}</p>
+        <button type="button" onClick={onBack} className="text-sm text-muted underline underline-offset-4">
+          ← All lessons
+        </button>
+      </div>
+    );
+  }
   if (!lesson.data) return null;
   const l = lesson.data;
   return (

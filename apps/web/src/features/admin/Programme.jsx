@@ -10,6 +10,7 @@ import {useSession} from '../../lib/api/session';
 import {formatDate, formatDay, inr} from '../../lib/format';
 import {selectCls} from '../learning/Pipeline';
 import {VideoUpload} from '../learning/Video';
+import {safeHref} from '../../lib/links';
 
 function Price({p, canEdit, onSaved}) {
   const [rupees, setRupees] = useState(p.price == null ? '' : String(p.price / 100));
@@ -206,7 +207,7 @@ function Grade({t, onDone}) {
       <p className="font-medium">{t.title}</p>
       <p className="whitespace-pre-line text-sm">{t.answer}</p>
       {t.link && (
-        <a href={t.link} target="_blank" rel="noreferrer noopener" className="break-all text-sm underline">
+        <a href={safeHref(t.link)} target="_blank" rel="noreferrer noopener" className="break-all text-sm underline">
           {t.link}
         </a>
       )}

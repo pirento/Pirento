@@ -2,6 +2,7 @@
 // classes and recordings, lesson videos, paid work, the final mark, the certificate and an AI resume draft.
 import {Router} from 'express';
 import {z} from 'zod';
+import {httpUrl} from '../lib/urls.js';
 import {PROGRAM_MONTHS} from '@pirento/shared';
 import {
   ApiError,
@@ -107,7 +108,7 @@ me.get('/program/tasks', async (req, res) => {
 });
 
 const answerBody = z
-  .object({answer: z.string().trim().max(4000).default(''), link: z.url().max(300).or(z.literal('')).default('')})
+  .object({answer: z.string().trim().max(4000).default(''), link: httpUrl().or(z.literal('')).default('')})
   .refine((b) => b.answer || b.link, {message: 'Write your answer or add a link'});
 
 /** Sends a task once, before it is due; the AI grades it at once when it can, else staff do. */

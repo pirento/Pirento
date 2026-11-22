@@ -1,6 +1,7 @@
 // The applicant's side of Pirento Intern: open roles, a resume, applying, answering an offer and sending tasks.
 import express, {Router} from 'express';
 import {z} from 'zod';
+import {httpUrl} from '../lib/urls.js';
 import {badInput, conflict, encrypt, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Application} from '../models/Application.js';
@@ -119,7 +120,7 @@ applicantRoutes.post(
   requireAuth,
   validate(
     z
-      .object({answer: z.string().trim().max(2000).default(''), link: z.url().max(300).or(z.literal('')).default('')})
+      .object({answer: z.string().trim().max(2000).default(''), link: httpUrl().or(z.literal('')).default('')})
       .refine((b) => b.answer || b.link, {message: 'Write your answer or add a link'}),
   ),
   async (req, res) => {
