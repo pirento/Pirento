@@ -1124,6 +1124,42 @@ const supToken = (await loginWithCookie(supUser.email)).token;
   );
   const again = (await call(`/identity/staff/enrol/${en._id}/remind`, {method: 'POST', token: supToken})).data;
   check('the link can be sent again', again?.devLink && again.devLink !== en.sent.devLink);
+  // Enrolment centres: a QR that starts an application on the person's own phone.
+  check(
+    'support cannot make centres',
+    (await call('/identity/staff/centres', {method: 'POST', token: supToken, body: {name: 'Main desk', city: 'Delhi'}}))
+      .status === 403,
+  );
+  const centre = (
+    await call('/identity/staff/centres', {method: 'POST', token: boss, body: {name: 'Main desk', city: 'Delhi'}})
+  ).data;
+  check('centre made with a QR code', /^[A-Z0-9]{6}$/.test(centre?.code ?? ''), centre);
+  check('anyone sees an open centre', (await call(`/identity/centres/${centre.code}`)).data?.name === 'Main desk');
+  const walker = await login(`qr${Date.now()}@example.com`);
+  check(
+    'an unknown centre is refused',
+    (await call('/identity/start', {method: 'POST', token: walker, body: {centre: 'ZZZZZZ'}})).error?.code ===
+      'CENTRE_CLOSED',
+  );
+  const fromQr = (
+    await call('/identity/start', {method: 'POST', token: walker, body: {centre: centre.code.toLowerCase()}})
+  ).data;
+  check(
+    'scanning starts the application at the centre',
+    fromQr?.status === 'draft' && fromQr.centre?.code === centre.code,
+    fromQr,
+  );
+  check(
+    'staff see what the QR started',
+    (await call('/identity/staff/centres', {token: supToken})).data?.find((c) => c.code === centre.code)?.counts
+      ?.draft === 1,
+  );
+  await call(`/identity/staff/centres/${centre._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {name: 'Main desk', city: 'Delhi', active: false},
+  });
+  check('a closed centre stops starting applications', (await call(`/identity/centres/${centre.code}`)).status === 404);
   const userEmail = (await call('/auth/me', {token: user})).data?.email;
   check(
     'not for someone already issued',

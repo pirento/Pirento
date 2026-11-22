@@ -63,6 +63,8 @@ export const ROUTES = [
   {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
 
   // Bharat ID for Business: its page, and the business dashboard (apart from a person's Bharat ID dashboard)
+  // Where an enrolment centre's QR leads
+  {path: '/bharat-id/start', layout: 'auth', Page: page(() => import('../features/identity/StartPage'), 'Start')},
   {path: '/bharat-id/business', Page: page(() => import('../features/business/BusinessPage'), 'BharatIdBusiness')},
   // The check page a business sends a holder to: Pirento's own, so the business never sees a PIN or a code
   {

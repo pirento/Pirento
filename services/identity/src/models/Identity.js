@@ -52,6 +52,8 @@ export const Identity = mongoose.model(
 
       // A staffer who started this application for the person (they finish it themselves, from a link).
       enrolledBy: {_id: false, id: String, email: String},
+      // The enrolment centre whose QR started it, if any.
+      centre: {_id: false, code: {type: String, index: true}, name: String},
       // Reminders by email and SMS while it is unfinished: how many were sent and when the next one is due.
       reminders: {_id: false, count: {type: Number, default: 0}, nextAt: {type: Date, index: true}},
 

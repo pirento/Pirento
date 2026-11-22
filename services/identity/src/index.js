@@ -14,6 +14,7 @@ import {staffBusinessRoutes} from './routes/staffBusiness.routes.js';
 import {authorizeRoutes} from './routes/authorize.routes.js';
 import {pinRoutes} from './routes/pin.routes.js';
 import {enrolRoutes} from './routes/enrol.routes.js';
+import {centreRoutes} from './routes/centre.routes.js';
 import {startReminders} from './lib/reminders.js';
 
 const app = createApp('identity');
@@ -29,6 +30,7 @@ app.use(
   applicationRoutes,
   staffBusinessRoutes,
   enrolRoutes,
+  centreRoutes,
   staffRoutes,
 );
 

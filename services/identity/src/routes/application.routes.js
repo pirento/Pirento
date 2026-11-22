@@ -4,12 +4,13 @@ import {ID_SECTIONS, validateSection} from '@pirento/shared';
 import {ApiError, badInput, conflict, requireAuth} from '@pirento/shared/server';
 import {config, digioOn} from '../config.js';
 import {Identity} from '../models/Identity.js';
+import {Centre} from '../models/Centre.js';
 import {signedDocument} from '../lib/digio.js';
 import {remindFromNow} from '../lib/reminders.js';
 import {UNSIGN, kycDone, refreshKyc, refreshSign, signed, startKyc, startSign} from '../lib/verification.js';
 
 export const applicationRoutes = Router();
-applicationRoutes.use(['/me', '/draft', '/kyc', '/sign', '/declaration', '/submit'], requireAuth);
+applicationRoutes.use(['/me', '/start', '/draft', '/kyc', '/sign', '/declaration', '/submit'], requireAuth);
 
 const EDITABLE = {$in: ['draft', 'rejected']};
 const locked = () => conflict('LOCKED', 'Your application is already with our team');
@@ -58,6 +59,25 @@ applicationRoutes.get('/digio/config', (_req, res) => {
 
 applicationRoutes.get('/me', async (req, res) => {
   res.json({data: await Identity.findOne({userId: req.user.sub})});
+});
+
+/**
+ * Starts (or reopens) the application, e.g. from an enrolment centre's QR. The first centre is kept: scanning
+ * another one later does not move it.
+ */
+applicationRoutes.post('/start', async (req, res) => {
+  const code = typeof req.body?.centre === 'string' ? req.body.centre.toUpperCase() : '';
+  const centre = /^[A-Z0-9]{6}$/.test(code) && (await Centre.findOne({code, active: true}));
+  if (code && !centre) throw new ApiError(404, 'CENTRE_CLOSED', 'This enrolment centre is not open');
+  const doc = await editable(req);
+  if (!centre || doc.centre?.code) return res.json({data: doc});
+  res.json({
+    data: await Identity.findOneAndUpdate(
+      {_id: doc._id, 'centre.code': {$exists: false}},
+      {$set: {centre: {code: centre.code, name: centre.name}}},
+      {new: true},
+    ).then((d) => d ?? doc),
+  });
 });
 
 /** Saves one step. Changing the details voids a signed declaration: it no longer matches what was signed. */

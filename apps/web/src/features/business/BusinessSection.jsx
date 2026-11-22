@@ -7,8 +7,8 @@ export function BusinessSection({n}) {
   return (
     <Section>
       <SectionHeader n={n} label={copy.home.label} title={copy.home.title} intro={copy.home.intro} />
-      <div className="mt-16 grid gap-4 md:grid-cols-2">
-        {copy.gives.items.slice(0, 2).map((g) => (
+      <div className="mt-16 grid gap-4 md:grid-cols-3">
+        {copy.gives.items.slice(0, 3).map((g) => (
           <div key={g.title} className="rounded-[22px] border border-rule bg-stone p-8" data-reveal>
             <h3 className="text-2xl">{g.title}</h3>
             <p className="body mt-3">{g.body}</p>

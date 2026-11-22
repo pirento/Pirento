@@ -284,7 +284,8 @@ export const bharatIdBusiness = {
   home: {
     label: 'For business',
     title: 'Use Bharat ID / in your own checks.',
-    intro: 'Banks, NBFCs, schools, colleges, institutes and websites can check Bharat IDs through our API.',
+    intro:
+      'Banks, NBFCs, schools, colleges, institutes and websites verify Bharat IDs, ask for consent to see details, and check a person holds their ID, through one prepaid API.',
     cta: 'Bharat ID for Business',
   },
   uses: {
@@ -384,6 +385,63 @@ export const bharatIdBusiness = {
       {id: 'company', label: 'Company', icon: 'company', group: 'Account'},
       {id: 'billing', label: 'Billing', icon: 'wallet', group: 'Account'},
     ],
+  },
+};
+
+// The Bharat ID home page: the ways to get one, and the ways to prove it is you afterwards.
+export const bharatIdHome = {
+  ways: {
+    label: 'Get your Bharat ID',
+    title: 'Three ways / to apply.',
+    intro: 'Whichever way you start, you do the video KYC, the Aadhaar eSign and your PIN yourself.',
+    items: [
+      {
+        title: 'Online, yourself',
+        body: 'Sign in to Pirento and fill the application from your Bharat ID dashboard, at your own pace.',
+        cta: 'Apply now',
+        to: '/bharat-id/start',
+      },
+      {
+        title: 'At an enrolment centre',
+        body: 'Scan the centre’s QR with your phone camera and apply on your own phone, with help at hand.',
+      },
+      {
+        title: 'With our team',
+        body: 'Give our staff your email and mobile. They can fill the steps with you; a link by email and SMS lets you finish.',
+      },
+    ],
+    reminders: 'Until it is submitted, reminders come by email and SMS after 1, 3 and 7 days, with a link to carry on.',
+  },
+  auth: {
+    label: 'After it is issued',
+    title: 'Prove it is you, / the way the moment needs.',
+    intro:
+      'Sign in to Pirento with your Bharat ID, your 6-digit PIN and your date of birth. When a business checks you, you do it on Pirento’s own page, so they never see your PIN or codes.',
+  },
+};
+
+// The page an enrolment centre's QR opens on a person's phone, and the poster printed for the centre.
+export const bharatIdStart = {
+  eyebrow: 'Bharat ID',
+  title: 'Get your Bharat ID',
+  at: 'You are enrolling at',
+  anyway: 'You can still start your application here.',
+  steps: [
+    'Create your Pirento account, or sign in, on this phone.',
+    'Fill seven short steps; each one saves as you go.',
+    'Do the video KYC and sign your declaration with Aadhaar eSign, then set your PIN.',
+    'Submit. Our team reviews it and your ID comes by email.',
+  ],
+  create: 'Create my account',
+  signIn: 'I already have an account',
+  go: 'Start my Bharat ID',
+  issued: 'Your Bharat ID is already issued.',
+  submitted: 'Your application is already with our team.',
+  open: 'Open my Bharat ID',
+  staff: 'You are signed in with a staff account. Sign out, then sign in with your own account to apply.',
+  poster: {
+    title: 'Get your Bharat ID here',
+    lines: ['Scan with your phone camera', 'and apply in a few minutes.'],
   },
 };
 
