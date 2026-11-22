@@ -88,6 +88,9 @@ services:
       DIGIO_CLIENT_SECRET: ${DIGIO_CLIENT_SECRET:-}
       DIGIO_WEBHOOK_SECRET: ${DIGIO_WEBHOOK_SECRET:-}
       DIGIO_KYC_TEMPLATE: ${DIGIO_KYC_TEMPLATE:-VIDEO_KYC}
+      DIGIO_AADHAAR_TEMPLATE: ${DIGIO_AADHAAR_TEMPLATE:-}
+      DIGIO_FACE_TEMPLATE: ${DIGIO_FACE_TEMPLATE:-}
+      WALLET_URL: http://wallet:4002 # Bharat ID for Business calls are paid from the owner's wallet
       DIGIO_ESTAMP_TAG: ${DIGIO_ESTAMP_TAG:-}
     depends_on: [mongo]
 

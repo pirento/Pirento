@@ -268,6 +268,7 @@ export const productDashboards = {
   'bharat-id': APP_SECTIONS(
     {id: 'apply', label: 'Application', icon: 'apply'},
     {id: 'sharing', label: 'Sharing', icon: 'sharing'},
+    {id: 'pin', label: 'PIN', icon: 'passwords'},
   ),
 };
 
@@ -314,6 +315,10 @@ export const bharatIdBusiness = {
         body: 'Ask the holder to share chosen details (name, date of birth, address, PAN, last 4 of Aadhaar, mobile). They allow or decline it in their Bharat ID dashboard; you read the details only once they allow it, and never after they revoke it.',
       },
       {
+        title: 'Check it is them',
+        body: 'Send the person to a Pirento page where they prove they hold the Bharat ID (PIN and date of birth, codes to their mobile and email, Aadhaar OTP or a face check). You only learn whether it passed.',
+      },
+      {
         title: 'Test keys and a sandbox',
         body: 'Build against sandbox Bharat IDs from the day you are approved; no real person is touched.',
       },
@@ -346,7 +351,13 @@ export const bharatIdBusiness = {
     send: 'Send request',
     sent: 'Thank you. Your request is with our team; we write to your work email once it is reviewed.',
   },
-  note: 'Bharat ID is a Pirento identifier, not a government ID. Our team gets in touch about pricing once your request is reviewed.',
+  note: 'Bharat ID is a Pirento identifier, not a government ID. Billing is prepaid: you add credit, and each live call takes the price our team sets; test calls are free.',
+  checks: {
+    label: 'Checking a holder',
+    title: 'Pick the strength / the work needs.',
+    intro:
+      'Our team opens for each business only the methods its work needs. Sensitive work, such as bank and NBFC KYC, uses the stronger ones.',
+  },
   sample: {
     label: 'The API',
     title: 'One header, / plain JSON.',
@@ -368,6 +379,7 @@ export const bharatIdBusiness = {
       {id: 'company', label: 'Company', icon: 'company'},
       {id: 'keys', label: 'API keys', icon: 'passwords'},
       {id: 'consents', label: 'Consent log', icon: 'consents'},
+      {id: 'billing', label: 'Billing', icon: 'wallet'},
       {id: 'docs', label: 'API reference', icon: 'docs'},
     ],
   },
@@ -498,6 +510,11 @@ export const appDashboards = {
     steps: ['Fill the steps', 'Video KYC on Digio', 'Sign the declaration', 'Submit and review', 'ID issued'],
     card: {label: 'Your ID', title: 'Your Bharat ID / card.'},
     apply: {label: 'Application', title: 'Your details, / step by step.'},
+    pin: {
+      title: 'Your Bharat ID / PIN.',
+      intro:
+        'Sign in with your Bharat ID, this PIN and your date of birth, and use it when a business checks it is you.',
+    },
     sharing: {
       title: 'Who sees / your details.',
       intro: 'Businesses using Bharat ID ask before they see anything. You decide, and you can stop it later.',

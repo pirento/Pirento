@@ -3,10 +3,13 @@ import {Router} from 'express';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
+import {checkPin} from '../lib/pin.js';
 import {KycVideo} from '../models/KycVideo.js';
 import {ApiKey} from '../models/ApiKey.js';
 import {Business} from '../models/Business.js';
 import {Consent} from '../models/Consent.js';
+import {AccessLog} from '../models/AccessLog.js';
+import {AuthSession} from '../models/AuthSession.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -41,6 +44,11 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     {$set: {status: 'revoked', decidedAt: new Date()}},
   );
   await Consent.updateMany({userId}, {$unset: {userId: 1}});
+  // Checks of this person stay as a business's record, without the link to them.
+  await Promise.all([
+    AccessLog.updateMany({userId}, {$unset: {userId: 1}}),
+    AuthSession.updateMany({userId}, {$unset: {userId: 1}}),
+  ]);
   res.json({data: {forgotten: true}});
 });
 
@@ -59,3 +67,13 @@ internalRoutes.post(
 internalRoutes.post('/internal/issued', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   res.json({data: {issued: Boolean(await Identity.exists({userId: req.body.userId, status: 'approved'}))}});
 });
+
+/** Pirento sign-in with Bharat ID, PIN and date of birth: the account behind it, or the same refusal for any failure. */
+internalRoutes.post(
+  '/internal/pin-check',
+  validate(z.object({bharatId: z.string().regex(/^\d{10}$/), pin: z.string().max(6), dob: z.string().max(10)})),
+  async (req, res) => {
+    const doc = await checkPin(req.body.bharatId, req.body.pin, req.body.dob);
+    res.json({data: {userId: doc.userId}});
+  },
+);

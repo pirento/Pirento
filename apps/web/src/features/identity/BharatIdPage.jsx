@@ -12,6 +12,7 @@ import {DeclarationLink} from './DeclarationLink';
 import {IdCard} from './IdCard';
 import {SectionSummary} from './SectionSummary';
 import {Sharing} from './Sharing';
+import {PinSettings} from './PinSettings';
 import {Wizard} from './Wizard';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
@@ -66,6 +67,14 @@ export function BharatId({product, section}) {
   if (redirect) return redirect;
   const doc = fresh ?? res.data;
   const frame = {product, section, ready: !res.loading};
+
+  if (section === 'pin') {
+    return (
+      <AppFrame {...frame} title={copy.pin.title} intro={copy.pin.intro}>
+        {!res.loading && <PinSettings doc={doc} onChange={setFresh} />}
+      </AppFrame>
+    );
+  }
 
   if (section === 'sharing') {
     return (

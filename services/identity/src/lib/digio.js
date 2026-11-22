@@ -22,14 +22,24 @@ async function call(method, path, body, {raw = false} = {}) {
 
 const lower = (s) => String(s ?? '').toLowerCase();
 
-/** Starts a video KYC request for this application; the SDK opens it with the returned token. */
-export async function createKyc({identity, name, attempt}) {
+/**
+ * Starts a KYC request on a DigiStudio template (the application's video KYC by default, or an Aadhaar OTP or face
+ * check for a later sign-in); the SDK opens it with the returned token.
+ */
+export async function createKyc({
+  identity,
+  name,
+  attempt,
+  template = config.digio.kycTemplate,
+  reference = `BID${identity._id}`,
+  transaction = `BID${identity._id}T${attempt}`,
+}) {
   const r = await call('POST', '/client/kyc/v2/request/with_template', {
     customer_identifier: identity.email,
     customer_name: name?.slice(0, 100),
-    template_name: config.digio.kycTemplate,
-    reference_id: `BID${identity._id}`,
-    transaction_id: `BID${identity._id}T${attempt}`,
+    template_name: template,
+    reference_id: reference,
+    transaction_id: transaction,
     notify_customer: false, // the person starts it from our dashboard
     generate_access_token: true,
     expire_in_days: 10,

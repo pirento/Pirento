@@ -13,12 +13,14 @@ import {CompanyDetails} from './CompanyDetails';
 import {ApiKeys} from './ApiKeys';
 import {ConsentLog} from './ConsentLog';
 import {ApiReference} from './ApiReference';
+import {Billing} from './Billing';
 
 const SECTIONS = {
   overview: BusinessOverview,
   company: CompanyDetails,
   keys: ApiKeys,
   consents: ConsentLog,
+  billing: Billing,
   docs: ApiReference,
 };
 const product = getProduct('bharat-id');

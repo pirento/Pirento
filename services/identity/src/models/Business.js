@@ -15,6 +15,10 @@ export const Business = mongoose.model(
       termsAcceptedAt: {type: Date, required: true},
       userId: {type: String, index: true}, // the account made on approval; they sign in with it
       profile: Object, // company details (BUSINESS_PROFILE), filled in the dashboard
+      // What our team lets this business do: the ways it may check a holder, and the details it may ask for.
+      // Both start empty: nothing is allowed until staff choose, so each business gets only what its work needs.
+      methods: {type: [String], default: []},
+      fields: {type: [String], default: []},
       reason: String, // why the team said no or sent it back
       approvedAt: Date,
       liveRequestedAt: Date,

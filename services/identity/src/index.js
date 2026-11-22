@@ -11,6 +11,8 @@ import {apiRoutes} from './routes/api.routes.js';
 import {businessRoutes} from './routes/business.routes.js';
 import {consentRoutes} from './routes/consent.routes.js';
 import {staffBusinessRoutes} from './routes/staffBusiness.routes.js';
+import {authorizeRoutes} from './routes/authorize.routes.js';
+import {pinRoutes} from './routes/pin.routes.js';
 
 const app = createApp('identity');
 app.use(
@@ -20,6 +22,8 @@ app.use(
   apiRoutes,
   businessRoutes,
   consentRoutes,
+  authorizeRoutes,
+  pinRoutes,
   applicationRoutes,
   staffBusinessRoutes,
   staffRoutes,

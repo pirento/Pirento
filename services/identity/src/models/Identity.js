@@ -47,6 +47,9 @@ export const Identity = mongoose.model(
         stamped: Boolean,
       },
 
+      // The holder's 6-digit Bharat ID PIN (scrypt), and its lockout after wrong tries.
+      pin: {hash: String, setAt: Date, fails: {type: Number, default: 0}, lockedUntil: Date},
+
       fullName: String, // copied on submit, for the public verify page
       state: String,
       consentAt: Date,
@@ -65,6 +68,9 @@ export const Identity = mongoose.model(
             delete out.digio.kycToken;
             delete out.digio.docToken;
           }
+          // Only whether a PIN is set leaves, never its hash.
+          out.pinSet = Boolean(out.pin?.hash);
+          delete out.pin;
           return out;
         },
       },

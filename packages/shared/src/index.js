@@ -43,8 +43,10 @@ export {
   BUSINESS_TYPES,
   CONSENT_FIELDS,
   ENTITY_TYPES,
+  SANDBOX_AUTH,
   TEST_BHARAT_IDS,
 } from './identity/business.js';
+export {AUTH_METHODS, authMethod, pinProblem} from './identity/authMethods.js';
 export {KYC_DONE, KYC_FAILED, declarationSigned, kycDone, kycFailed} from './identity/verification.js';
 
 // Money helpers

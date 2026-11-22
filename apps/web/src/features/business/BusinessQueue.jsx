@@ -8,6 +8,8 @@ import {Tag} from '../../components/ui/Tag';
 import {api} from '../../lib/api/client';
 import {formatDate} from '../../lib/format';
 import {StaffQueue} from '../admin/StaffQueue';
+import {AccessLogView, BusinessAccess} from './BusinessAccess';
+import {BusinessPrices} from './BusinessPrices';
 
 // What staff may do in each status, and the button's words.
 const ACTIONS = {
@@ -90,6 +92,12 @@ function Business({b, onChange}) {
             'Check the company details against their registration; the server already checked that the person signing in has an issued Bharat ID.'}
         </p>
         {b.reason && <p className="text-sm">Reason given: {b.reason}</p>}
+        {b.status !== 'requested' && b.status !== 'rejected' && (
+          <>
+            <BusinessAccess b={b} onChange={onChange} />
+            <AccessLogView b={b} />
+          </>
+        )}
         {actions.length > 0 && (
           <div className="max-w-xl">
             {actions.some(([d]) => NEEDS_REASON.includes(d)) && (
@@ -126,17 +134,22 @@ function Business({b, onChange}) {
 }
 
 export const BusinessQueue = () => (
-  <StaffQueue
-    path="/identity/staff/business"
-    search="Company or email"
-    filters={[
-      {label: 'Requests', value: 'requested'},
-      {label: 'Live review', value: 'live_review'},
-      {label: 'Test', value: 'test'},
-      {label: 'Live', value: 'live'},
-      {label: 'Suspended', value: 'suspended'},
-      {label: 'Rejected', value: 'rejected'},
-    ]}
-    render={(b, reload) => <Business key={b._id} b={b} onChange={reload} />}
-  />
+  <>
+    <div className="mt-8">
+      <BusinessPrices />
+    </div>
+    <StaffQueue
+      path="/identity/staff/business"
+      search="Company or email"
+      filters={[
+        {label: 'Requests', value: 'requested'},
+        {label: 'Live review', value: 'live_review'},
+        {label: 'Test', value: 'test'},
+        {label: 'Live', value: 'live'},
+        {label: 'Suspended', value: 'suspended'},
+        {label: 'Rejected', value: 'rejected'},
+      ]}
+      render={(b, reload) => <Business key={b._id} b={b} onChange={reload} />}
+    />
+  </>
 );

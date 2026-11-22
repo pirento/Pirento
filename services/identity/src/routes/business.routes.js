@@ -9,6 +9,7 @@ import {Business} from '../models/Business.js';
 import {Consent} from '../models/Consent.js';
 import {Identity} from '../models/Identity.js';
 import {MAY_USE, newKey} from '../lib/business.js';
+import {readPrices} from '../models/BusinessPricing.js';
 
 export const businessRoutes = Router();
 
@@ -55,6 +56,7 @@ businessRoutes.get('/business/me', async (req, res) => {
       business,
       ownerIdIssued: await ownerIdIssued(req.user.sub),
       keys,
+      prices: await readPrices(),
       usage: {testConsents: test, liveConsents: live, liveApproved: approved},
     },
   });

@@ -7,7 +7,7 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
 
-export function Sharing() {
+function Requests() {
   const list = useApi('/identity/consents');
   const [error, setError] = useState('');
   const decide = async (id, decision) => {
@@ -71,6 +71,47 @@ export function Sharing() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+const ACTIONS = {
+  verify: 'Checked that your Bharat ID is issued',
+  'consent.request': 'Asked to see some details',
+  'consent.read': 'Read the details you allowed',
+  'auth.request': 'Asked you to prove it is you',
+  'auth.read': 'Read the result of that check',
+};
+
+/** Every live check of this Bharat ID by a business, newest first. */
+function History() {
+  const log = useApi('/identity/consents/log');
+  if (log.loading || log.error || !log.data?.length) return null;
+  return (
+    <section className="max-w-3xl">
+      <h2 className="text-2xl">Who checked your Bharat ID</h2>
+      <ul className="mt-4 divide-y divide-rule rounded-[18px] border border-rule">
+        {log.data.map((r) => (
+          <li key={r._id} className="grid gap-1 p-4 text-sm sm:grid-cols-[1fr_auto]">
+            <span>
+              <span className="font-medium">{r.businessName}</span> · {ACTIONS[r.action] ?? r.action}
+              {r.fields?.length > 0 && (
+                <span className="text-muted"> ({r.fields.map((f) => CONSENT_FIELDS[f]).join(', ')})</span>
+              )}
+            </span>
+            <span className="text-muted">{formatDate(r.createdAt)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function Sharing() {
+  return (
+    <div className="space-y-14">
+      <Requests />
+      <History />
     </div>
   );
 }

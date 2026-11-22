@@ -2,6 +2,7 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Check} from 'lucide-react';
+import {CONSENT_FIELDS, authMethod} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
@@ -87,7 +88,31 @@ export function BusinessOverview({frame, data, reload}) {
           )}
         </div>
       </DashSection>
-      <DashSection n={2} id="usage" label="Usage" title="What your keys / have done.">
+      <DashSection n={2} id="allowed" label="Allowed" title="What our team / has opened for you.">
+        <div className="grid max-w-4xl gap-4 md:grid-cols-2">
+          <div className="rounded-[18px] border border-rule p-5">
+            <p className="font-medium">Ways to check a holder</p>
+            <ul className="mt-3 space-y-1 text-sm text-muted">
+              {business.methods.length ? (
+                business.methods.map((m) => <li key={m}>{authMethod(m)?.label ?? m}</li>)
+              ) : (
+                <li>None yet: ask our team.</li>
+              )}
+            </ul>
+          </div>
+          <div className="rounded-[18px] border border-rule p-5">
+            <p className="font-medium">Details you may ask for</p>
+            <ul className="mt-3 space-y-1 text-sm text-muted">
+              {business.fields.length ? (
+                business.fields.map((f) => <li key={f}>{CONSENT_FIELDS[f]}</li>)
+              ) : (
+                <li>None yet: ask our team.</li>
+              )}
+            </ul>
+          </div>
+        </div>
+      </DashSection>
+      <DashSection n={3} id="usage" label="Usage" title="What your keys / have done.">
         <StatsRow
           compact
           stats={[

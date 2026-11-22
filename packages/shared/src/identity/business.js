@@ -109,3 +109,6 @@ export const TEST_BHARAT_IDS = {
   declines: withCheck('900000002'),
   pending: withCheck('900000003'),
 };
+
+/** What the sandbox accepts on the check page with a test key (approves ID): this PIN and date of birth, this code. */
+export const SANDBOX_AUTH = {pin: '246810', dob: '1990-01-01', code: '000000'};

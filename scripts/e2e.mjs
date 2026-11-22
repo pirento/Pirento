@@ -1,7 +1,7 @@
 // End-to-end flows against a running stack: npm run dev with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0.
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
-import {TEST_BHARAT_IDS, verhoeffCheckDigit} from '@pirento/shared';
+import {SANDBOX_AUTH, TEST_BHARAT_IDS, verhoeffCheckDigit} from '@pirento/shared';
 import crypto from 'node:crypto';
 
 const B = process.env.API_URL ?? 'http://127.0.0.1:4000/api';
@@ -490,6 +490,23 @@ check(
   check('request in the staff queue', queued?.status === 'requested', queued);
 
   const approved = (await decide(queued._id, 'approve')).data;
+  const allow = (id, methods, fields) =>
+    call(`/identity/staff/business/${id}/access`, {method: 'PATCH', token: boss, body: {methods, fields}});
+  check(
+    'customers cannot set business access',
+    (
+      await call(`/identity/staff/business/${queued._id}/access`, {
+        method: 'PATCH',
+        token: user,
+        body: {methods: [], fields: []},
+      })
+    ).status === 403,
+  );
+  check('expected methods cannot be allowed', (await allow(queued._id, ['iris'], [])).status === 400);
+  check(
+    'staff set what a business may do',
+    (await allow(queued._id, ['pin_dob', 'otp'], ['name', 'pan'])).data?.fields.length === 2,
+  );
   check('approve makes the account', approved?.status === 'test' && approved.userId && approved.devPassword, approved);
   check('approved once', (await decide(queued._id, 'approve')).status === 409);
   const bizLogin = (
@@ -543,6 +560,15 @@ check(
     ).data?.status === 'declined',
   );
   check(
+    'a field our team did not allow is refused',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.approves, purpose: 'Open an account', fields: ['dob']},
+      })
+    ).error?.code === 'FIELD_NOT_ALLOWED',
+  );
+  check(
     'unknown consent fields refused',
     (
       await api('/consents', testKey.key, {
@@ -590,6 +616,7 @@ check(
   const reqB = (await call('/identity/staff/business', {token: boss})).data?.find((b) => b.request.email === userEmail);
   const appB = (await decide(reqB._id, 'approve')).data;
   check('an existing account is linked, no new password', appB?.status === 'test' && !appB.devPassword, appB);
+  await allow(reqB._id, ['pin_dob', 'otp'], ['name', 'pan']);
   await call('/identity/business/me/profile', {
     method: 'PUT',
     token: user,
@@ -646,6 +673,143 @@ check(
   );
   check('restored to live', (await decide(reqB._id, 'restore')).data?.status === 'live');
   check('works again after restore', (await api(`/ids/${appr.bharatId}`, liveKey.key)).status === 200);
+
+  // The holder's PIN, and signing in to Pirento with Bharat ID, PIN and date of birth.
+  const DOB = '1990-05-01';
+  check(
+    'a weak PIN is refused',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '123456'}})).status === 400,
+  );
+  check(
+    'PIN set',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916'}})).data?.pinSet === true,
+  );
+  check(
+    'the PIN hash never leaves',
+    !JSON.stringify((await call('/identity/me', {token: user})).data).includes('scrypt'),
+  );
+  check(
+    'changing the PIN needs the current one',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '582917'}})).status === 401,
+  );
+  const pinLogin = (pin, dob = DOB) =>
+    call('/auth/otp/bharat-id/pin', {method: 'POST', body: {bharatId: appr.bharatId, pin, dob}});
+  check('sign in with Bharat ID, PIN and date of birth', Boolean((await pinLogin('482916')).data?.token));
+  check(
+    'a wrong date of birth answers like a wrong PIN',
+    (await pinLogin('482916', '1991-05-01')).error?.code === 'PIN_WRONG',
+  );
+
+  // Checking a holder: the business sends them to Pirento's page; it never sees what they type.
+  const testKey2 = (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test'}})).data
+    .key;
+  const back = 'https://ashabank.example/kyc/back';
+  const startAuth = (key, body) => api('/auth/sessions', key, {method: 'POST', body: {returnUrl: back, ...body}});
+  check(
+    'a method our team did not allow is refused',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'face'})).error?.code === 'METHOD_NOT_ALLOWED',
+  );
+  check(
+    'biometrics are not available yet',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'iris'})).status === 501,
+  );
+  check(
+    'the return address must be on their own website',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'pin_dob', returnUrl: 'https://evil.example/x'})).error
+      ?.code === 'BAD_RETURN_URL',
+  );
+  const linkOf = (url) => {
+    const u = new URL(url);
+    return {id: u.pathname.split('/').pop(), t: u.searchParams.get('t')};
+  };
+  const s1 = (await startAuth(testKey2, {bharatId: T.approves, method: 'pin_dob', reference: 'LOGIN-1'})).data;
+  check(
+    'check session made with a Pirento link',
+    s1?.status === 'pending' && s1.url.includes('/bharat-id/authorize/'),
+    s1,
+  );
+  const l1 = linkOf(s1.url);
+  check('the link needs its secret', (await call(`/identity/authorize/${l1.id}?t=wrong`)).status === 404);
+  check(
+    'the page shows who asks and how',
+    (await call(`/identity/authorize/${l1.id}?t=${l1.t}`)).data?.businessName === 'Asha Bank Limited',
+  );
+  const verify = (l, body) => call(`/identity/authorize/${l.id}/verify`, {method: 'POST', body: {t: l.t, ...body}});
+  check(
+    'a wrong sandbox PIN is a wrong try',
+    (await verify(l1, {pin: '000001', dob: SANDBOX_AUTH.dob})).data?.wrong === true,
+  );
+  const ok1 = (await verify(l1, {pin: SANDBOX_AUTH.pin, dob: SANDBOX_AUTH.dob})).data;
+  check(
+    'sandbox check passes, back to their site',
+    ok1?.status === 'passed' && ok1.returnTo.startsWith(`${back}?session=`),
+    ok1,
+  );
+  check('the business reads the result', (await api(`/auth/sessions/${s1.id}`, testKey2)).data?.status === 'passed');
+  const s2 = (await startAuth(testKey2, {bharatId: T.declines, method: 'otp'})).data;
+  check(
+    'the sandbox decline ID fails',
+    (await verify(linkOf(s2.url), {emailCode: SANDBOX_AUTH.code, mobileCode: SANDBOX_AUTH.code})).data?.status ===
+      'failed',
+  );
+  const s3 = (await startAuth(liveKey.key, {bharatId: appr.bharatId, method: 'pin_dob'})).data;
+  const l3 = linkOf(s3.url);
+  check('live: a wrong PIN is a wrong try', (await verify(l3, {pin: '111222', dob: DOB})).data?.triesLeft === 4);
+  check(
+    'live: the holder passes with their PIN',
+    (await verify(l3, {pin: '482916', dob: DOB})).data?.status === 'passed',
+  );
+  const s4 = (await startAuth(liveKey.key, {bharatId: appr.bharatId, method: 'otp'})).data;
+  check(
+    'live codes need a verified mobile on the account',
+    (await call(`/identity/authorize/${linkOf(s4.url).id}/start`, {method: 'POST', body: {t: linkOf(s4.url).t}})).error
+      ?.code === 'NO_MOBILE',
+  );
+  const seen = (await call('/identity/consents/log', {token: user})).data ?? [];
+  check(
+    'the holder sees who checked them',
+    seen.some((r) => r.action === 'auth.request' && r.businessName === 'Verma Institute LLP') &&
+      !JSON.stringify(seen).includes('"ip"'),
+  );
+  check(
+    "staff see a business's log",
+    (await call(`/identity/staff/business/${reqB._id}/log`, {token: boss})).data?.length > 3,
+  );
+
+  // Prepaid: live calls are paid from the owner's wallet at the price a superadmin sets.
+  const prices = {verify: 2, consent: 3, pin_dob: 5, otp: 5, aadhaar_otp: 20, face: 20};
+  check(
+    'only a superadmin sets prices',
+    (await call('/identity/staff/business/prices', {method: 'PUT', token: user, body: prices})).status === 403,
+  );
+  check(
+    'prices set',
+    (await call('/identity/staff/business/prices', {method: 'PUT', token: boss, body: prices})).data?.verify === 200,
+  );
+  const balance = async () => (await call('/wallet', {token: user})).data.balance;
+  const before = await balance();
+  await api(`/ids/${appr.bharatId}`, liveKey.key);
+  check('a live verify is charged', before - (await balance()) === 200);
+  await api(`/ids/${T.approves}`, testKey2);
+  check('test calls are free', before - (await balance()) === 200);
+  await call('/identity/staff/business/prices', {method: 'PUT', token: boss, body: {...prices, verify: 100000}});
+  check(
+    'not enough credit stops the call',
+    (await api(`/ids/${appr.bharatId}`, liveKey.key)).error?.code === 'INSUFFICIENT_CREDIT',
+  );
+  await call('/identity/staff/business/prices', {
+    method: 'PUT',
+    token: boss,
+    body: Object.fromEntries(Object.keys(prices).map((k) => [k, 0])),
+  });
+  check(
+    'the dashboard shows the prices',
+    (await call('/identity/business/me', {token: user})).data?.prices.verify === 0,
+  );
+
+  // Last, as it locks this PIN for 15 minutes: five wrong tries in a row lock it, even for the right PIN.
+  for (let i = 0; i < 5; i++) await pinLogin('999888');
+  check('the PIN locks after five wrong tries', (await pinLogin('482916')).error?.code === 'PIN_LOCKED');
 
   const reqC = bizReq({company: 'Nope Ltd'});
   await ask(reqC);

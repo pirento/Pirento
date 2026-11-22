@@ -8,6 +8,8 @@ import {Section, SectionHeader} from '../../components/ui/Heading';
 import {bharatIdBusiness as copy} from '../../data/site';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {AUTH_METHODS} from '@pirento/shared';
+import {Tag} from '../../components/ui/Tag';
 import {CALLS, apiBase} from './apiSample';
 import {RequestForm} from './RequestForm';
 
@@ -72,7 +74,26 @@ export function BharatIdBusiness() {
       </Section>
 
       <Section>
-        <SectionHeader n={4} label={copy.sample.label} title={copy.sample.title} intro={copy.sample.intro} />
+        <SectionHeader n={4} label={copy.checks.label} title={copy.checks.title} intro={copy.checks.intro} />
+        <ul className="mt-16 grid gap-3 md:grid-cols-2">
+          {AUTH_METHODS.map((m) => (
+            <li
+              key={m.id}
+              className="flex items-center justify-between gap-4 rounded-[18px] border border-rule p-5"
+              data-reveal
+            >
+              <span>{m.label}</span>
+              <span className="flex shrink-0 items-center gap-2 text-sm text-muted">
+                Level {m.level}
+                {m.expected && <Tag>Expected</Tag>}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </Section>
+
+      <Section>
+        <SectionHeader n={5} label={copy.sample.label} title={copy.sample.title} intro={copy.sample.intro} />
         <div className="mt-16 grid gap-4 lg:grid-cols-3">
           {CALLS.map((c) => (
             <figure key={c.path} className="min-w-0 rounded-[18px] border border-rule p-5" data-reveal>
@@ -91,7 +112,7 @@ export function BharatIdBusiness() {
       </Section>
 
       <Section id="request">
-        <SectionHeader n={5} label={copy.form.label} title={copy.form.title} intro={copy.form.intro} />
+        <SectionHeader n={6} label={copy.form.label} title={copy.form.title} intro={copy.form.intro} />
         <div className="mt-16">
           <RequestForm />
           <p className="mt-8 max-w-3xl text-sm text-muted">{copy.note}</p>

@@ -8,6 +8,8 @@ import {AuditLog} from '../models/AuditLog.js';
 import {User} from '../models/User.js';
 import {sendNoticeEmail} from '../lib/email.js';
 import {firstPassword, freeUsername} from '../lib/businessAccount.js';
+import {checkCode, maskEmail, sendKeyedCode} from '../lib/otp.js';
+import {phoneCodesOn} from '../lib/sms.js';
 import {hashPassword} from '../lib/password.js';
 
 export const internalRoutes = Router();
@@ -130,5 +132,38 @@ internalRoutes.post(
     res
       .status(201)
       .json({data: {userId: String(user._id), created: true, ...(!isProduction() && {devPassword: password})}});
+  },
+);
+
+// Codes for a Bharat ID check: one to the account's email, one to its verified mobile, each under its own key.
+const codeBody = {
+  userId: z.string().max(40),
+  purpose: z.string().regex(/^[\w-]{6,64}$/),
+  channel: z.enum(['email', 'mobile']),
+};
+const codeKey = ({purpose, channel}) => `check:${purpose}:${channel}`;
+
+internalRoutes.post(
+  '/internal/codes/send',
+  validate(z.object({...codeBody, brand: z.string().max(60)})),
+  async (req, res) => {
+    const user = isId(req.body.userId) && (await User.findById(req.body.userId));
+    if (!user || user.suspended) throw conflict('NO_ACCOUNT', 'This Bharat ID cannot be checked this way');
+    if (req.body.channel === 'mobile') {
+      if (!user.phone || !phoneCodesOn()) throw conflict('NO_MOBILE', 'No verified mobile number to send a code to');
+      const sent = await sendKeyedCode(codeKey(req.body), {phone: user.phone}, req.body.brand);
+      return res.json({data: {...sent, sentTo: `+91 ••••• •${user.phone.slice(-4)}`}});
+    }
+    const sent = await sendKeyedCode(codeKey(req.body), {email: user.email}, req.body.brand);
+    res.json({data: {...sent, sentTo: maskEmail(user.email)}});
+  },
+);
+
+internalRoutes.post(
+  '/internal/codes/check',
+  validate(z.object({...codeBody, code: z.string().regex(/^\d{6}$/)})),
+  async (req, res) => {
+    await checkCode(codeKey(req.body), req.body.code);
+    res.json({data: {ok: true}});
   },
 );

@@ -26,4 +26,20 @@ export const CALLS = [
     curl: (base, key) => `curl ${base}/consents/{id} \\\n  -H "Authorization: Bearer ${key}"`,
     answer: '{"data": {"id": "…", "status": "approved", "details": {"name": "…", "dob": "…", "pan": "…"}}}',
   },
+  {
+    title: 'Check that a person holds the Bharat ID',
+    method: 'POST',
+    path: '/auth/sessions',
+    curl: (base, key) =>
+      `curl -X POST ${base}/auth/sessions \\\n  -H "Authorization: Bearer ${key}" -H "Content-Type: application/json" \\\n  -d '{"bharatId": "${TEST_BHARAT_IDS.approves}", "method": "pin_dob", "returnUrl": "https://your-site.example/back", "reference": "LOGIN-1"}'`,
+    answer:
+      '{"data": {"id": "…", "status": "pending", "method": "pin_dob", "level": 1, "url": "https://…/bharat-id/authorize/…?t=…"}}\n\nSend the person to "url". They come back to your returnUrl with ?session=<id>&status=passed.',
+  },
+  {
+    title: 'Read the result of a check',
+    method: 'GET',
+    path: '/auth/sessions/{id}',
+    curl: (base, key) => `curl ${base}/auth/sessions/{id} \\\n  -H "Authorization: Bearer ${key}"`,
+    answer: '{"data": {"id": "…", "status": "passed", "method": "pin_dob", "level": 1, "passedAt": "…"}}',
+  },
 ];

@@ -1,6 +1,7 @@
 // The team's side of Bharat ID for Business: review requests, make the account on approval, open live access.
 import {Router} from 'express';
 import {z} from 'zod';
+import {AUTH_METHODS, CONSENT_FIELDS} from '@pirento/shared';
 import {
   ACCESS,
   audit,
@@ -16,7 +17,9 @@ import {
   validate,
 } from '@pirento/shared/server';
 import {config} from '../config.js';
+import {AccessLog} from '../models/AccessLog.js';
 import {ApiKey} from '../models/ApiKey.js';
+import {BusinessPricing, PRICED, readPrices} from '../models/BusinessPricing.js';
 import {BUSINESS_STATUSES, Business} from '../models/Business.js';
 
 export const staffBusinessRoutes = Router();
@@ -106,3 +109,49 @@ staffBusinessRoutes.get('/staff/business/:id/keys', async (req, res) => {
   if (!isId(req.params.id)) throw notFound('No such business');
   res.json({data: await ApiKey.find({businessId: req.params.id}, {hash: 0}).sort({createdAt: -1})});
 });
+
+/** What a business may do: the check methods and the details it may ask for. Only what its work needs. */
+staffBusinessRoutes.patch(
+  '/staff/business/:id/access',
+  validate(
+    z.object({
+      methods: z.array(z.enum(AUTH_METHODS.filter((m) => !m.expected).map((m) => m.id))).max(AUTH_METHODS.length),
+      fields: z.array(z.enum(Object.keys(CONSENT_FIELDS))).max(Object.keys(CONSENT_FIELDS).length),
+    }),
+  ),
+  async (req, res) => {
+    const methods = [...new Set(req.body.methods)];
+    const fields = [...new Set(req.body.fields)];
+    const saved =
+      isId(req.params.id) && (await Business.findByIdAndUpdate(req.params.id, {$set: {methods, fields}}, {new: true}));
+    if (!saved) throw notFound('No such business');
+    audit(
+      req,
+      'business.access',
+      saved.request.company.slice(0, 80),
+      `methods: ${methods.join(', ') || 'none'} · fields: ${fields.join(', ') || 'none'}`,
+    );
+    res.json({data: saved});
+  },
+);
+
+/** The access log of one business: every check and read, newest first. */
+staffBusinessRoutes.get('/staff/business/:id/log', async (req, res) => {
+  if (!isId(req.params.id)) throw notFound('No such business');
+  res.json({data: await AccessLog.find({businessId: req.params.id}).sort({createdAt: -1}).limit(300)});
+});
+
+/** The price list (paise). Staff see it; only a superadmin changes it. */
+staffBusinessRoutes.get('/staff/business/prices', async (_req, res) => res.json({data: await readPrices()}));
+
+staffBusinessRoutes.put(
+  '/staff/business/prices',
+  requireRole(...ACCESS.catalog),
+  validate(z.object(Object.fromEntries(PRICED.map((k) => [k, z.number().int().min(0).max(100_000)])))), // rupees
+  async (req, res) => {
+    const prices = Object.fromEntries(PRICED.map((k) => [k, req.body[k] * 100]));
+    await BusinessPricing.findByIdAndUpdate('prices', {$set: {prices}}, {upsert: true});
+    audit(req, 'business.prices', 'Bharat ID for Business', PRICED.map((k) => `${k} ₹${req.body[k]}`).join(' · '));
+    res.json({data: await readPrices()});
+  },
+);

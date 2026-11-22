@@ -107,3 +107,24 @@ otpRoutes.post('/otp/bharat-id/verify', validate(z.object({bharatId, code})), as
   await checkCode(user.email, req.body.code);
   await issueSession(res, user);
 });
+
+/**
+ * Sign-in with Bharat ID, the 6-digit PIN and the date of birth. The identity service checks them and locks the
+ * PIN after repeated wrong tries; every failure answers alike. Under /otp so the gateway's sign-in limit covers it.
+ */
+otpRoutes.post(
+  '/otp/bharat-id/pin',
+  validate(
+    z.object({
+      bharatId,
+      pin: z.string().regex(/^\d{6}$/, 'Enter your 6-digit PIN'),
+      dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter your date of birth'),
+    }),
+  ),
+  async (req, res) => {
+    const {userId} = await callService(config.identityUrl, '/internal/pin-check', req.body);
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(401, 'PIN_WRONG', 'Wrong Bharat ID, PIN or date of birth');
+    await issueSession(res, user);
+  },
+);

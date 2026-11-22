@@ -2,6 +2,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {conflict, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {AccessLog} from '../models/AccessLog.js';
 import {Consent} from '../models/Consent.js';
 
 export const consentRoutes = Router();
@@ -27,4 +28,13 @@ consentRoutes.post('/consents/:id', validate(z.object({decision: z.enum(Object.k
     throw conflict('CHANGED', 'This request was already decided');
   }
   res.json({data: consent});
+});
+
+/** Every live check of your Bharat ID by a business: who, what and when (never the details themselves). */
+consentRoutes.get('/consents/log', async (req, res) => {
+  res.json({
+    data: await AccessLog.find({userId: req.user.sub, mode: 'live'}, {ip: 0, userId: 0})
+      .sort({createdAt: -1})
+      .limit(200),
+  });
 });
