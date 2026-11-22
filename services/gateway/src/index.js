@@ -49,9 +49,15 @@ for (const {name, url} of SERVICES) {
 
 const web = path.resolve(config.webDist);
 if (fs.existsSync(web)) {
+  // Built files have a content hash in their name, so they can be cached for a year; index.html must not be,
+  // or a deploy would leave people on old code.
+  app.use(
+    '/assets',
+    express.static(path.join(web, 'assets'), {index: false, immutable: true, maxAge: '365d', fallthrough: false}),
+  );
   app.use(express.static(web, {index: false, maxAge: '1h'}));
   // Any other path is a page of the single-page app.
-  app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(web, 'index.html')));
+  app.get(/^\/(?!api\/).*/, (_req, res) => res.set('cache-control', 'no-cache').sendFile(path.join(web, 'index.html')));
 }
 
 start(finish(app), {name: 'gateway', port: config.port});
