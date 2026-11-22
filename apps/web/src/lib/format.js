@@ -11,4 +11,8 @@ export const formatDate = (d) =>
     minute: '2-digit',
   });
 
+/** A day with no time: start dates, due dates. */
+export const formatDay = (d) =>
+  new Date(d).toLocaleDateString('en-IN', {day: 'numeric', month: 'short', year: 'numeric'});
+
 /** Sends signed-out visitors to /login and back here afterwards. */

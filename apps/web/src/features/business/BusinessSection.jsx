@@ -5,7 +5,7 @@ import {bharatIdBusiness as copy} from '../../data/site';
 
 export function BusinessSection({n}) {
   return (
-    <Section>
+    <Section id="business">
       <SectionHeader n={n} label={copy.home.label} title={copy.home.title} intro={copy.home.intro} />
       <div className="mt-16 grid gap-4 md:grid-cols-3">
         {copy.gives.items.slice(0, 3).map((g) => (

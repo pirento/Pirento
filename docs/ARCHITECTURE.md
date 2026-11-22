@@ -60,7 +60,7 @@ services/<name>/src
 | catalog  | 4003 | products and prices (from `packages/shared`), admin edits and new services, site settings             |
 | orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals                                    |
 | identity | 4005 | Bharat ID: applications, Digio verification, verify, and Bharat ID for Business (API, keys, consents) |
-| learning | 4006 | Intern exam, certificates, openings and applications                                                  |
+| learning | 4006 | Intern tracks, lessons, exams, certificates, openings, companies and the internship pipeline          |
 | vault    | 4007 | encrypted files and passwords                                                                         |
 | support  | 4008 | tickets, contact-form enquiries                                                                       |
 | ai       | 4009 | the Claude assistant                                                                                  |

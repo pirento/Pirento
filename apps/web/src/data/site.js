@@ -13,6 +13,91 @@ export const brand = {
   motto: 'One account. Every record in one place.',
 };
 
+// Each product site's navbar: its own three links and its main button, which leads into what the product does.
+// Signed out, the bar adds "Sign in"; signed in, "Dashboard".
+export const productNav = {
+  legal: {
+    links: [
+      ['Services', '/legal/services'],
+      ['How it works', '/legal#how'],
+      ['Questions', '/legal#faq'],
+    ],
+    cta: ['Book a service', '/legal/services', 'Book'],
+  },
+  black: {
+    links: [
+      ['Services', '/black#services'],
+      ['How it works', '/black#how'],
+      ['Questions', '/black#faq'],
+    ],
+    cta: ['See services', '/black#services', 'Services'],
+  },
+  green: {
+    links: [
+      ['Drives', '/green#services'],
+      ['How it works', '/green#how'],
+      ['Questions', '/green#faq'],
+    ],
+    cta: ['Plant trees', '/green#services', 'Plant'],
+  },
+  giftox: {
+    links: [
+      ['Gift boxes', '/giftox#services'],
+      ['How it works', '/giftox#how'],
+      ['Questions', '/giftox#faq'],
+    ],
+    cta: ['Send a gift', '/giftox#services', 'Gift'],
+  },
+  intern: {
+    links: [
+      ['Tracks', '/intern#more'],
+      ['How it works', '/intern#how'],
+      ['Questions', '/intern#faq'],
+    ],
+    cta: ['Take an exam', '/intern/dashboard/exams', 'Exams'],
+  },
+  vault: {
+    links: [
+      ['What you get', '/vault#features'],
+      ['How it works', '/vault#how'],
+      ['Questions', '/vault#faq'],
+    ],
+    cta: ['Open my vault', '/vault/dashboard', 'Open'],
+  },
+  ai: {
+    links: [
+      ['What it does', '/ai#features'],
+      ['How it works', '/ai#how'],
+      ['Questions', '/ai#faq'],
+    ],
+    cta: ['Start a chat', '/ai/dashboard', 'Chat'],
+  },
+  one: {
+    links: [
+      ['Plans', '/one/dashboard/plans'],
+      ['How it works', '/one#how'],
+      ['Questions', '/one#faq'],
+    ],
+    cta: ['Become a partner', '/one/dashboard', 'Join'],
+  },
+  capital: {
+    links: [
+      ['What it does', '/capital#features'],
+      ['How it works', '/capital#how'],
+      ['Questions', '/capital#faq'],
+    ],
+    cta: ['Join the waitlist', '/capital/dashboard', 'Join'],
+  },
+  'bharat-id': {
+    links: [
+      ['Apply', '/bharat-id#apply'],
+      ['Checks', '/bharat-id#checks'],
+      ['For business', '/bharat-id/business'],
+    ],
+    cta: ['Apply now', '/bharat-id/start', 'Apply'],
+  },
+};
+
 export const nav = [
   {label: 'Home', to: '/'},
   {label: 'Products', to: '/products'},
@@ -252,9 +337,16 @@ export const productDashboards = {
   green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
+    {id: 'programme', label: 'Programme', icon: 'programme'},
+    {id: 'tasks', label: 'Tasks', icon: 'tasks'},
+    {id: 'classes', label: 'Live classes', icon: 'classes'},
+    {id: 'work', label: 'Paid work', icon: 'work'},
+    {id: 'learn', label: 'Learn', icon: 'learn'},
     {id: 'exams', label: 'Exams', icon: 'exams'},
     {id: 'certificates', label: 'Certificates', icon: 'certificates'},
     {id: 'openings', label: 'Openings', icon: 'openings'},
+    {id: 'internships', label: 'Internships', icon: 'internships'},
+    {id: 'company', label: 'Company', icon: 'company'},
   ),
   vault: APP_SECTIONS(
     {id: 'files', label: 'Files', icon: 'files'},
@@ -492,8 +584,9 @@ export const bharatIdGate = {
 
 export const appDashboards = {
   intern: {
-    hello: 'Your exams / and certificates.',
-    intro: 'Take a final exam, earn a certificate with a public verify page, and apply to openings.',
+    hello: 'Learn, prove it, / get the internship.',
+    intro:
+      'Read the lessons, take a final exam for a certificate anyone can check, apply to openings, and do the internship here: interview, offer, tasks and a completion certificate.',
     glance: {label: 'At a glance', title: 'Where you / stand.'},
     next: {label: 'Next', title: 'What to / do next.'},
     exams: {
@@ -513,7 +606,39 @@ export const appDashboards = {
       mine: 'Your applications',
       noMine: 'You have not applied yet.',
     },
-    applicationStatus: {new: 'Applied', shortlisted: 'Shortlisted', declined: 'Not selected'},
+    learn: {label: 'Lessons', title: 'Learn a track, / one lesson at a time.'},
+    programme: {
+      label: 'Programmes',
+      title: 'Three months / to a year.',
+      packageLabel: 'Internship programme',
+      soon: 'Price coming soon',
+      buy: 'Join from my wallet',
+      includes: [
+        'Lessons, recorded videos and live classes',
+        'A daily, weekly and monthly task set for you by AI',
+        'Paid work from across Pirento once you are eligible',
+        'A final mark, a grade and a certificate',
+        'An AI resume draft from your record',
+      ],
+      note: 'Paid from your Pirento wallet. A Bharat ID is needed to join. Paid work depends on the work available and is paid only once approved; joining does not guarantee income or a job.',
+      resumeNote:
+        'Written by AI from your profile, certificates and approved work only. Check it before you use it; once a day.',
+    },
+    tasks: {title: 'Your tasks, / set for you.'},
+    classes: {title: 'Live classes / and recordings.'},
+    work: {title: 'Real work, / paid on approval.'},
+    internships: {label: 'Your applications', title: 'From applied / to certified.'},
+    company: {title: 'Hire interns / on Pirento.'},
+    applicationStatus: {
+      new: 'Applied',
+      shortlisted: 'Shortlisted',
+      interview: 'Interview',
+      offered: 'Offer made',
+      accepted: 'Interning',
+      completed: 'Completed',
+      declined: 'Not selected',
+      turned_down: 'Offer declined',
+    },
   },
   vault: {
     hello: 'Your vault, / locked.',

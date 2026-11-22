@@ -21,7 +21,7 @@ export function Certificates() {
           ),
         },
         {label: 'Name', cell: (c) => c.fullName},
-        {label: 'Track', cell: (c) => c.track},
+        {label: 'For', cell: (c) => c.title ?? c.track},
         {label: 'Score', right: true, cell: (c) => (c.percent == null ? '—' : `${c.percent}%`)},
         {label: 'Issued', right: true, cell: (c) => formatDate(c.issuedAt)},
       ]}

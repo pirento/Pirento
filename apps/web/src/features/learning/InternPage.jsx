@@ -1,7 +1,8 @@
-// Pirento Intern dashboard: an overview, the final exams with every attempt, certificates, and openings.
+// Pirento Intern dashboard: an overview, lessons, the final exams with every attempt, certificates, openings,
+// the applicant's internships, and the company page for those who hire.
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {Award, Check, Copy, GraduationCap, Megaphone} from 'lucide-react';
+import {Award, BookOpen, Briefcase, Check, Copy, GraduationCap, Megaphone} from 'lucide-react';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
@@ -11,6 +12,11 @@ import {useSignedIn} from '../auth/useSignedIn';
 import {AppFrame} from '../products/AppFrame';
 import {Exam} from './Exam';
 import {Openings} from './Openings';
+import {Company} from './Company';
+import {Internships} from './Internships';
+import {Learn} from './Learn';
+import {Programme} from './Programme';
+import {Classes, PaidWork, Tasks} from './ProgramWork';
 import {StartForm} from './StartForm';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
@@ -76,6 +82,8 @@ export function Intern({product, section}) {
   const me = useApi(user ? '/learning/me' : null);
   const openings = useApi('/learning/openings');
   const mine = useApi(user ? '/learning/openings/mine' : null);
+  const apps = useApi(user && ['overview', 'internships'].includes(section) ? '/learning/applications/mine' : null);
+  const employer = useApi(user && section === 'company' ? '/learning/employers/me' : null);
   const [exam, setExam] = useState(null);
   const [result, setResult] = useState(null);
   usePageMeta({title: `Pirento Intern · ${section === 'overview' ? 'Dashboard' : section}`});
@@ -87,6 +95,67 @@ export function Intern({product, section}) {
   const best = attempts.reduce((m, a) => Math.max(m, a.percent ?? 0), 0);
   const titleOf = (id) => openings.data?.find((o) => o._id === id)?.title ?? 'A closed opening';
   const frame = {product, section, ready: Boolean(me.data)};
+  // Tracks can differ (admin sets each one), so the facts show a range when they do.
+  const range = (k, unit = '') => {
+    const v = [...new Set(tracks.data?.map((t) => t[k]))].sort((a, b) => a - b);
+    return v.length ? (v.length > 1 ? `${v[0]}–${v.at(-1)}${unit}` : `${v[0]}${unit}`) : '—';
+  };
+
+  if (section === 'programme') {
+    return (
+      <AppFrame {...frame} title={copy.programme.title} intro={copy.intro}>
+        <Programme tracks={tracks.data} />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'tasks') {
+    return (
+      <AppFrame {...frame} title={copy.tasks.title}>
+        <Tasks />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'classes') {
+    return (
+      <AppFrame {...frame} title={copy.classes.title}>
+        <Classes />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'work') {
+    return (
+      <AppFrame {...frame} title={copy.work.title}>
+        <PaidWork />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'learn') {
+    return (
+      <AppFrame {...frame} title={copy.learn.title} intro={copy.intro}>
+        <Learn tracks={tracks.data} />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'internships') {
+    return (
+      <AppFrame {...frame} title={copy.internships.title}>
+        <Internships apps={apps} />
+      </AppFrame>
+    );
+  }
+
+  if (section === 'company') {
+    return (
+      <AppFrame {...frame} ready={!employer.loading} title={copy.company.title}>
+        <Company me={employer} />
+      </AppFrame>
+    );
+  }
 
   if (section === 'exams') {
     return (
@@ -103,7 +172,9 @@ export function Intern({product, section}) {
                 </Link>
               </p>
             ) : (
-              <p className="body mt-4">You need 60% to pass. You can try this track again in 24 hours.</p>
+              <p className="body mt-4">
+                Not enough to pass this time. You can try this track again in 24 hours; the lessons help.
+              </p>
             )}
             <Button
               onClick={() => {
@@ -129,9 +200,9 @@ export function Intern({product, section}) {
             <StatsRow
               compact
               stats={[
-                {value: '10', label: 'questions per exam'},
-                {value: '30', label: 'minutes on the clock'},
-                {value: '60%', label: 'to pass'},
+                {value: range('questions'), label: 'questions, drawn at random'},
+                {value: range('minutes'), label: 'minutes on the clock'},
+                {value: range('passPercent', '%'), label: 'to pass'},
                 {value: '24h', label: 'before a retake'},
               ]}
             />
@@ -193,7 +264,7 @@ export function Intern({product, section}) {
   if (section === 'openings') {
     return (
       <AppFrame {...frame} title={copy.openings.title}>
-        <DashSection n={1} id="open" label={copy.openings.label} title="Posted by / the Pirento team.">
+        <DashSection n={1} id="open" label={copy.openings.label} title="Posted by Pirento / and companies.">
           {openings.data?.length === 0 && <p className="text-muted">No openings right now.</p>}
           <Openings bare />
         </DashSection>
@@ -213,6 +284,11 @@ export function Intern({product, section}) {
   }
 
   // Overview
+  const waiting =
+    apps.data?.filter(
+      (a) =>
+        a.status === 'offered' || (a.status === 'accepted' && a.tasks.some((t) => ['open', 'redo'].includes(t.status))),
+    ).length ?? 0;
   const openCount = openings.data?.filter((o) => !mine.data?.some((a) => a.openingId === o._id)).length ?? 0;
   return (
     <AppFrame {...frame} title={copy.hello} intro={copy.intro}>
@@ -229,11 +305,31 @@ export function Intern({product, section}) {
       </DashSection>
       <DashSection n={2} id="next" label={copy.next.label} title={copy.next.title}>
         <ul className="border-t border-rule">
+          {waiting > 0 && (
+            <NextLink
+              to="/intern/dashboard/internships"
+              icon={Briefcase}
+              title={`${waiting} thing${waiting === 1 ? '' : 's'} waiting on you`}
+              body="An offer to answer or a task to send."
+            />
+          )}
+          <NextLink
+            to="/intern/dashboard/programme"
+            icon={Briefcase}
+            title="The 3 to 12-month programme"
+            body="Live classes, AI-set tasks, paid work across Pirento, and a graded certificate."
+          />
+          <NextLink
+            to="/intern/dashboard/learn"
+            icon={BookOpen}
+            title="Read the lessons"
+            body="Short lessons with practice questions, before the exam."
+          />
           <NextLink
             to="/intern/dashboard/exams"
             icon={GraduationCap}
             title={certs.length ? 'Take another track' : 'Take your first exam'}
-            body="Ten questions, thirty minutes, 60% to pass."
+            body="Questions drawn at random, on the clock; pass for a certificate."
           />
           {certs[0] && (
             <NextLink
@@ -248,7 +344,7 @@ export function Intern({product, section}) {
               to="/intern/dashboard/openings"
               icon={Megaphone}
               title={`${openCount} opening${openCount === 1 ? '' : 's'} to apply for`}
-              body="Internships and jobs posted by the Pirento team."
+              body="Internships and jobs from Pirento and approved companies."
             />
           )}
         </ul>

@@ -8,7 +8,7 @@ const copy = appDashboards.one.plans;
 
 export function PlansSection({plans, n}) {
   return (
-    <Section>
+    <Section id="plans">
       <SectionHeader n={n} label={copy.label} title={copy.title} intro={copy.intro} />
       <div className="mt-16">
         <PlanCards

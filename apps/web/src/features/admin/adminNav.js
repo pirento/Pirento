@@ -3,6 +3,7 @@
 // the role checks each service makes on its own routes.
 import {
   BadgeCheck,
+  BookOpen,
   Building2,
   Banknote,
   Briefcase,
@@ -124,7 +125,16 @@ export const ADMIN_SECTIONS = [
     label: 'Openings',
     icon: Megaphone,
     roles: OPS,
-    intro: 'Internships and jobs on the Pirento Intern site, and the people who applied.',
+    intro:
+      'Internships and jobs on the Pirento Intern site: post your own, approve what companies post, and take each applicant from shortlist to interview, offer, tasks and certificate.',
+  },
+  {
+    id: 'companies',
+    group: 'Work',
+    label: 'Intern companies',
+    icon: Building2,
+    roles: OPS, // ACCESS.openings
+    intro: 'Companies asking to post internships. Approve them first; each opening they post is reviewed again.',
   },
   {
     id: 'waitlist',
@@ -198,6 +208,33 @@ export const ADMIN_SECTIONS = [
     icon: GraduationCap,
     roles: OPS,
     intro: 'Pirento Intern certificates issued.',
+  },
+  {
+    id: 'programme',
+    group: 'Work',
+    label: 'Intern programme',
+    icon: GraduationCap,
+    roles: OPS, // ACCESS.openings; prices are superadmin only
+    intro:
+      'The 3, 6, 9 and 12-month programmes: prices, who is enrolled and their mark, live classes and recordings, and practice tasks the AI could not grade.',
+  },
+  {
+    id: 'intern-work',
+    group: 'Work',
+    label: 'Intern paid work',
+    icon: Briefcase,
+    roles: OPS,
+    intro:
+      'Paid work from across Pirento for eligible interns. The AI suggests who fits and why; you confirm, review, and approving pays their wallet.',
+  },
+  {
+    id: 'courses',
+    group: 'Records',
+    label: 'Intern courses',
+    icon: BookOpen,
+    roles: OPS, // ACCESS.learning
+    intro:
+      'Each track: exam time, pass mark and how many questions are drawn; the questions you add to its bank; and its lessons with practice questions.',
   },
   {
     id: 'services',
