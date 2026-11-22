@@ -58,6 +58,10 @@ Notes for AI-assisted work on this repo. Read README.md first.
 - **Accounts:** mobile, user ID and password rules live once in `packages/shared/src/account/rules.js` (browser and auth service both use them). A new account always records `termsAcceptedAt` and `TERMS_VERSION`; change `TERMS_VERSION` when `/terms` changes.
 - **Sign-in:** codes (email and SMS) go through `lib/otp.js` in the auth service; the staff door answers every failure with the same message. Never return `passwordHash` (it is `select: false` and stripped in `toJSON`).
 
+## Hosting
+
+Production is AWS (Mumbai) from `deploy/aws` (Terraform: CloudFront + WAF, ALB, ECS Fargate auto-scaling, MongoDB Atlas, Aurora PostgreSQL behind RDS Proxy, ElastiCache Redis, OpenSearch, S3, AWS Backup). `docker-compose.yml` is the one-server setup. Capacity, limits and restores: `docs/SCALING.md`.
+
 ## Check before pushing
 
 `npm test`, `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`, and a look at 360px and 1440px in light and dark.

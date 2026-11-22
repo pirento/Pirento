@@ -14,19 +14,17 @@ const cfg = () => ({
   secretAccessKey: env('VIDEO_S3_SECRET', ''),
 });
 
-export const videoReady = () => {
-  const c = cfg();
-  return Boolean(c.bucket && c.accessKeyId && c.secretAccessKey);
-};
+// On AWS the service's own role grants the bucket, so keys are optional; elsewhere (R2, B2) give the keys.
+export const videoReady = () => Boolean(cfg().bucket);
 
 let client;
 function s3() {
   if (!videoReady()) throw new ApiError(503, 'VIDEO_OFF', 'Video storage is not set up yet');
   const c = cfg();
   client ??= new S3Client({
-    region: c.region,
+    region: c.region === 'auto' && !c.endpoint ? env('AWS_REGION', 'ap-south-1') : c.region,
     ...(c.endpoint && {endpoint: c.endpoint, forcePathStyle: true}),
-    credentials: {accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey},
+    ...(c.accessKeyId && {credentials: {accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey}}),
   });
   return [client, c.bucket];
 }

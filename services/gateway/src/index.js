@@ -12,7 +12,9 @@ import {CSP, SERVICES, config} from './config.js';
 
 // No body parsing: the proxy must pass request bodies through byte for byte.
 const app = createApp('gateway', {json: false, csp: CSP});
-app.set('trust proxy', 1);
+// How many proxies sit in front (Caddy: 1; CloudFront then the AWS load balancer: 2), so rate limits see the
+// real client IP and not a proxy's.
+app.set('trust proxy', config.trustProxy);
 
 // Behind the load balancer many gateways run at once: with REDIS_URL they count each IP together in Redis,
 // otherwise each counts alone (fine for one server). If Redis is down the limit lets requests through rather
