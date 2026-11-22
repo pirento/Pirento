@@ -8,6 +8,7 @@ x-service: &service
     SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
     AUTH_URL: http://auth:4001 # staff actions are written to its audit trail
     IDENTITY_URL: http://identity:4005 # Pirento One and Vault check for an issued Bharat ID
+    REDIS_URL: redis://redis:6379 # shared cache and rate limits
 
 services:
   mongo:
@@ -15,6 +16,21 @@ services:
     restart: unless-stopped
     ports: ['127.0.0.1:27017:27017']
     volumes: [mongo-data:/data/db]
+
+  # The wallet's money (on AWS: Aurora PostgreSQL, see deploy/aws).
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: pirento
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: pirento_wallet
+    volumes: [postgres-data:/var/lib/postgresql/data]
+
+  # Shared cache and rate limits (on AWS: ElastiCache).
+  redis:
+    image: redis:7
+    restart: unless-stopped
 
   auth:
     <<: *service
@@ -47,7 +63,7 @@ services:
     environment:
       <<: *env
       SERVICE: wallet
-      MONGO_URI: mongodb://mongo:27017/pirento_wallet
+      DATABASE_URL: postgres://pirento:${POSTGRES_PASSWORD}@postgres:5432/pirento_wallet
       RAZORPAYX_KEY_ID: ${RAZORPAYX_KEY_ID:-}
       RAZORPAYX_KEY_SECRET: ${RAZORPAYX_KEY_SECRET:-}
       RAZORPAYX_ACCOUNT_NUMBER: ${RAZORPAYX_ACCOUNT_NUMBER:-}
@@ -168,4 +184,5 @@ services:
 
 volumes:
   mongo-data:
+  postgres-data:
   caddy-data:

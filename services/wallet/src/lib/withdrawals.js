@@ -1,10 +1,24 @@
 // Settling a withdrawal sent through RazorpayX, from the API's answer or its webhook. Safe to run twice.
 import {notify} from '@pirento/shared/server';
-import {Withdrawal} from '../models/Withdrawal.js';
+import {query} from './db.js';
 import {move} from './move.js';
 import {outcomeOf} from './payouts.js';
+import {withdrawal} from './rows.js';
 
 const rupees = (paise) => `₹${(paise / 100).toLocaleString('en-IN')}`;
+
+/** One conditional update: changes the row only while it is still 'processing'. Returns it, or null. */
+async function whileProcessing(id, set, params) {
+  const r = await query(
+    `UPDATE withdrawals SET ${set}, updated_at = now() WHERE id = $1 AND status = 'processing' RETURNING *`,
+    [id, ...params],
+  );
+  return withdrawal(r.rows[0]) ?? null;
+}
+
+export async function findWithdrawal(id) {
+  return withdrawal((await query('SELECT * FROM withdrawals WHERE id = $1', [id])).rows[0]) ?? null;
+}
 
 /**
  * Applies a payout's status to its withdrawal. Every write is conditional on the withdrawal still being
@@ -12,23 +26,15 @@ const rupees = (paise) => `₹${(paise / 100).toLocaleString('en-IN')}`;
  */
 export async function settle(w, payout) {
   const outcome = outcomeOf(payout.status);
-  const base = {_id: w._id, status: 'processing'};
   if (outcome === 'pending') {
-    return Withdrawal.findOneAndUpdate(
-      base,
-      {$set: {'payout.id': payout.id, 'payout.status': payout.status}},
-      {new: true},
-    );
+    return whileProcessing(w._id, 'payout_id = $2, payout_status = $3', [payout.id, payout.status]);
   }
   if (outcome === 'paid') {
-    const done = await Withdrawal.findOneAndUpdate(
-      base,
-      {
-        $set: {status: 'paid', utr: payout.utr ?? undefined, 'payout.id': payout.id, 'payout.status': payout.status},
-        $unset: {open: 1},
-      },
-      {new: true},
-    );
+    const done = await whileProcessing(w._id, `status = 'paid', utr = $2, payout_id = $3, payout_status = $4`, [
+      payout.utr ?? null,
+      payout.id,
+      payout.status,
+    ]);
     if (done) {
       notify(w.userId, {
         label: 'Withdrawal',
@@ -46,11 +52,11 @@ export async function settle(w, payout) {
     200,
   );
   await move(w.userId, 'credit', w.amount, `Withdrawal returned: ${reason}`, `wd-${w._id}-back`);
-  const done = await Withdrawal.findOneAndUpdate(
-    base,
-    {$set: {status: 'rejected', reason, 'payout.id': payout.id, 'payout.status': payout.status}, $unset: {open: 1}},
-    {new: true},
-  );
+  const done = await whileProcessing(w._id, `status = 'rejected', reason = $2, payout_id = $3, payout_status = $4`, [
+    reason,
+    payout.id,
+    payout.status,
+  ]);
   if (done) {
     notify(w.userId, {
       label: 'Withdrawal',
@@ -58,5 +64,5 @@ export async function settle(w, payout) {
       note: `The bank could not take it: ${reason}. The amount is back in your wallet.`,
     });
   }
-  return done ?? (await Withdrawal.findById(w._id));
+  return done ?? (await findWithdrawal(w._id));
 }

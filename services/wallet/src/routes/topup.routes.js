@@ -1,6 +1,5 @@
 // Adding money to the wallet by card or UPI (Razorpay), plus test money where that is allowed.
 import {Router} from 'express';
-import mongoose from 'mongoose';
 import {z} from 'zod';
 import {
   ApiError,
@@ -12,7 +11,7 @@ import {
   webhookSignatureOk,
 } from '@pirento/shared/server';
 import {config} from '../config.js';
-import {Topup} from '../models/Topup.js';
+import {newId, query} from '../lib/db.js';
 import {move} from '../lib/move.js';
 import {toPaise} from '../lib/money.js';
 
@@ -26,15 +25,26 @@ const MIN = 100; // paise; Razorpay takes nothing under ₹1
  */
 async function credit(topup, paymentId) {
   const wallet = await move(
-    topup.userId,
+    topup.user_id,
     'credit',
     topup.amount,
     'Added by card or UPI',
-    `topup-${topup.razorpayOrderId}`,
+    `topup-${topup.razorpay_order_id}`,
   );
-  await Topup.updateOne({_id: topup._id, paidAt: {$exists: false}}, {$set: {paymentId, paidAt: new Date()}});
+  await query('UPDATE topups SET payment_id = $2, paid_at = now() WHERE id = $1 AND paid_at IS NULL', [
+    topup.id,
+    paymentId,
+  ]);
   return wallet;
 }
+
+const topupBy = async (orderId, userId) =>
+  (
+    await query(
+      `SELECT * FROM topups WHERE razorpay_order_id = $1${userId ? ' AND user_id = $2' : ''}`,
+      userId ? [orderId, userId] : [orderId],
+    )
+  ).rows[0];
 
 /** What the wallet panel can offer: card/UPI when Razorpay is on, test money where that is allowed. */
 topupRoutes.get('/topup/config', requireAuth, (_req, res) => {
@@ -51,9 +61,14 @@ topupRoutes.post(
     if (!cfg) throw new ApiError(503, 'PAYMENTS_UNAVAILABLE', 'Card and UPI top-ups are not switched on yet');
     const amount = toPaise(req.body.amount);
     if (amount < MIN) throw new ApiError(400, 'INVALID_AMOUNT', 'Add at least ₹1');
-    const _id = new mongoose.Types.ObjectId();
-    const rzp = await createRazorpayOrder(cfg, amount, `topup-${_id}`);
-    await Topup.create({_id, userId: req.user.sub, amount, razorpayOrderId: rzp.id});
+    const id = newId();
+    const rzp = await createRazorpayOrder(cfg, amount, `topup-${id}`);
+    await query('INSERT INTO topups (id, user_id, amount, razorpay_order_id) VALUES ($1, $2, $3, $4)', [
+      id,
+      req.user.sub,
+      amount,
+      rzp.id,
+    ]);
     res.json({data: {keyId: cfg.keyId, razorpayOrderId: rzp.id, amount}});
   },
 );
@@ -71,7 +86,7 @@ topupRoutes.post(
   ),
   async (req, res) => {
     const cfg = razorpayConfig();
-    const topup = await Topup.findOne({razorpayOrderId: req.body.razorpay_order_id, userId: req.user.sub});
+    const topup = await topupBy(req.body.razorpay_order_id, req.user.sub);
     if (!cfg || !topup || !checkoutSignatureOk(cfg.keySecret, req.body)) {
       throw new ApiError(400, 'BAD_SIGNATURE', 'We could not confirm this payment');
     }
@@ -89,7 +104,7 @@ topupRoutes.post('/topup/razorpay/webhook', async (req, res) => {
   const payment = req.body.payload?.payment?.entity;
   if (req.body.event === 'payment.captured' && payment?.order_id) {
     // Order payments reach this hook too; only our own top-ups, for the amount we fixed, are credited.
-    const topup = await Topup.findOne({razorpayOrderId: payment.order_id});
+    const topup = await topupBy(payment.order_id);
     if (topup && payment.amount === topup.amount) await credit(topup, payment.id);
   }
   // Always 200 for a signed call, so Razorpay stops retrying what we have handled or cannot use.

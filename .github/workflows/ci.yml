@@ -11,6 +11,19 @@ jobs:
       mongo:
         image: mongo:8
         ports: ['27017:27017']
+      # The wallet keeps its money in PostgreSQL.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: pirento
+          POSTGRES_PASSWORD: pirento
+          POSTGRES_DB: pirento_wallet
+        ports: ['5432:5432']
+        options: --health-cmd pg_isready --health-interval 2s --health-timeout 5s --health-retries 20
+      # Shared cache and rate limits, as behind the load balancer.
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,6 +42,7 @@ jobs:
           RATE_LIMIT_OTP: '500'
           RATE_LIMIT_PER_MIN: '5000'
           OTP_RESEND_SECONDS: '0'
+          REDIS_URL: redis://127.0.0.1:6379
           # Bharat ID verification against the Digio stand-in
           DIGIO_URL: http://127.0.0.1:4090
           DIGIO_CLIENT_ID: test
@@ -39,7 +53,7 @@ jobs:
           node scripts/digio-standin.mjs > digio.log 2>&1 &
           npm run dev > dev.log 2>&1 &
           for i in $(seq 1 60); do
-            curl -sf http://127.0.0.1:4000/health && curl -sf http://127.0.0.1:4009/health && break
+            curl -sf http://127.0.0.1:4000/health && curl -sf http://127.0.0.1:4002/health && curl -sf http://127.0.0.1:4009/health && break
             sleep 2
           done
           npm run e2e
