@@ -1,5 +1,6 @@
 // Tracks and their question banks: the built-in ones (@pirento/shared/exam) merged with what admin added.
 import {EXAM_RULES} from '@pirento/shared';
+import {cached} from '@pirento/shared/server';
 import {TRACKS, bankForSlug} from '@pirento/shared/exam';
 import {Question} from '../models/Question.js';
 import {Track} from '../models/Track.js';
@@ -31,7 +32,8 @@ export function mergeTracks(rows) {
   return merged;
 }
 
-export const allTracks = async () => mergeTracks(await Track.find().lean());
+// Read on every exam start and track list, so cached; saving a track forgets it.
+export const allTracks = () => cached('learning:tracks', 300, async () => mergeTracks(await Track.find().lean()));
 
 export async function trackOf(slug) {
   return (await allTracks()).find((t) => t.slug === slug) ?? null;

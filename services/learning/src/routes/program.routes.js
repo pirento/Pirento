@@ -6,6 +6,7 @@ import {httpUrl} from '../lib/urls.js';
 import {PROGRAM_MONTHS} from '@pirento/shared';
 import {
   ApiError,
+  cached,
   conflict,
   isId,
   isStaff,
@@ -30,7 +31,7 @@ export const programRoutes = Router();
 
 /** The four lengths, with a price once a superadmin has put them on sale. */
 programRoutes.get('/programs', async (_req, res) => {
-  const rows = await Program.find({active: true}).lean();
+  const rows = await cached('learning:programs', 300, () => Program.find({active: true}, {months: 1, price: 1}).lean());
   res.json({
     data: PROGRAM_MONTHS.map((months) => {
       const p = rows.find((r) => r.months === months);
