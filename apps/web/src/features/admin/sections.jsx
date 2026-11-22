@@ -17,6 +17,8 @@ import {MyWork} from './MyWork';
 import {BookService} from './BookService';
 import {Settings} from './Settings';
 import {Openings} from './Openings';
+import {Companies} from './Companies';
+import {Courses} from './Courses';
 import {IdentityQueue} from '../identity/IdentityQueue';
 import {BusinessQueue} from '../business/BusinessQueue';
 import {EnrolQueue} from '../identity/EnrolQueue';
@@ -53,6 +55,8 @@ export const SECTIONS = {
   deletions: Deletions,
   settings: Settings,
   openings: Openings,
+  companies: Companies,
+  courses: Courses,
   certificates: Certificates,
   partners: Partners,
   services: Services,

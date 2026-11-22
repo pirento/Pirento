@@ -101,6 +101,7 @@ services:
       <<: *env
       SERVICE: learning
       MONGO_URI: mongodb://mongo:27017/pirento_learning
+      LEARNING_FILE_KEY: ${LEARNING_FILE_KEY:?set LEARNING_FILE_KEY in .env}
     depends_on: [mongo]
 
   vault:

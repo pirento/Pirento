@@ -7,6 +7,9 @@ const schema = new mongoose.Schema({
   track: {type: String, required: true},
   fullName: {type: String, required: true}, // the name printed on the certificate
   questionIds: [String],
+  // The track's rules when it started, so an admin edit never changes a running exam.
+  minutes: Number,
+  passPercent: Number,
   startedAt: {type: Date, default: Date.now},
   submittedAt: Date,
   percent: Number,

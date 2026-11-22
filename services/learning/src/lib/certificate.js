@@ -9,9 +9,12 @@ export const newCertificateCode = () => `PC-${crypto.randomBytes(4).toString('he
 /** What anyone may see about a certificate: never the account it belongs to. */
 export const publicCertificate = (c) => ({
   code: c.code,
+  kind: c.kind ?? 'exam',
   fullName: c.fullName,
   track: c.track,
-  trackName: trackName(c.track),
+  trackName: c.title ?? trackName(c.track), // the track (or internship role) as named when it was issued
+  company: c.company,
+  weeks: c.weeks,
   percent: c.percent,
   skills: c.skills,
   issuedAt: c.issuedAt,

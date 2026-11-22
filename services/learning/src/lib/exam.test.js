@@ -25,3 +25,10 @@ test('time limit', () => {
   assert.ok(withinTime(start, 31 * 60_000));
   assert.ok(!withinTime(start, 33 * 60_000));
 });
+
+test('an attempt keeps its own pass mark and time', () => {
+  const six = Object.fromEntries(bank.slice(0, 6).map((q) => [q.id, q.answer]));
+  assert.equal(score(bank, six, 70).passed, false);
+  assert.ok(withinTime(new Date(0), 50 * 60_000, 60));
+  assert.equal(score([], {}).percent, 0);
+});

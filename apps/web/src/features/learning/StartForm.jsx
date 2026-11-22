@@ -10,6 +10,7 @@ export function StartForm({tracks, certified, onStart}) {
   const [track, setTrack] = useState('');
   const [fullName, setFullName] = useState(user?.name ?? '');
   const [error, setError] = useState('');
+  const chosen = tracks.find((t) => t.slug === track);
   const start = async (e) => {
     e.preventDefault();
     setError('');
@@ -56,7 +57,7 @@ export function StartForm({tracks, certified, onStart}) {
         error={error}
       />
       <Button type="submit" variant="accent" disabled={!track}>
-        Start the 30-minute exam
+        {chosen ? `Start the ${chosen.minutes}-minute exam` : 'Start the exam'}
       </Button>
     </form>
   );

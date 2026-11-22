@@ -337,9 +337,12 @@ export const productDashboards = {
   green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
+    {id: 'learn', label: 'Learn', icon: 'learn'},
     {id: 'exams', label: 'Exams', icon: 'exams'},
     {id: 'certificates', label: 'Certificates', icon: 'certificates'},
     {id: 'openings', label: 'Openings', icon: 'openings'},
+    {id: 'internships', label: 'Internships', icon: 'internships'},
+    {id: 'company', label: 'Company', icon: 'company'},
   ),
   vault: APP_SECTIONS(
     {id: 'files', label: 'Files', icon: 'files'},
@@ -577,8 +580,9 @@ export const bharatIdGate = {
 
 export const appDashboards = {
   intern: {
-    hello: 'Your exams / and certificates.',
-    intro: 'Take a final exam, earn a certificate with a public verify page, and apply to openings.',
+    hello: 'Learn, prove it, / get the internship.',
+    intro:
+      'Read the lessons, take a final exam for a certificate anyone can check, apply to openings, and do the internship here: interview, offer, tasks and a completion certificate.',
     glance: {label: 'At a glance', title: 'Where you / stand.'},
     next: {label: 'Next', title: 'What to / do next.'},
     exams: {
@@ -598,7 +602,19 @@ export const appDashboards = {
       mine: 'Your applications',
       noMine: 'You have not applied yet.',
     },
-    applicationStatus: {new: 'Applied', shortlisted: 'Shortlisted', declined: 'Not selected'},
+    learn: {label: 'Lessons', title: 'Learn a track, / one lesson at a time.'},
+    internships: {label: 'Your applications', title: 'From applied / to certified.'},
+    company: {title: 'Hire interns / on Pirento.'},
+    applicationStatus: {
+      new: 'Applied',
+      shortlisted: 'Shortlisted',
+      interview: 'Interview',
+      offered: 'Offer made',
+      accepted: 'Interning',
+      completed: 'Completed',
+      declined: 'Not selected',
+      turned_down: 'Offer declined',
+    },
   },
   vault: {
     hello: 'Your vault, / locked.',
