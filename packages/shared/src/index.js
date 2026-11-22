@@ -36,7 +36,18 @@ export {
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';
-export {ID_SECTIONS, RELATIONS, validateSection} from './identity/form.js';
+export {ID_SECTIONS, RELATIONS, validateFields, validateSection} from './identity/form.js';
+export {
+  BUSINESS_PROFILE,
+  BUSINESS_REQUEST,
+  BUSINESS_TYPES,
+  CONSENT_FIELDS,
+  ENTITY_TYPES,
+  SANDBOX_AUTH,
+  TEST_BHARAT_IDS,
+} from './identity/business.js';
+export {AUTH_METHODS, authMethod, pinProblem} from './identity/authMethods.js';
+export {KYC_DONE, KYC_FAILED, declarationSigned, kycDone, kycFailed} from './identity/verification.js';
 
 // Money helpers
 export {emi} from './money/emi.js';

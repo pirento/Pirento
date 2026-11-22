@@ -1,9 +1,45 @@
-// Read-only list of every saved step (applicant and staff see the same).
+// Read-only list of every saved step, then the Digio verification (applicant and staff see the same).
 import {Pencil} from 'lucide-react';
-import {ID_SECTIONS} from '@pirento/shared';
+import {ID_SECTIONS, declarationSigned, kycDone, kycFailed} from '@pirento/shared';
 import {formatDate} from '../../lib/format';
+import {DeclarationLink} from './DeclarationLink';
 
-export function SectionSummary({sections, email, kyc, onEdit}) {
+const KYC_STEP = ID_SECTIONS.length;
+const SIGN_STEP = KYC_STEP + 1;
+const PIN_STEP = SIGN_STEP + 1;
+
+/** The video KYC line: Digio's state, or a video recorded on Pirento by older applications. */
+function kycLine(doc) {
+  if (doc?.kyc?.recordedAt && !doc.digio?.kycId) {
+    return doc.kyc.deletedAt
+      ? `Recorded on Pirento, checked, then deleted on ${formatDate(doc.kyc.deletedAt)}`
+      : `Recorded on Pirento ${formatDate(doc.kyc.recordedAt)}`;
+  }
+  if (kycDone(doc)) return doc.digio.kycStatus === 'approved' ? 'Done and approved on Digio' : 'Done on Digio';
+  if (kycFailed(doc)) return `Not passed on Digio (${doc.digio.kycStatus})`;
+  return doc?.digio?.kycId ? 'Started on Digio, not finished' : 'Not started';
+}
+
+function Row({title, children, onEdit, editLabel}) {
+  return (
+    <div className="grid gap-3 p-5 sm:grid-cols-[12rem_1fr_auto]">
+      <p className="font-medium">{title}</p>
+      <div className="min-w-0 space-y-2 text-sm">{children}</div>
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="inline-flex items-center gap-1 self-start text-sm underline underline-offset-4"
+        >
+          <Pencil aria-hidden className="size-3.5" /> {editLabel}
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function SectionSummary({doc, email, onEdit, declarationPath}) {
+  const sections = doc?.sections;
+  const signed = declarationSigned(doc);
   return (
     <div className="divide-y divide-rule rounded-[18px] border border-rule">
       {ID_SECTIONS.map((s, i) => (
@@ -35,25 +71,27 @@ export function SectionSummary({sections, email, kyc, onEdit}) {
           )}
         </div>
       ))}
-      {kyc !== undefined && (
-        <div className="grid gap-3 p-5 sm:grid-cols-[12rem_1fr_auto]">
-          <p className="font-medium">Video verification</p>
-          <p className="text-sm">
-            {kyc?.deletedAt
-              ? `Checked, then deleted on ${formatDate(kyc.deletedAt)}`
-              : kyc?.recordedAt
-                ? `Recorded ${formatDate(kyc.recordedAt)}`
-                : 'Not recorded yet'}
+      <Row
+        title="Video KYC"
+        onEdit={onEdit && !kycDone(doc) ? () => onEdit(KYC_STEP) : null}
+        editLabel={doc?.digio?.kycId ? 'Continue' : 'Start'}
+      >
+        <p>{kycLine(doc)}</p>
+      </Row>
+      {(doc?.digio?.kycId || !doc?.kyc?.recordedAt) && (
+        <Row title="Declaration" onEdit={onEdit && !signed ? () => onEdit(SIGN_STEP) : null} editLabel="Sign">
+          <p>
+            {signed
+              ? `Signed with Aadhaar eSign on ${formatDate(doc.digio.signedAt)}${doc.digio.stamped ? ', on e-stamp paper' : ''}`
+              : 'Not signed yet'}
           </p>
-          {onEdit && (
-            <button
-              onClick={() => onEdit(ID_SECTIONS.length)}
-              className="inline-flex items-center gap-1 self-start text-sm underline underline-offset-4"
-            >
-              <Pencil aria-hidden className="size-3.5" /> {kyc?.recordedAt ? 'Record again' : 'Record'}
-            </button>
-          )}
-        </div>
+          {signed && <DeclarationLink path={declarationPath} />}
+        </Row>
+      )}
+      {doc?.status !== 'approved' && (
+        <Row title="PIN" onEdit={onEdit ? () => onEdit(PIN_STEP) : null} editLabel={doc?.pinSet ? 'Change' : 'Set'}>
+          <p>{doc?.pinSet ? 'Set. It is never shown, to you or to us.' : 'Not set yet'}</p>
+        </Row>
       )}
     </div>
   );

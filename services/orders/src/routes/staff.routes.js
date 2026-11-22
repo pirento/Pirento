@@ -16,6 +16,8 @@ import {
   badInput,
   callService,
   conflict,
+  isId,
+  notFound,
   notify,
   productScope,
   requireAuth,
@@ -28,6 +30,8 @@ import {liveService} from '../lib/catalog.js';
 import {commissionFor, payCommission} from '../lib/commission.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
+import {PartnerPlan} from '../models/PartnerPlan.js';
+import {paidPlanOf} from '../lib/plans.js';
 import {completionCode, findAccessible, nextOrderNo, questionsOf, refundCard, seesAllWork} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
@@ -118,6 +122,7 @@ staffRoutes.get('/staff/partners', requireRole(...ACCESS.partners), async (_req,
       paid: byCode[p.code]?.paid ?? 0,
       earned: byCode[p.code]?.earned ?? 0,
       owed: byCode[p.code]?.owed ?? 0,
+      plan: paidPlanOf(p) ?? null, // null: on the free plan
     })),
   });
 });
@@ -135,6 +140,48 @@ staffRoutes.post('/staff/partners/pay-owed', requireRole(...ACCESS.partners), as
   }
   audit(req, 'partner.commission_paid', `${paid} orders`, owed.length > paid ? `${owed.length - paid} still owed` : '');
   res.json({data: {paid, left: owed.length - paid}});
+});
+
+// Pirento One plans. Finance sees them; only a superadmin makes or changes one (a price and a rate are promises).
+const planBody = z
+  .object({
+    name: z.string().trim().min(1).max(40),
+    price: z.number().int().min(0).max(1_000_000), // rupees
+    months: z.number().int().min(0).max(36),
+    commissionPct: z.number().min(0).max(50),
+    features: z.array(z.string().trim().min(1).max(80)).max(8),
+    recommended: z.boolean(),
+    active: z.boolean(),
+    sort: z.number().int().min(0).max(99),
+  })
+  .refine((p) => p.price > 0 === p.months > 0, {
+    message: 'A paid plan needs a length in months; the free plan has none',
+    path: ['months'],
+  });
+const toPlan = (b) => ({...b, price: b.price * 100});
+
+staffRoutes.get('/staff/partner-plans', requireRole(...ACCESS.partners), async (_req, res) => {
+  res.json({data: await PartnerPlan.find().sort({active: -1, sort: 1, price: 1})});
+});
+
+staffRoutes.post('/staff/partner-plans', requireRole(...ACCESS.catalog), validate(planBody), async (req, res) => {
+  const plan = await PartnerPlan.create(toPlan(req.body));
+  audit(req, 'partner-plan.create', plan.name, `₹${req.body.price} · ${plan.months} months · ${plan.commissionPct}%`);
+  res.status(201).json({data: plan});
+});
+
+staffRoutes.patch('/staff/partner-plans/:id', requireRole(...ACCESS.catalog), validate(planBody), async (req, res) => {
+  // A price or rate change applies to purchases from now on; plans already bought keep their rate.
+  const plan =
+    isId(req.params.id) && (await PartnerPlan.findByIdAndUpdate(req.params.id, toPlan(req.body), {new: true}));
+  if (!plan) throw notFound('No such plan');
+  audit(
+    req,
+    'partner-plan.update',
+    plan.name,
+    `₹${req.body.price} · ${plan.months} months · ${plan.commissionPct}%${plan.active ? '' : ' · retired'}`,
+  );
+  res.json({data: plan});
 });
 
 /**

@@ -3,31 +3,36 @@
 import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
-  Home,
   ArrowLeftRight,
+  Award,
+  BookOpen,
   Briefcase,
-  RefreshCw,
+  Building2,
+  ClipboardList,
   FileText,
-  MessagesSquare,
+  FolderLock,
+  Gem,
+  GraduationCap,
+  Handshake,
+  Home,
+  KeyRound,
   LayoutDashboard,
-  Receipt,
-  ShoppingBag,
   LifeBuoy,
+  ListChecks,
   LogOut,
+  Megaphone,
   Menu,
+  MessageSquare,
+  MessagesSquare,
+  Receipt,
+  RefreshCw,
   Search,
+  Share2,
   ShieldCheck,
+  ShoppingBag,
   UserRound,
   Wallet as WalletIcon,
   X,
-  Award,
-  ClipboardList,
-  FolderLock,
-  GraduationCap,
-  KeyRound,
-  Megaphone,
-  MessageSquare,
-  Share2,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
@@ -35,7 +40,7 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
-import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
+import {SINGLE_PAGE_SECTIONS, bharatIdBusiness, productDashboards} from '../../data/site';
 
 const SECTION_ICONS = {
   overview: LayoutDashboard,
@@ -53,10 +58,18 @@ const SECTION_ICONS = {
   passwords: KeyRound,
   chat: MessageSquare,
   referrals: Share2,
+  plans: Gem,
+  sharing: Handshake,
+  company: Building2,
+  consents: ListChecks,
+  docs: BookOpen,
+  checks: ShieldCheck,
   apply: ClipboardList,
 };
 
 const InApp = createContext(false);
+// Bharat ID for Business is a console of its own: a dark sidebar, so it never looks like a person's dashboard.
+const isBusiness = (pathname) => pathname.startsWith('/bharat-id/business/dashboard');
 /** True inside the app shell; PageHero uses it to render a compact header. */
 export const useInApp = () => useContext(InApp);
 
@@ -75,6 +88,25 @@ function useAppNav() {
         label,
         items: items.map((s) => ({...s, to: `/admin/${s.id}`})),
       })),
+    };
+  }
+  // Bharat ID for Business has its own dashboard, apart from a person's Bharat ID.
+  if (pathname.startsWith('/bharat-id/business/dashboard')) {
+    return {
+      title: bharatIdBusiness.dashboard.title,
+      groups: [
+        ...Object.entries(Object.groupBy(bharatIdBusiness.dashboard.sections, (s) => s.group)).map(
+          ([label, items]) => ({
+            label,
+            items: items.map((s) => ({
+              label: s.label,
+              to: s.id === 'overview' ? '/bharat-id/business/dashboard' : `/bharat-id/business/dashboard/${s.id}`,
+              icon: SECTION_ICONS[s.icon],
+            })),
+          }),
+        ),
+        {label: 'Help', items: [{label: 'Bharat ID for Business', to: '/bharat-id/business', icon: Home}]},
+      ],
     };
   }
   // A product's dashboard is its own app: only its sections, never the other products. Wallet and Support
@@ -132,6 +164,8 @@ function Sidebar({onNavigate}) {
   const product = useProductSite();
   const {pathname} = useLocation();
   const navRef = useRef(null);
+  const business = isBusiness(pathname);
+  const hover = business ? 'hover:bg-ink/10' : 'hover:bg-stone';
   // A long admin list scrolls; keep the current page's link in view.
   useEffect(() => {
     navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({block: 'nearest'});
@@ -144,7 +178,14 @@ function Sidebar({onNavigate}) {
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-3 font-display text-[0.95rem] font-semibold tracking-[0.04em] uppercase"
       >
-        {product && hasLogo(product.slug) ? (
+        {business ? (
+          <>
+            <SiteLogo brand={product.slug} tone="light" alt={product.name} className="h-9 w-auto" />
+            <span className="rounded-full border border-rule px-2 py-0.5 text-[0.65rem] tracking-[0.12em]">
+              Business
+            </span>
+          </>
+        ) : product && hasLogo(product.slug) ? (
           <SiteLogo brand={product.slug} alt={product.name} className="h-9 w-auto" />
         ) : product ? (
           <>
@@ -186,7 +227,7 @@ function Sidebar({onNavigate}) {
                     onClick={onNavigate}
                     className={({isActive}) =>
                       `flex items-center gap-3 rounded-full px-3 py-2 text-sm transition-colors ${
-                        isActive ? 'bg-ink text-paper' : 'text-muted hover:bg-stone hover:text-ink'
+                        isActive ? 'bg-ink text-paper' : `text-muted ${hover} hover:text-ink`
                       }`
                     }
                   >
@@ -223,7 +264,7 @@ function Sidebar({onNavigate}) {
         </div>
         <button
           onClick={signOut}
-          className="flex w-full items-center gap-3 rounded-full px-3 py-2 text-muted hover:bg-stone hover:text-ink"
+          className={`flex w-full items-center gap-3 rounded-full px-3 py-2 text-muted ${hover} hover:text-ink`}
         >
           <LogOut aria-hidden className="size-4" /> Sign out
         </button>
@@ -236,17 +277,29 @@ export function AppLayout({children}) {
   const [open, setOpen] = useState(false);
   const {pathname} = useLocation();
   const product = useProductSite();
+  const business = isBusiness(pathname);
   useEffect(() => setOpen(false), [pathname]);
 
   return (
     <InApp.Provider value={true}>
       <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
         {/* Desktop: a fixed sidebar. Phones: a top bar that opens it as a drawer. */}
-        <aside className="sticky top-0 hidden h-dvh border-r border-rule bg-stone px-4 py-6 lg:block">
+        <aside
+          className={`sticky top-0 hidden h-dvh border-r border-rule px-4 py-6 lg:block ${business ? 'inverse' : 'bg-stone'}`}
+        >
           <Sidebar />
         </aside>
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule bg-paper/90 px-5 backdrop-blur lg:hidden">
-          {product && hasLogo(product.slug) ? (
+        <header
+          className={`sticky top-0 z-40 flex h-16 items-center justify-between border-b border-rule px-5 backdrop-blur lg:hidden ${business ? 'inverse' : 'bg-paper/90'}`}
+        >
+          {business ? (
+            <span className="flex items-center gap-2">
+              <SiteLogo brand={product.slug} tone="light" alt={product.name} className="h-8 w-auto" />
+              <span className="rounded-full border border-rule px-2 py-0.5 text-[0.65rem] tracking-[0.12em] uppercase">
+                Business
+              </span>
+            </span>
+          ) : product && hasLogo(product.slug) ? (
             <SiteLogo brand={product.slug} alt={product.name} className="h-8 w-auto" />
           ) : product ? (
             <span className="font-display text-sm font-semibold tracking-[0.04em] uppercase">{siteName(product)}</span>
@@ -265,7 +318,9 @@ export function AppLayout({children}) {
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
             <button aria-label="Close menu" className="absolute inset-0 bg-inverse/60" onClick={() => setOpen(false)} />
-            <div className="absolute inset-y-0 left-0 w-[85%] max-w-xs bg-stone px-4 py-6">
+            <div
+              className={`absolute inset-y-0 left-0 w-[85%] max-w-xs px-4 py-6 ${business ? 'inverse' : 'bg-stone'}`}
+            >
               <button
                 onClick={() => setOpen(false)}
                 aria-label="Close menu"

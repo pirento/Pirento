@@ -5,8 +5,8 @@
 import {INDIAN_STATES} from '../data/intake.js';
 import {verhoeffValid} from './bharatId.js';
 
-const MOBILE = '^[6-9]\\d{9}$';
-const NAME = "^[\\p{L} .'-]{2,80}$";
+export const MOBILE = '^[6-9]\\d{9}$';
+export const NAME = "^[\\p{L} .'-]{2,80}$";
 
 const adult = (v) => {
   const d = new Date(v);
@@ -127,11 +127,17 @@ export const ID_SECTIONS = [
 export function validateSection(sectionId, input) {
   const section = ID_SECTIONS.find((s) => s.id === sectionId);
   if (!section) return {error: 'Unknown step'};
+  return validateFields(section.fields, input);
+}
+
+/** Checks values against a list of field definitions (the shape ID_SECTIONS uses). */
+export function validateFields(fields, input) {
   const data = {};
-  for (const f of section.fields) {
+  for (const f of fields) {
     let v = typeof input?.[f.id] === 'string' ? input[f.id].trim() : '';
     if (f.clean) v = f.clean(v);
     if (f.upper) v = v.toUpperCase();
+    if (f.lower) v = v.toLowerCase();
     if (!v) {
       if (f.optional) continue;
       return {error: `Enter ${f.label.toLowerCase()}`, field: f.id};

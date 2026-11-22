@@ -1,4 +1,5 @@
-// Customer sign-in: a code by mobile, email or Bharat ID (in that order); or, below, a password or Google;
+// Customer sign-in: a code by mobile, email or Bharat ID (in that order), or Bharat ID with its PIN and date of
+// birth; or, below, a password or Google;
 // then your name, the first time. Ends with "New to Pirento?" and the way to create an account.
 import {useEffect, useState} from 'react';
 import {Link} from 'react-router-dom';
@@ -100,6 +101,8 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
   const [code, setCode] = useState('');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
+  const [pin, setPin] = useState('');
+  const [dob, setDob] = useState('');
   const [name, setName] = useState('');
   const [sent, setSent] = useState(null);
   const [error, setError] = useState(null);
@@ -142,11 +145,21 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
     });
   const passwordSignIn = () =>
     run(async () => finish(await api('/auth/password/login', {method: 'POST', body: {login: login.trim(), password}})));
+  const pinSignIn = () =>
+    run(async () =>
+      finish(
+        await api('/auth/otp/bharat-id/pin', {
+          method: 'POST',
+          body: {bharatId: value.replace(/\s/g, ''), pin, dob},
+        }),
+      ),
+    );
   const google = (idToken) => run(async () => finish(await api('/auth/google', {method: 'POST', body: {idToken}})));
 
   const submit = (e) => {
     e.preventDefault();
     if (mode === 'password') passwordSignIn();
+    else if (mode === 'pin') pinSignIn();
     else if (step === 'enter') requestCode();
     else if (step === 'code') verifyCode();
     else run(() => onNamed(name));
@@ -158,24 +171,28 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
   };
 
   const heading =
-    mode === 'password'
-      ? 'Sign in with password'
-      : {enter: title, code: active === 'mobile' ? 'Check your phone' : 'Check your email', name: 'One last thing'}[
-          step
-        ];
+    mode === 'pin'
+      ? 'Sign in with your Bharat ID PIN'
+      : mode === 'password'
+        ? 'Sign in with password'
+        : {enter: title, code: active === 'mobile' ? 'Check your phone' : 'Check your email', name: 'One last thing'}[
+            step
+          ];
   const sub =
-    mode === 'password'
-      ? 'Your user ID, or the email you signed up with, and your password.'
-      : {
-          enter: 'Sign in with your mobile number, email or Bharat ID.',
-          code: (
-            <>
-              We sent a 6-digit code to <span className="text-ink">{sent?.sentTo ?? value}</span>. It works for 10
-              minutes.
-            </>
-          ),
-          name: 'Welcome to Pirento. What should we call you?',
-        }[step];
+    mode === 'pin'
+      ? 'Your 10-digit Bharat ID, the 6-digit PIN you set on it, and your date of birth.'
+      : mode === 'password'
+        ? 'Your user ID, or the email you signed up with, and your password.'
+        : {
+            enter: 'Sign in with your mobile number, email or Bharat ID.',
+            code: (
+              <>
+                We sent a 6-digit code to <span className="text-ink">{sent?.sentTo ?? value}</span>. It works for 10
+                minutes.
+              </>
+            ),
+            name: 'Welcome to Pirento. What should we call you?',
+          }[step];
 
   return (
     <div>
@@ -210,6 +227,32 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
                 Forgot password?
               </Link>
             </div>
+            <Problem error={error} query={query} />
+          </div>
+        )}
+
+        {mode === 'pin' && (
+          <div className="space-y-5">
+            <Field
+              label="10-digit Bharat ID"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="0000 0000 00"
+              maxLength={16}
+              required
+              value={value}
+              onChange={(e) => setValue(e.target.value.replace(/[^\d ]/g, ''))}
+            />
+            <PasswordField
+              label="6-digit PIN"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={6}
+              required
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            />
+            <Field label="Date of birth" type="date" required value={dob} onChange={(e) => setDob(e.target.value)} />
             <Problem error={error} query={query} />
           </div>
         )}
@@ -273,6 +316,15 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
                 {m.hint}
                 {!mobileOn && ' Mobile codes are Expected.'}
               </p>
+              {active === 'bharat-id' && (
+                <button
+                  type="button"
+                  onClick={() => switchMode('pin')}
+                  className="mt-3 text-sm underline underline-offset-4"
+                >
+                  Use your Bharat ID PIN and date of birth instead
+                </button>
+              )}
               <Problem error={error} query={query} />
             </div>
           </>
@@ -327,7 +379,7 @@ export function CustomerSignIn({title, product, query, onSignedIn, onNamed, onSk
         >
           {busy
             ? 'Please wait'
-            : mode === 'password'
+            : mode === 'password' || mode === 'pin'
               ? 'Sign in'
               : {enter: 'Send code', code: 'Sign in', name: 'Continue'}[step]}
         </AuthButton>

@@ -75,3 +75,25 @@ export async function checkCode(key, code) {
 
 /** "asha.verma@gmail.com" → "as•••@gmail.com", to show where a code went without revealing it. */
 export const maskEmail = (email) => email.replace(/^(.{1,2})[^@]*(@.*)$/, '$1•••$2');
+
+/**
+ * A code for a purpose other than signing in (a Bharat ID check a business asked for), kept under its own key so it
+ * never replaces or answers a sign-in code. `to` is {email} or {phone}.
+ */
+export async function sendKeyedCode(key, to, brand) {
+  if (to.phone) {
+    const code = await newCode(key);
+    try {
+      await sendSms(to.phone, `${code} is your ${brand} code. It works for 10 minutes. Do not share it.`);
+    } catch (err) {
+      await Otp.deleteMany({email: key});
+      throw err;
+    }
+    return reply(code);
+  }
+  if (config.isProduction && !mailer()) throw new ApiError(503, 'EMAIL_UNAVAILABLE', 'Email codes are not set up yet');
+  const code = await newCode(key);
+  if (mailer()) await sendOtpEmail(to.email, code, brand);
+  else console.log(`Code for ${to.email}: ${code} (no SMTP_URL, so not emailed)`);
+  return reply(code);
+}

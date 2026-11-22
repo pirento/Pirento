@@ -1,4 +1,4 @@
-// The banner, paused checkouts and partner commission rate: read by everyone, changed by a superadmin.
+// The banner and paused checkouts: read by everyone, changed by a superadmin.
 import {Router} from 'express';
 import {z} from 'zod';
 import {PRODUCTS} from '@pirento/shared';
@@ -7,11 +7,11 @@ import {Settings, readSettings} from '../models/Settings.js';
 
 export const settingsRoutes = Router();
 
-const publicView = ({banner, paused, commissionPct}) => ({banner, paused, commissionPct: commissionPct ?? 0});
+const publicView = ({banner, paused}) => ({banner, paused});
 
 settingsRoutes.get('/settings', async (_req, res) => res.json({data: publicView(await readSettings())}));
 
-/** For the orders service: it refuses checkout on a paused product and reads the commission rate. */
+/** For the orders service, which refuses checkout on a paused product. */
 settingsRoutes.post('/internal/settings', requireInternal, async (_req, res) =>
   res.json({data: publicView(await readSettings())}),
 );
@@ -29,8 +29,6 @@ settingsRoutes.patch(
         link: z.union([z.literal(''), z.string().regex(/^\/[a-z0-9/_-]*$/i, 'Use a path on this site, like /legal')]),
       }),
       paused: z.array(z.enum(PRODUCTS.map((p) => p.slug))).max(PRODUCTS.length),
-      // Optional, so a form that leaves it out never resets the rate.
-      commissionPct: z.number().min(0).max(50).optional(),
     }),
   ),
   async (req, res) => {
@@ -40,7 +38,7 @@ settingsRoutes.patch(
       req,
       'settings.update',
       'site',
-      `banner ${doc.banner.on ? 'on' : 'off'} · paused: ${doc.paused.join(', ') || 'none'} · commission ${doc.commissionPct ?? 0}%`,
+      `banner ${doc.banner.on ? 'on' : 'off'} · paused: ${doc.paused.join(', ') || 'none'}`,
     );
     res.json({data: publicView(doc)});
   },

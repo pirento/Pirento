@@ -1,15 +1,16 @@
-// The applicant's side: fill the steps, record the video, submit.
-import express, {Router} from 'express';
-import {z} from 'zod';
+// The applicant's side: fill the steps, do the video KYC and sign the declaration on Digio, submit.
+import {Router} from 'express';
 import {ID_SECTIONS, validateSection} from '@pirento/shared';
-import {ApiError, badInput, conflict, encrypt, requireAuth, validate} from '@pirento/shared/server';
-import {config} from '../config.js';
+import {ApiError, badInput, conflict, requireAuth} from '@pirento/shared/server';
+import {config, digioOn} from '../config.js';
 import {Identity} from '../models/Identity.js';
-import {KycVideo} from '../models/KycVideo.js';
-import {challengeValid, newChallenge} from '../lib/challenge.js';
+import {Centre} from '../models/Centre.js';
+import {signedDocument} from '../lib/digio.js';
+import {remindFromNow} from '../lib/reminders.js';
+import {UNSIGN, kycDone, refreshKyc, refreshSign, signed, startKyc, startSign} from '../lib/verification.js';
 
 export const applicationRoutes = Router();
-applicationRoutes.use(['/me', '/draft', '/kyc', '/submit'], requireAuth);
+applicationRoutes.use(['/me', '/start', '/draft', '/kyc', '/sign', '/declaration', '/submit'], requireAuth);
 
 const EDITABLE = {$in: ['draft', 'rejected']};
 const locked = () => conflict('LOCKED', 'Your application is already with our team');
@@ -19,7 +20,7 @@ async function editable(req) {
   try {
     return await Identity.findOneAndUpdate(
       {userId: req.user.sub, status: EDITABLE},
-      {$setOnInsert: {email: req.user.email}},
+      {$setOnInsert: {email: req.user.email, ...remindFromNow()}},
       {new: true, upsert: true},
     );
   } catch (err) {
@@ -36,88 +37,118 @@ async function editable(req) {
 async function stillEditable(doc, set, unset) {
   const saved = await Identity.findOneAndUpdate(
     {_id: doc._id, status: EDITABLE},
-    {$set: set, ...(unset ? {$unset: unset} : {})},
+    // Every change starts the reminder clock again: reminders follow a stalled application, not a busy one.
+    {$set: {...set, ...remindFromNow()}, ...(unset && {$unset: unset})},
     {new: true},
   );
   if (!saved) throw locked();
   return saved;
 }
 
+/** What the browser needs to open Digio's web SDK; `on` is false until the account keys are set. */
+applicationRoutes.get('/digio/config', (_req, res) => {
+  res.json({
+    data: {
+      on: digioOn(),
+      environment: config.digio.environment,
+      sdk: config.digio.sdk,
+      stamped: Boolean(config.digio.estampTag),
+    },
+  });
+});
+
 applicationRoutes.get('/me', async (req, res) => {
   res.json({data: await Identity.findOne({userId: req.user.sub})});
 });
 
-/** Saves one step. Only while drafting or after a rejection, never once submitted. */
+/**
+ * Starts (or reopens) the application, e.g. from an enrolment centre's QR. The first centre is kept: scanning
+ * another one later does not move it.
+ */
+applicationRoutes.post('/start', async (req, res) => {
+  const code = typeof req.body?.centre === 'string' ? req.body.centre.toUpperCase() : '';
+  const centre = /^[A-Z0-9]{6}$/.test(code) && (await Centre.findOne({code, active: true}));
+  if (code && !centre) throw new ApiError(404, 'CENTRE_CLOSED', 'This enrolment centre is not open');
+  const doc = await editable(req);
+  if (!centre || doc.centre?.code) return res.json({data: doc});
+  res.json({
+    data: await Identity.findOneAndUpdate(
+      {_id: doc._id, 'centre.code': {$exists: false}},
+      {$set: {centre: {code: centre.code, name: centre.name}}},
+      {new: true},
+    ).then((d) => d ?? doc),
+  });
+});
+
+/** Saves one step. Changing the details voids a signed declaration: it no longer matches what was signed. */
 applicationRoutes.put('/draft/:section', async (req, res) => {
   const {data, error} = validateSection(req.params.section, req.body);
   if (error) throw badInput(error);
   const doc = await editable(req);
-  res.json({data: await stillEditable(doc, {[`sections.${req.params.section}`]: data})});
+  const same = JSON.stringify(doc.sections?.[req.params.section] ?? null) === JSON.stringify(data);
+  res.json({data: await stillEditable(doc, {[`sections.${req.params.section}`]: data}, same ? null : UNSIGN)});
 });
 
-/**
- * Video KYC, part 1: the code to say on camera. Reuses a fresh one, so
- * reloading the page does not change the code mid-recording.
- */
-applicationRoutes.post('/kyc/challenge', async (req, res) => {
-  const doc = await editable(req);
-  const fresh = challengeValid(doc.kyc)
-    ? doc
-    : await stillEditable(doc, {'kyc.challenge': newChallenge(), 'kyc.challengeAt': new Date()});
-  const expiresAt = new Date(new Date(fresh.kyc.challengeAt).getTime() + config.challengeLifeMs);
-  res.json({data: {challenge: fresh.kyc.challenge, expiresAt}});
+/** Video KYC on Digio: returns the request id and token for the web SDK. */
+applicationRoutes.post('/kyc/start', async (req, res) => {
+  const {doc, kycId, token} = await startKyc(await editable(req), stillEditable);
+  res.json({data: {doc, kycId, token, identifier: doc.email}});
 });
 
-/** Video KYC, part 2: the recording itself, as raw video bytes. */
-applicationRoutes.post(
-  '/kyc/video',
-  express.raw({type: ['video/webm', 'video/mp4'], limit: config.maxVideoBytes}),
-  async (req, res) => {
-    if (!Buffer.isBuffer(req.body) || req.body.length < 1000) throw badInput('The recording is empty. Record again.');
-    const doc = await editable(req);
-    if (!challengeValid(doc.kyc)) {
-      throw new ApiError(400, 'CHALLENGE_EXPIRED', 'Your code has expired. Get a new code and record again.');
-    }
-    const type = req.headers['content-type'].split(';')[0];
-    await KycVideo.findOneAndUpdate(
-      {userId: req.user.sub},
-      {type, ...encrypt(config.kycKey, req.body)},
-      {upsert: true, new: true},
-    );
-    const saved = await stillEditable(
-      doc,
-      {'kyc.recordedAt': new Date(), 'kyc.size': req.body.length, 'kyc.mimeType': type},
-      {'kyc.deletedAt': 1},
-    );
-    res.status(201).json({data: saved});
-  },
-);
+/** After the SDK closes: asks Digio how the KYC went. */
+applicationRoutes.post('/kyc/refresh', async (req, res) => {
+  const doc = await Identity.findOne({userId: req.user.sub});
+  res.json({data: doc && (await refreshKyc(doc))});
+});
 
-applicationRoutes.post(
-  '/submit',
-  validate(z.object({consent: z.literal(true, {message: 'Tick the box to agree'})})),
-  async (req, res) => {
-    const doc = await Identity.findOne({userId: req.user.sub, status: EDITABLE});
-    if (!doc) throw conflict('LOCKED', 'There is nothing to submit');
-    const missing = ID_SECTIONS.find((s) => !doc.sections?.[s.id]);
-    if (missing) throw new ApiError(400, 'INCOMPLETE', `Finish the "${missing.title}" step first`);
-    if (!doc.kyc?.recordedAt) throw new ApiError(400, 'INCOMPLETE', 'Record your video verification first');
+/** The declaration, for Aadhaar eSign (with an e-stamp when one is set up): request id and token for the SDK. */
+applicationRoutes.post('/sign/start', async (req, res) => {
+  const {doc, docId, token} = await startSign(await editable(req), stillEditable);
+  res.json({data: {doc, docId, token, identifier: doc.email}});
+});
 
-    const submitted = await Identity.findOneAndUpdate(
-      {_id: doc._id, status: doc.status},
-      {
-        $set: {
-          status: 'submitted',
-          submittedAt: new Date(),
-          consentAt: new Date(),
-          fullName: doc.sections.personal.fullName,
-          state: doc.sections.address.state,
-        },
-        $unset: {reason: 1},
+applicationRoutes.post('/sign/refresh', async (req, res) => {
+  const doc = await Identity.findOne({userId: req.user.sub});
+  res.json({data: doc && (await refreshSign(doc))});
+});
+
+/** The signed declaration, straight from Digio. */
+applicationRoutes.get('/declaration', async (req, res) => {
+  const doc = await Identity.findOne({userId: req.user.sub});
+  if (!doc || !signed(doc)) throw new ApiError(404, 'NOT_SIGNED', 'Your declaration is not signed yet');
+  const file = await signedDocument(doc.digio.docId);
+  res.set({
+    'content-type': 'application/pdf',
+    'content-disposition': 'attachment; filename="Bharat-ID-declaration.pdf"',
+    'cache-control': 'no-store',
+  });
+  res.send(Buffer.from(await file.arrayBuffer()));
+});
+
+/** Sends the application to the team: every step, a finished video KYC, a signed declaration and a PIN. */
+applicationRoutes.post('/submit', async (req, res) => {
+  const doc = await Identity.findOne({userId: req.user.sub, status: EDITABLE});
+  if (!doc) throw conflict('LOCKED', 'There is nothing to submit');
+  const missing = ID_SECTIONS.find((s) => !doc.sections?.[s.id]);
+  if (missing) throw new ApiError(400, 'INCOMPLETE', `Finish the "${missing.title}" step first`);
+  if (!kycDone(doc)) throw new ApiError(400, 'INCOMPLETE', 'Finish your video KYC first');
+  if (!signed(doc)) throw new ApiError(400, 'INCOMPLETE', 'Sign your declaration first');
+  if (!doc.pin?.hash) throw new ApiError(400, 'INCOMPLETE', 'Set your 6-digit PIN first');
+
+  const submitted = await Identity.findOneAndUpdate(
+    {_id: doc._id, status: doc.status, 'digio.docStatus': 'signed'},
+    {
+      $set: {
+        status: 'submitted',
+        submittedAt: new Date(),
+        consentAt: doc.digio.signedAt, // signing the declaration is the consent
+        fullName: doc.sections.personal.fullName,
+        state: doc.sections.address.state,
       },
-      {new: true},
-    );
-    if (!submitted) throw conflict('CHANGED', 'Your application changed. Reload and try again.');
-    res.json({data: submitted});
-  },
-);
+      $unset: {reason: 1},
+    },
+    {new: true},
+  );
+  if (!submitted) throw conflict('CHANGED', 'Your application changed. Reload and try again.');
+  res.json({data: submitted});
+});

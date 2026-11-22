@@ -4,6 +4,10 @@ import {useParams} from 'react-router-dom';
 import {AlertTriangle} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
+import {PlansSection} from '../partner/PlansSection';
+import {BusinessSection} from '../business/BusinessSection';
+import {AuthSection, WaysSection} from '../identity/HomeSections';
+import {useApi} from '../../lib/api/useApi';
 import {Faq} from '../../components/ui/Blocks';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {NotFound} from '../ecosystem/NotFoundPage';
@@ -41,6 +45,8 @@ export function ProductHome() {
   const {slug} = useParams();
   const product = getProduct(slug);
   const services = useServicesFor(slug);
+  // Pirento One shows its plans, once a superadmin has made some.
+  const plans = useApi(slug === 'one' ? '/orders/partner-plans' : null).data ?? [];
   const ref = useRef(null);
   usePageMotion(ref, [slug]);
   usePageMeta({title: product ? `${product.name} — ${product.overview}` : 'Not found', description: product?.overview});
@@ -53,6 +59,10 @@ export function ProductHome() {
     (n) => <Features key="f" product={product} variant={design.features} n={n} />,
     design.covers !== 'extra' && ((n) => <Extra key="e" product={product} n={n} />),
     (n) => <Audience key="a" product={product} n={n} />,
+    plans.length > 0 && ((n) => <PlansSection key="p" plans={plans} n={n} />),
+    slug === 'bharat-id' && ((n) => <WaysSection key="w" n={n} />),
+    slug === 'bharat-id' && ((n) => <AuthSection key="au" n={n} />),
+    slug === 'bharat-id' && ((n) => <BusinessSection key="b" n={n} />),
     design.covers !== 'how' && ((n) => <How key="h" product={product} variant={design.how} n={n} />),
     (n) => <Questions key="q" product={product} n={n} />,
     (n) => <Related key="r" product={product} n={n} />,

@@ -18,6 +18,9 @@ import {BookService} from './BookService';
 import {Settings} from './Settings';
 import {Openings} from './Openings';
 import {IdentityQueue} from '../identity/IdentityQueue';
+import {BusinessQueue} from '../business/BusinessQueue';
+import {EnrolQueue} from '../identity/EnrolQueue';
+import {Centres} from '../identity/Centres';
 import {FILTERS, StaffOrder} from '../orders/StaffOrder';
 import {TicketQueue} from '../support/TicketQueue';
 
@@ -36,6 +39,9 @@ export const SECTIONS = {
   ),
   // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
   'bharat-id': () => <IdentityQueue />,
+  business: () => <BusinessQueue />,
+  enrol: () => <EnrolQueue />,
+  centres: () => <Centres />,
   tickets: () => <TicketQueue />,
   enquiries: Enquiries,
   users: Users,

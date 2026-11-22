@@ -3,6 +3,7 @@
 // the role checks each service makes on its own routes.
 import {
   BadgeCheck,
+  Building2,
   Banknote,
   Briefcase,
   ClipboardList,
@@ -14,11 +15,13 @@ import {
   LayoutDashboard,
   Mail,
   ListChecks,
+  QrCode,
   Megaphone,
   ScrollText,
   SlidersHorizontal,
   TicketPercent,
   UserCog,
+  UserPlus,
   UserX,
   ShoppingBag,
   Users,
@@ -71,7 +74,33 @@ export const ADMIN_SECTIONS = [
     label: 'Bharat ID review',
     icon: BadgeCheck,
     roles: OPS,
-    intro: 'Submitted applications. Watch the video KYC, then approve or reject.',
+    intro: 'Submitted applications. Check the Digio video KYC and the signed declaration, then approve or reject.',
+  },
+  {
+    id: 'enrol',
+    group: 'Work',
+    label: 'New Bharat ID',
+    icon: UserPlus,
+    roles: ALL_STAFF, // ACCESS.enrol
+    intro: 'Start a Bharat ID for someone who is not signed in. They finish it from a link sent by email and SMS.',
+  },
+  {
+    id: 'centres',
+    group: 'Work',
+    label: 'Enrolment centres',
+    icon: QrCode,
+    roles: ALL_STAFF, // ACCESS.enrol to see; ACCESS.identity to make and close
+    intro:
+      'Places where people start their Bharat ID by scanning a QR. Download each centre’s QR or a poster to print.',
+  },
+  {
+    id: 'business',
+    group: 'Work',
+    label: 'Bharat ID for Business',
+    icon: Building2,
+    roles: OPS, // ACCESS.business
+    intro:
+      'Requests for the Bharat ID API. Approving makes their account and emails the sign-in; live access opens after the company details are checked.',
   },
   {
     id: 'tickets',
@@ -160,7 +189,7 @@ export const ADMIN_SECTIONS = [
     label: 'Partners',
     icon: Handshake,
     roles: MONEY,
-    intro: 'Pirento One partners, the orders their code brought in, and their commission.',
+    intro: 'Pirento One plans, partners, the orders their code brought in, and their commission.',
   },
   {
     id: 'certificates',
@@ -185,7 +214,7 @@ export const ADMIN_SECTIONS = [
     label: 'Site settings',
     icon: SlidersHorizontal,
     roles: SUPER,
-    intro: 'The announcement banner, pausing checkout for a product, and the partner commission rate.',
+    intro: 'The announcement banner, and pausing checkout for a product.',
   },
   {
     id: 'audit',

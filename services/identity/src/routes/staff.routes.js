@@ -1,4 +1,4 @@
-// The team's side: review applications, watch the video, decide.
+// The team's side: review applications with their Digio KYC and signed declaration, decide.
 import {Router} from 'express';
 import {z} from 'zod';
 import {bharatIdFromSeq} from '@pirento/shared';
@@ -19,6 +19,8 @@ import {
 import {config} from '../config.js';
 import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
+import {kycMedia, signedDocument} from '../lib/digio.js';
+import {UNSIGN, kycDone, refreshKyc, refreshSign, signed} from '../lib/verification.js';
 
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.identity));
@@ -39,7 +41,41 @@ staffRoutes.get('/staff/user/:userId', async (req, res) => {
   res.json({data: doc});
 });
 
-/** Streams the decrypted KYC video for playback. Never cached. */
+const findApp = async (id) => {
+  const doc = isId(id) && (await Identity.findById(id));
+  if (!doc) throw notFound('Application not found');
+  return doc;
+};
+
+/** Asks Digio again how the KYC and the signature stand (webhooks can lag, above all in sandbox). */
+staffRoutes.post('/staff/:id/refresh', async (req, res) => {
+  const doc = await findApp(req.params.id);
+  res.json({data: await refreshSign(await refreshKyc(doc))});
+});
+
+/** Streams one file of the Digio KYC (the video, a selfie, a document). Only files of this application's steps. */
+staffRoutes.get('/staff/:id/media/:fileId', async (req, res) => {
+  const doc = await findApp(req.params.id);
+  if (!doc.digio?.kycActions?.some((a) => a.fileId === req.params.fileId)) throw notFound('No such file');
+  const file = await kycMedia(req.params.fileId);
+  res.set({
+    'content-type': file.headers.get('content-type') ?? 'application/octet-stream',
+    'cache-control': 'no-store',
+    'content-disposition': 'inline',
+  });
+  res.send(Buffer.from(await file.arrayBuffer()));
+});
+
+/** The signed, e-stamped declaration. */
+staffRoutes.get('/staff/:id/declaration', async (req, res) => {
+  const doc = await findApp(req.params.id);
+  if (!signed(doc)) throw notFound('The declaration is not signed');
+  const file = await signedDocument(doc.digio.docId);
+  res.set({'content-type': 'application/pdf', 'cache-control': 'no-store', 'content-disposition': 'inline'});
+  res.send(Buffer.from(await file.arrayBuffer()));
+});
+
+/** Streams a video recorded on Pirento before KYC moved to Digio. Never cached. */
 staffRoutes.get('/staff/:id/video', async (req, res) => {
   const doc = isId(req.params.id) && (await Identity.findById(req.params.id));
   const video = doc && (await KycVideo.findOne({userId: doc.userId}));
@@ -55,13 +91,25 @@ staffRoutes.patch(
     if (!isId(req.params.id)) throw notFound('Application not found');
     const {decision, reason} = req.body;
     if (decision === 'reject' && !reason) throw badInput('Tell the applicant why');
+    if (decision === 'approve') {
+      const app = await findApp(req.params.id);
+      // Older applications carry a video recorded on Pirento; newer ones must have passed Digio's KYC and signed.
+      if (!app.kyc?.recordedAt && !(kycDone(app) && signed(app))) {
+        throw conflict('NOT_VERIFIED', 'The video KYC is not finished or the declaration is not signed on Digio');
+      }
+    }
 
     const set =
       decision === 'approve'
         ? {status: 'approved', bharatId: bharatIdFromSeq(await nextSeq('bharat')), issuedAt: new Date()}
         : {status: 'rejected', reason};
     // Conditional on 'submitted': a second click cannot issue a second ID.
-    const doc = await Identity.findOneAndUpdate({_id: req.params.id, status: 'submitted'}, {$set: set}, {new: true});
+    // A sent-back application is signed again after it is fixed, so the old signature goes.
+    const doc = await Identity.findOneAndUpdate(
+      {_id: req.params.id, status: 'submitted'},
+      {$set: set, ...(decision === 'reject' && {$unset: UNSIGN})},
+      {new: true},
+    );
     if (!doc) throw conflict('CHANGED', 'This application was already decided');
 
     // Once the ID is issued the video has done its job: delete it, keep only the facts.
@@ -77,7 +125,10 @@ staffRoutes.patch(
       big: decision === 'approve' ? doc.bharatId : 'Needs changes',
       note:
         decision === 'approve'
-          ? 'Your Bharat ID is issued. Open the Bharat ID dashboard to see and download your card.'
+          ? // The PIN itself is never emailed: only how to use it, or where to set it.
+            doc.pin?.hash
+            ? 'Your Bharat ID is issued. You can now sign in with your Bharat ID, the PIN you set and your date of birth. Open the Bharat ID dashboard to see and download your card.'
+            : 'Your Bharat ID is issued. Set your 6-digit PIN in the Bharat ID dashboard (PIN) to sign in with it, and open the dashboard to see your card.'
           : `Our team could not approve it yet: ${reason}. Fix it and submit again from your dashboard.`,
     });
     res.json({data: doc});

@@ -100,8 +100,13 @@ export function Extra({product, n}) {
   const blocks = {
     intern: {title: 'Five tracks, / one exam each.', items: product.tracks},
     'bharat-id': {
-      title: 'Seven steps, / one short video.',
-      items: [...ID_SECTIONS.map((s) => s.title), 'Video verification', 'Review and submit'],
+      title: 'Seven steps, / then Digio.',
+      items: [
+        ...ID_SECTIONS.map((s) => s.title),
+        'Video KYC on Digio',
+        'Aadhaar eSign of the declaration',
+        'Review and submit',
+      ],
     },
     vault: {
       title: 'What happens / to your files.',

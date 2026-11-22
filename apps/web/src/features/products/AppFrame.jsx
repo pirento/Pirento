@@ -5,7 +5,7 @@ import {Heading} from '../../components/ui/Heading';
 import {productDashboards} from '../../data/site';
 import {usePageMotion} from '../../lib/motion';
 
-export function AppFrame({product, section, title, intro, action, ready = true, children}) {
+export function AppFrame({product, section, title, intro, action, eyebrow, ready = true, children}) {
   const ref = useRef(null);
   usePageMotion(ref, [ready, section]);
   const current = productDashboards[product.slug]?.find((s) => s.id === section);
@@ -13,9 +13,7 @@ export function AppFrame({product, section, title, intro, action, ready = true, 
     <div ref={ref} className="space-y-14 md:space-y-16">
       <header className="flex flex-wrap items-end justify-between gap-8">
         <div className="min-w-0">
-          <p className="eyebrow">
-            {product.name} · {current?.label ?? 'Dashboard'}
-          </p>
+          <p className="eyebrow">{eyebrow ?? `${product.name} · ${current?.label ?? 'Dashboard'}`}</p>
           <Heading
             as="h1"
             text={title}

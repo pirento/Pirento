@@ -4,6 +4,12 @@
 import {PRODUCT_COLOURS, textOn} from './brand.js';
 import {PRODUCT_DETAILS} from './productDetails.js';
 
+// Pirento One and Vault open only once the person's Bharat ID is issued (enforced by those services).
+const bharatIdFirst = (name) => ({
+  title: 'Get your Bharat ID',
+  body: `${name} opens once your Bharat ID is issued: seven short steps, a video KYC and an Aadhaar eSign on Digio, then a review by our team.`,
+});
+
 const signIn = {
   title: 'Sign in with email',
   body: 'A 6-digit code, no password. One account works on every Pirento site.',
@@ -111,6 +117,7 @@ const SITE = {
     pill: 'Encrypted at rest',
     steps: [
       signIn,
+      bharatIdFirst('Pirento Vault'),
       {title: 'Upload or save', body: 'Files up to 5 MB each, 50 MB in all, and any number of passwords.'},
       {title: 'Encrypted on arrival', body: 'Each item is sealed with AES-256-GCM and its own random IV.'},
       {title: 'Open when you need it', body: 'Download a file or reveal a password from your dashboard.'},
@@ -127,6 +134,7 @@ const SITE = {
     pill: 'Partners welcome',
     steps: [
       signIn,
+      bharatIdFirst('Pirento One'),
       {title: 'Get your code', body: 'One click gives you a partner code and a link.'},
       {title: 'Share the link', body: 'Clients who open it and order are credited to your code.'},
       {title: 'Watch it grow', body: 'See each referred order and its status in your dashboard.'},
@@ -134,7 +142,7 @@ const SITE = {
     faq: [
       {
         q: 'Do I earn commission?',
-        a: 'When Pirento has set a rate, a share of each order completed through your link goes to your Pirento wallet. Your dashboard shows the current rate. No income is guaranteed.',
+        a: 'Yes, at your plan’s rate: a share of each order completed through your link goes to your Pirento wallet. Everyone starts on the free plan; a paid plan raises the rate while it runs. No income is guaranteed.',
       },
       {
         q: 'Can I see my clients’ details?',
@@ -163,8 +171,12 @@ const SITE = {
         body: 'Contact, personal, documents, address, work, bank, nominee. Each one is saved as you go.',
       },
       {
-        title: 'Record a 20-second video',
-        body: 'Say your name and a one-time code on camera, so we know it is really you.',
+        title: 'Video KYC on Digio',
+        body: 'A short video KYC on Digio checks it is really you; it may ask for your Aadhaar and PAN from DigiLocker.',
+      },
+      {
+        title: 'Sign with Aadhaar',
+        body: 'You sign your declaration with Aadhaar eSign on Digio, with a one-time code to your Aadhaar mobile.',
       },
       {title: 'We review by hand', body: 'Our team checks your details. If something needs a change, we tell you why.'},
       {title: 'Get your ID', body: 'A 10-digit Bharat ID with a QR to its public verify page.'},
@@ -178,7 +190,11 @@ const SITE = {
       {q: 'Can I stop halfway?', a: 'Yes. Each step is saved; come back and continue where you left off.'},
       {
         q: 'What happens to my video?',
-        a: 'Our team watches it to check it is you, then it is deleted once your ID is issued.',
+        a: 'Your video KYC runs on Digio and stays with Digio; Pirento does not store it. Our team opens it from Digio to check it is you.',
+      },
+      {
+        q: 'Why do I sign a declaration?',
+        a: 'It records your details and your consent. You sign it with Aadhaar eSign on Digio and can download the signed copy from your dashboard.',
       },
     ],
   },
@@ -297,7 +313,7 @@ export const PRODUCTS = [
       {title: 'Referred orders', body: 'See each order placed with your code and its status.'},
       {title: 'Client privacy', body: 'You see the order, never your client’s contact details or answers.'},
     ],
-    caveat: 'Commission depends on the rate Pirento sets and on orders being completed. No income is guaranteed.',
+    caveat: 'Commission depends on your plan’s rate and on orders being completed. No income is guaranteed.',
     status: 'now',
   },
   {

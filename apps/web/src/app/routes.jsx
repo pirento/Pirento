@@ -20,6 +20,7 @@ export const ROUTES = [
   // Signing in and the shared account
   {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
   {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/continue', layout: 'auth', Page: page(() => import('../features/auth/ContinuePage'), 'Continue')},
   {path: '/register', layout: 'auth', Page: page(() => import('../features/auth/RegisterPage'), 'Register')},
   {
     path: '/forgot-password',
@@ -60,6 +61,27 @@ export const ROUTES = [
   {path: '/admin/:section', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/admin/:section/:id', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
+
+  // Bharat ID for Business: its page, and the business dashboard (apart from a person's Bharat ID dashboard)
+  // Where an enrolment centre's QR leads
+  {path: '/bharat-id/start', layout: 'auth', Page: page(() => import('../features/identity/StartPage'), 'Start')},
+  {path: '/bharat-id/business', Page: page(() => import('../features/business/BusinessPage'), 'BharatIdBusiness')},
+  // The check page a business sends a holder to: Pirento's own, so the business never sees a PIN or a code
+  {
+    path: '/bharat-id/authorize/:id',
+    layout: 'auth',
+    Page: page(() => import('../features/business/AuthorizePage'), 'Authorize'),
+  },
+  {
+    path: '/bharat-id/business/dashboard',
+    layout: 'app',
+    Page: page(() => import('../features/business/BusinessDashboard'), 'BusinessDashboard'),
+  },
+  {
+    path: '/bharat-id/business/dashboard/:section',
+    layout: 'app',
+    Page: page(() => import('../features/business/BusinessDashboard'), 'BusinessDashboard'),
+  },
 
   // The ten product sites: home at /<slug>, app at /<slug>/dashboard, legal pages at /<slug>/terms and so on
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},

@@ -1,7 +1,7 @@
 // End-to-end flows against a running stack: npm run dev with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0.
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
-import {verhoeffCheckDigit} from '@pirento/shared';
+import {SANDBOX_AUTH, TEST_BHARAT_IDS, verhoeffCheckDigit} from '@pirento/shared';
 import crypto from 'node:crypto';
 
 const B = process.env.API_URL ?? 'http://127.0.0.1:4000/api';
@@ -256,32 +256,113 @@ check(
     !JSON.stringify(draft).includes(aadhaarNo),
   draft,
 );
-check(
-  'consent required',
-  (await call('/identity/submit', {method: 'POST', token: user, body: {consent: false}})).status === 400,
-);
+// Verification runs on Digio; the stack points DIGIO_URL at scripts/digio-standin.mjs, which /__test drives.
+const DIGIO = process.env.DIGIO_STANDIN ?? 'http://127.0.0.1:4090';
+const digioTest = (path, body) =>
+  fetch(DIGIO + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {'content-type': 'application/json'},
+    body: body && JSON.stringify(body),
+  }).then((r) => r.json());
+const WEBHOOK_SECRET = process.env.DIGIO_WEBHOOK_SECRET ?? 'test-digio-webhook';
+const digioHook = (event, payload, secret = WEBHOOK_SECRET) => {
+  const body = JSON.stringify({
+    id: `WHN${Date.now()}`,
+    created_at: Date.now(),
+    event,
+    entities: Object.keys(payload),
+    payload,
+  });
+  return fetch(B + '/identity/digio/webhook', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-digio-checksum': crypto.createHmac('sha256', secret).update(body).digest('hex'),
+    },
+    body,
+  });
+};
+check('Digio is on', (await call('/identity/digio/config')).data?.on === true);
 check(
   'video KYC required before submit',
-  /video/i.test(
-    (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).error?.message ?? '',
-  ),
+  /video KYC/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
 );
-const challenge = (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data;
-check('4-digit KYC challenge', /^\d{4}$/.test(challenge?.challenge ?? ''), challenge);
 check(
-  'same challenge on reload',
-  (await call('/identity/kyc/challenge', {method: 'POST', token: user})).data?.challenge === challenge.challenge,
+  'sign waits for the KYC',
+  (await call('/identity/sign/start', {method: 'POST', token: user})).error?.code === 'KYC_FIRST',
 );
-const fakeVideo = Buffer.alloc(4096, 7); // the service stores bytes; it does not decode video
-const upload = await fetch(B + '/identity/kyc/video', {
-  method: 'POST',
-  headers: {authorization: `Bearer ${user}`, 'content-type': 'video/webm'},
-  body: fakeVideo,
-});
-check('KYC video uploaded', upload.status === 201 && (await upload.json()).data?.kyc?.size === 4096);
-const app1 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
-check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma', app1);
+const kyc1 = (await call('/identity/kyc/start', {method: 'POST', token: user})).data;
+check(
+  'Digio tokens never sent back with the application',
+  !JSON.stringify(kyc1?.doc ?? {}).includes(kyc1?.token ?? 'x'),
+);
+check('KYC request made on Digio', /^KID/.test(kyc1?.kycId ?? '') && /^GWT/.test(kyc1.token ?? ''), kyc1);
+check(
+  'reopening resumes the same KYC request',
+  (await call('/identity/kyc/start', {method: 'POST', token: user})).data?.kycId === kyc1.kycId,
+);
+check(
+  'a forged webhook is refused',
+  (await digioHook('KYC_REQUEST_APPROVED', {KYC_REQUEST: {id: kyc1.kycId, status: 'APPROVED'}}, 'wrong')).status ===
+    400,
+);
+await digioTest(`/__test/kyc/${kyc1.kycId}`, {status: 'approval_pending'});
+const afterKyc = (await call('/identity/kyc/refresh', {method: 'POST', token: user})).data;
+check(
+  'KYC result read from Digio',
+  afterKyc?.digio?.kycStatus === 'approval_pending' && afterKyc.digio.kycActions[0]?.fileId,
+  afterKyc?.digio,
+);
+check(
+  'a signed webhook updates the KYC',
+  (await digioHook('KYC_REQUEST_APPROVED', {KYC_REQUEST: {id: kyc1.kycId, status: 'APPROVED'}})).status === 200 &&
+    (await call('/identity/me', {token: user})).data?.digio?.kycStatus === 'approved',
+);
+check('an unknown event still answers 200', (await digioHook('SOMETHING.NEW', {thing: {id: 'x'}})).status === 200);
+check(
+  'signature required before submit',
+  /sign/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+const sign1 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+check('declaration sent for eSign', /^DID/.test(sign1?.docId ?? '') && sign1.token, sign1);
+if (process.env.DIGIO_ESTAMP_TAG) {
+  const stamp = (await digioTest(`/__test/doc/${sign1.docId}`)).estamp;
+  check('e-stamp attached', stamp?.tags?.[process.env.DIGIO_ESTAMP_TAG] === 1, stamp);
+}
+check(
+  'reopening resumes the same sign request',
+  (await call('/identity/sign/start', {method: 'POST', token: user})).data?.docId === sign1.docId,
+);
+check(
+  'not signed yet',
+  (await call('/identity/sign/refresh', {method: 'POST', token: user})).data?.digio?.docStatus === 'requested',
+);
+await digioTest(`/__test/doc/${sign1.docId}`, {status: 'completed'});
+check(
+  'signature read from Digio',
+  (await call('/identity/sign/refresh', {method: 'POST', token: user})).data?.digio?.docStatus === 'signed',
+);
+const decl = await fetch(B + '/identity/declaration', {headers: {authorization: `Bearer ${user}`}});
+const declPdf = Buffer.from(await decl.arrayBuffer()).toString('latin1');
+check(
+  'signed declaration downloads, with the details and no full Aadhaar',
+  decl.status === 200 && declPdf.startsWith('%PDF') && declPdf.includes('Asha Verma') && !declPdf.includes(aadhaarNo),
+);
+check(
+  'a PIN is set while applying, before submit',
+  /PIN/.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+check(
+  'the PIN step',
+  (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916'}})).data?.pinSet === true,
+);
+const app1 = (await call('/identity/submit', {method: 'POST', token: user})).data;
+check('submitted', app1?.status === 'submitted' && app1.fullName === 'Asha Verma' && app1.consentAt, app1);
 check('locked after submit', (await put('contact', steps.contact)).status === 409);
+check(
+  'KYC cannot restart after submit',
+  (await call('/identity/kyc/start', {method: 'POST', token: user})).status === 409,
+);
 check(
   'reject needs reason',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'reject'}})).status ===
@@ -294,33 +375,72 @@ const rej = (
     body: {decision: 'reject', reason: 'Name does not match PAN'},
   })
 ).data;
-check('rejected with reason', rej?.status === 'rejected' && rej.reason === 'Name does not match PAN');
+check(
+  'rejected with reason, signature voided',
+  rej?.status === 'rejected' && rej.reason === 'Name does not match PAN' && !rej.digio?.docId,
+  rej,
+);
 check(
   'editable after rejection',
   (await put('personal', {...steps.personal, fullName: 'Asha Rani Verma'})).status === 200,
 );
-const again2 = (await call('/identity/submit', {method: 'POST', token: user, body: {consent: true}})).data;
+check(
+  'resubmit needs a new signature',
+  /sign/i.test((await call('/identity/submit', {method: 'POST', token: user})).error?.message ?? ''),
+);
+const sign2 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+check('a new declaration with the fixed name', sign2?.docId && sign2.docId !== sign1.docId, sign2);
+await digioHook('DOC.SIGNED', {document: {id: sign2.docId, agreement_status: 'completed'}});
+check(
+  'a signed webhook records the signature',
+  (await call('/identity/me', {token: user})).data?.digio?.docStatus === 'signed',
+);
+check(
+  'editing a step voids the signature',
+  !(await put('work', {...steps.work, occupation: 'Self-employed'})).data?.digio?.docId,
+);
+const sign3 = (await call('/identity/sign/start', {method: 'POST', token: user})).data;
+await digioTest(`/__test/doc/${sign3.docId}`, {status: 'completed'});
+await call('/identity/sign/refresh', {method: 'POST', token: user});
+const again2 = (await call('/identity/submit', {method: 'POST', token: user})).data;
 check(
   'resubmitted, reason cleared',
   again2?.status === 'submitted' && !again2.reason && again2.fullName === 'Asha Rani Verma',
   again2,
 );
-const played = await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}});
+const media = await fetch(B + `/identity/staff/${app1._id}/media/${afterKyc.digio.kycActions[0].fileId}`, {
+  headers: {authorization: `Bearer ${boss}`},
+});
+check('staff can open the KYC video from Digio', media.status === 200);
 check(
-  'staff can play the KYC video',
-  played.status === 200 && Buffer.from(await played.arrayBuffer()).equals(fakeVideo),
+  'only this application’s files',
+  (await fetch(B + `/identity/staff/${app1._id}/media/FILEOTHER`, {headers: {authorization: `Bearer ${boss}`}}))
+    .status === 404,
 );
 check(
-  'customer cannot play KYC videos',
-  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${user}`}})).status === 403,
+  'customer cannot open KYC files',
+  (
+    await fetch(B + `/identity/staff/${app1._id}/media/${afterKyc.digio.kycActions[0].fileId}`, {
+      headers: {authorization: `Bearer ${user}`},
+    })
+  ).status === 403,
+);
+check(
+  'staff can read the signed declaration',
+  (await fetch(B + `/identity/staff/${app1._id}/declaration`, {headers: {authorization: `Bearer ${boss}`}})).status ===
+    200,
+);
+check(
+  'vault waits for an issued Bharat ID',
+  (await call('/vault/credentials', {token: user})).error?.code === 'NEEDS_BHARAT_ID',
+);
+check(
+  'Pirento One waits for an issued Bharat ID',
+  (await call('/orders/partner/join', {method: 'POST', token: user})).error?.code === 'NEEDS_BHARAT_ID',
 );
 const appr = (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
   .data;
 check('approved with 10-digit ID', /^[1-9]\d{9}$/.test(appr?.bharatId ?? ''), appr);
-check(
-  'KYC video deleted once approved',
-  (await fetch(B + `/identity/staff/${app1._id}/video`, {headers: {authorization: `Bearer ${boss}`}})).status === 404,
-);
 check(
   'no double approve',
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).status ===
@@ -337,6 +457,377 @@ check(
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: user, body: {decision: 'approve'}})).status ===
     403,
 );
+
+// ── Bharat ID for Business ──────────────────────────────────────────────
+// A request from the public page → staff approve → an account by email → test keys and the sandbox →
+// company details and the owner's own Bharat ID → live keys → a consent the holder allows, then revokes.
+{
+  const T = TEST_BHARAT_IDS;
+  const bizReq = (over = {}) => ({
+    company: 'Asha Bank',
+    type: 'Bank',
+    website: 'https://ashabank.example',
+    contactName: 'Asha Rao',
+    designation: 'Head of KYC',
+    email: `biz${Date.now()}@example.com`,
+    mobile: '9876500000',
+    useCase: 'KYC for new savings accounts',
+    volume: 'Under 1,000',
+    acceptTerms: true,
+    ...over,
+  });
+  const ask = (body) => call('/identity/business/requests', {method: 'POST', body});
+  const api = (path, key, opts = {}) =>
+    call(`/identity/v1${path}`, {...opts, headers: {authorization: `Bearer ${key}`}});
+  const decide = (id, decision, reason = '') =>
+    call(`/identity/staff/business/${id}`, {method: 'PATCH', token: boss, body: {decision, reason}});
+
+  check('business request needs the terms', (await ask(bizReq({acceptTerms: false}))).status === 400);
+  check('business request checks the website', (await ask(bizReq({website: 'ashabank'}))).status === 400);
+  check('a bot filling the hidden field is not kept', (await ask(bizReq({website_confirm: 'x'}))).status === 201);
+  const reqA = bizReq();
+  check('business request received', (await ask(reqA)).status === 201);
+  check('one open request per email', (await ask(reqA)).error?.code === 'ALREADY_ASKED');
+  check(
+    'customers cannot see business requests',
+    (await call('/identity/staff/business', {token: user})).status === 403,
+  );
+  const queued = (await call('/identity/staff/business', {token: boss})).data?.find(
+    (b) => b.request.email === reqA.email,
+  );
+  check('request in the staff queue', queued?.status === 'requested', queued);
+
+  const approved = (await decide(queued._id, 'approve')).data;
+  const allow = (id, methods, fields) =>
+    call(`/identity/staff/business/${id}/access`, {method: 'PATCH', token: boss, body: {methods, fields}});
+  check(
+    'customers cannot set business access',
+    (
+      await call(`/identity/staff/business/${queued._id}/access`, {
+        method: 'PATCH',
+        token: user,
+        body: {methods: [], fields: []},
+      })
+    ).status === 403,
+  );
+  check('expected methods cannot be allowed', (await allow(queued._id, ['iris'], [])).status === 400);
+  check(
+    'staff set what a business may do',
+    (await allow(queued._id, ['pin_dob', 'otp'], ['name', 'pan'])).data?.fields.length === 2,
+  );
+  check('approve makes the account', approved?.status === 'test' && approved.userId && approved.devPassword, approved);
+  check('approved once', (await decide(queued._id, 'approve')).status === 409);
+  const bizLogin = (
+    await call('/auth/password/login', {method: 'POST', body: {login: reqA.email, password: approved.devPassword}})
+  ).data;
+  check('business signs in with the emailed password', Boolean(bizLogin?.token));
+  const biz = bizLogin.token;
+  const meA = (await call('/identity/business/me', {token: biz})).data;
+  check('business dashboard data', meA?.business.status === 'test' && meA.ownerIdIssued === false, meA);
+  check(
+    'no live keys before live access',
+    (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'live'}})).status === 403,
+  );
+  const testKey = (
+    await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test', label: 'CI'}})
+  ).data;
+  check('test key made, shown once', /^bid_test_/.test(testKey?.key ?? ''), testKey);
+  check(
+    'keys are never listed in full',
+    !JSON.stringify((await call('/identity/business/me', {token: biz})).data).includes(testKey.key),
+  );
+  check('API needs a key', (await call(`/identity/v1/ids/${T.approves}`)).error?.code === 'NO_KEY');
+  check('API refuses a wrong key', (await api(`/ids/${T.approves}`, 'bid_test_' + 'x'.repeat(32))).status === 401);
+  const sandboxId = (await api(`/ids/${T.approves}`, testKey.key)).data;
+  check(
+    'sandbox verify',
+    sandboxId?.issued === true && sandboxId.name === 'Asha T.' && sandboxId.mode === 'test',
+    sandboxId,
+  );
+  check('sandbox knows only the test IDs', (await api(`/ids/${appr.bharatId}`, testKey.key)).status === 404);
+  const sc = (
+    await api('/consents', testKey.key, {
+      method: 'POST',
+      body: {bharatId: T.approves, purpose: 'Open an account', fields: ['name', 'pan']},
+    })
+  ).data;
+  check('sandbox consent approves', sc?.status === 'approved', sc);
+  const scRead = (await api(`/consents/${sc.id}`, testKey.key)).data;
+  check(
+    'sandbox details, only the fields asked for',
+    scRead?.details?.name === 'Asha Test' && scRead.details.pan && !('dob' in scRead.details),
+    scRead,
+  );
+  check(
+    'sandbox consent can decline',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.declines, purpose: 'Open an account', fields: ['name']},
+      })
+    ).data?.status === 'declined',
+  );
+  check(
+    'a field our team did not allow is refused',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.approves, purpose: 'Open an account', fields: ['dob']},
+      })
+    ).error?.code === 'FIELD_NOT_ALLOWED',
+  );
+  check(
+    'unknown consent fields refused',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.approves, purpose: 'x y z', fields: ['bank']},
+      })
+    ).status === 400,
+  );
+  check(
+    'live needs company details',
+    (await call('/identity/business/me/live', {method: 'POST', token: biz})).error?.code === 'INCOMPLETE',
+  );
+  const profile = {
+    legalName: 'Asha Bank Limited',
+    entity: 'Public limited company',
+    registrationNo: 'U12345MH2020PLC123456',
+    pan: 'AAACB1234C',
+    line: '1 Main Road',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400001',
+    signatoryName: 'Asha Rao',
+    signatoryDesignation: 'Director',
+  };
+  check(
+    'company PAN checked',
+    (await call('/identity/business/me/profile', {method: 'PUT', token: biz, body: {...profile, pan: 'NOPE'}}))
+      .status === 400,
+  );
+  await call('/identity/business/me/profile', {method: 'PUT', token: biz, body: profile});
+  check(
+    "live needs the owner's own Bharat ID",
+    (await call('/identity/business/me/live', {method: 'POST', token: biz})).error?.code === 'NEEDS_BHARAT_ID',
+  );
+  await call(`/identity/business/me/keys/${testKey.id}`, {method: 'DELETE', token: biz});
+  check('a revoked key stops working', (await api(`/ids/${T.approves}`, testKey.key)).status === 401);
+
+  // Business B: its owner is `user`, whose Bharat ID is issued, so it can go live.
+  const userEmail = (await call('/auth/me', {token: user})).data?.email;
+  check(
+    'request from an existing account',
+    (await ask(bizReq({email: userEmail, company: 'Verma Institute', type: 'Coaching or training institute'})))
+      .status === 201,
+  );
+  const reqB = (await call('/identity/staff/business', {token: boss})).data?.find((b) => b.request.email === userEmail);
+  const appB = (await decide(reqB._id, 'approve')).data;
+  check('an existing account is linked, no new password', appB?.status === 'test' && !appB.devPassword, appB);
+  await allow(reqB._id, ['pin_dob', 'otp'], ['name', 'pan']);
+  await call('/identity/business/me/profile', {
+    method: 'PUT',
+    token: user,
+    body: {...profile, legalName: 'Verma Institute LLP', entity: 'LLP'},
+  });
+  check(
+    'live requested',
+    (await call('/identity/business/me/live', {method: 'POST', token: user})).data?.status === 'live_review',
+  );
+  check(
+    'profile locked while in review',
+    (await call('/identity/business/me/profile', {method: 'PUT', token: user, body: profile})).status === 409,
+  );
+  check('send back needs a reason', (await decide(reqB._id, 'sendBack')).status === 400);
+  check('staff opens live', (await decide(reqB._id, 'live')).data?.status === 'live');
+  const liveKey = (await call('/identity/business/me/keys', {method: 'POST', token: user, body: {mode: 'live'}})).data;
+  check('live key made', /^bid_live_/.test(liveKey?.key ?? ''), liveKey);
+  const realId = (await api(`/ids/${appr.bharatId}`, liveKey.key)).data;
+  check('live verify', realId?.issued === true && realId.name === 'Asha V.' && realId.mode === 'live', realId);
+  check('live does not answer for sandbox IDs', (await api(`/ids/${T.approves}`, liveKey.key)).status === 404);
+  const lc = (
+    await api('/consents', liveKey.key, {
+      method: 'POST',
+      body: {bharatId: appr.bharatId, purpose: 'Course admission', fields: ['name', 'pan'], reference: 'ADM-1'},
+    })
+  ).data;
+  check('live consent waits for the holder', lc?.status === 'pending' && !lc.details, lc);
+  const held = (await call('/identity/consents', {token: user})).data?.find((c) => c._id === lc.id);
+  check('the holder sees the request', held?.businessName === 'Verma Institute LLP' && held.fields.length === 2, held);
+  check(
+    'the holder allows it',
+    (await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'approve'}})).data
+      ?.status === 'approved',
+  );
+  check(
+    'decided once',
+    (await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'approve'}})).status ===
+      409,
+  );
+  const lcRead = (await api(`/consents/${lc.id}`, liveKey.key)).data;
+  check(
+    'live details: only what was allowed',
+    lcRead?.details?.name === 'Asha Rani Verma' && lcRead.details.pan === 'ABCDE1234F' && !('dob' in lcRead.details),
+    lcRead,
+  );
+  check('another business cannot read it', (await api(`/consents/${lc.id}`, testKey.key)).status === 401);
+  await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'revoke'}});
+  check('a revoke stops the details', !(await api(`/consents/${lc.id}`, liveKey.key)).data?.details);
+  check('suspend needs a reason', (await decide(reqB._id, 'suspend')).status === 400);
+  await decide(reqB._id, 'suspend', 'Checking unusual traffic');
+  check(
+    'a suspended business is refused',
+    (await api(`/ids/${appr.bharatId}`, liveKey.key)).error?.code === 'NOT_ALLOWED',
+  );
+  check('restored to live', (await decide(reqB._id, 'restore')).data?.status === 'live');
+  check('works again after restore', (await api(`/ids/${appr.bharatId}`, liveKey.key)).status === 200);
+
+  // The holder's PIN, and signing in to Pirento with Bharat ID, PIN and date of birth.
+  const DOB = '1990-05-01';
+  check(
+    'a weak PIN is refused',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '123456'}})).status === 400,
+  );
+  check('the PIN set while applying is kept', (await call('/identity/me', {token: user})).data?.pinSet === true);
+  check(
+    'the PIN hash never leaves',
+    !JSON.stringify((await call('/identity/me', {token: user})).data).includes('scrypt'),
+  );
+  check(
+    'changing the PIN needs the current one',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '582917'}})).status === 401,
+  );
+  check(
+    'the PIN changes with the current one',
+    (await call('/identity/pin', {method: 'PUT', token: user, body: {pin: '482916', currentPin: '482916'}})).status ===
+      200,
+  );
+  const pinLogin = (pin, dob = DOB) =>
+    call('/auth/otp/bharat-id/pin', {method: 'POST', body: {bharatId: appr.bharatId, pin, dob}});
+  check('sign in with Bharat ID, PIN and date of birth', Boolean((await pinLogin('482916')).data?.token));
+  check(
+    'a wrong date of birth answers like a wrong PIN',
+    (await pinLogin('482916', '1991-05-01')).error?.code === 'PIN_WRONG',
+  );
+
+  // Checking a holder: the business sends them to Pirento's page; it never sees what they type.
+  const testKey2 = (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test'}})).data
+    .key;
+  const back = 'https://ashabank.example/kyc/back';
+  const startAuth = (key, body) => api('/auth/sessions', key, {method: 'POST', body: {returnUrl: back, ...body}});
+  check(
+    'a method our team did not allow is refused',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'face'})).error?.code === 'METHOD_NOT_ALLOWED',
+  );
+  check(
+    'biometrics are not available yet',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'iris'})).status === 501,
+  );
+  check(
+    'the return address must be on their own website',
+    (await startAuth(testKey2, {bharatId: T.approves, method: 'pin_dob', returnUrl: 'https://evil.example/x'})).error
+      ?.code === 'BAD_RETURN_URL',
+  );
+  const linkOf = (url) => {
+    const u = new URL(url);
+    return {id: u.pathname.split('/').pop(), t: u.searchParams.get('t')};
+  };
+  const s1 = (await startAuth(testKey2, {bharatId: T.approves, method: 'pin_dob', reference: 'LOGIN-1'})).data;
+  check(
+    'check session made with a Pirento link',
+    s1?.status === 'pending' && s1.url.includes('/bharat-id/authorize/'),
+    s1,
+  );
+  const l1 = linkOf(s1.url);
+  check('the link needs its secret', (await call(`/identity/authorize/${l1.id}?t=wrong`)).status === 404);
+  check(
+    'the page shows who asks and how',
+    (await call(`/identity/authorize/${l1.id}?t=${l1.t}`)).data?.businessName === 'Asha Bank Limited',
+  );
+  const verify = (l, body) => call(`/identity/authorize/${l.id}/verify`, {method: 'POST', body: {t: l.t, ...body}});
+  check(
+    'a wrong sandbox PIN is a wrong try',
+    (await verify(l1, {pin: '000001', dob: SANDBOX_AUTH.dob})).data?.wrong === true,
+  );
+  const ok1 = (await verify(l1, {pin: SANDBOX_AUTH.pin, dob: SANDBOX_AUTH.dob})).data;
+  check(
+    'sandbox check passes, back to their site',
+    ok1?.status === 'passed' && ok1.returnTo.startsWith(`${back}?session=`),
+    ok1,
+  );
+  check('the business reads the result', (await api(`/auth/sessions/${s1.id}`, testKey2)).data?.status === 'passed');
+  const s2 = (await startAuth(testKey2, {bharatId: T.declines, method: 'otp'})).data;
+  check(
+    'the sandbox decline ID fails',
+    (await verify(linkOf(s2.url), {emailCode: SANDBOX_AUTH.code, mobileCode: SANDBOX_AUTH.code})).data?.status ===
+      'failed',
+  );
+  const s3 = (await startAuth(liveKey.key, {bharatId: appr.bharatId, method: 'pin_dob'})).data;
+  const l3 = linkOf(s3.url);
+  check('live: a wrong PIN is a wrong try', (await verify(l3, {pin: '111222', dob: DOB})).data?.triesLeft === 4);
+  check(
+    'live: the holder passes with their PIN',
+    (await verify(l3, {pin: '482916', dob: DOB})).data?.status === 'passed',
+  );
+  const s4 = (await startAuth(liveKey.key, {bharatId: appr.bharatId, method: 'otp'})).data;
+  check(
+    'live codes need a verified mobile on the account',
+    (await call(`/identity/authorize/${linkOf(s4.url).id}/start`, {method: 'POST', body: {t: linkOf(s4.url).t}})).error
+      ?.code === 'NO_MOBILE',
+  );
+  const seen = (await call('/identity/consents/log', {token: user})).data ?? [];
+  check(
+    'the holder sees who checked them',
+    seen.some((r) => r.action === 'auth.request' && r.businessName === 'Verma Institute LLP') &&
+      !JSON.stringify(seen).includes('"ip"'),
+  );
+  check(
+    "staff see a business's log",
+    (await call(`/identity/staff/business/${reqB._id}/log`, {token: boss})).data?.length > 3,
+  );
+
+  // Prepaid: live calls are paid from the owner's wallet at the price a superadmin sets.
+  const prices = {verify: 2, consent: 3, pin_dob: 5, otp: 5, aadhaar_otp: 20, face: 20};
+  check(
+    'only a superadmin sets prices',
+    (await call('/identity/staff/business/prices', {method: 'PUT', token: user, body: prices})).status === 403,
+  );
+  check(
+    'prices set',
+    (await call('/identity/staff/business/prices', {method: 'PUT', token: boss, body: prices})).data?.verify === 200,
+  );
+  const balance = async () => (await call('/wallet', {token: user})).data.balance;
+  const before = await balance();
+  await api(`/ids/${appr.bharatId}`, liveKey.key);
+  check('a live verify is charged', before - (await balance()) === 200);
+  await api(`/ids/${T.approves}`, testKey2);
+  check('test calls are free', before - (await balance()) === 200);
+  await call('/identity/staff/business/prices', {method: 'PUT', token: boss, body: {...prices, verify: 100000}});
+  check(
+    'not enough credit stops the call',
+    (await api(`/ids/${appr.bharatId}`, liveKey.key)).error?.code === 'INSUFFICIENT_CREDIT',
+  );
+  await call('/identity/staff/business/prices', {
+    method: 'PUT',
+    token: boss,
+    body: Object.fromEntries(Object.keys(prices).map((k) => [k, 0])),
+  });
+  check(
+    'the dashboard shows the prices',
+    (await call('/identity/business/me', {token: user})).data?.prices.verify === 0,
+  );
+
+  // Last, as it locks this PIN for 15 minutes: five wrong tries in a row lock it, even for the right PIN.
+  for (let i = 0; i < 5; i++) await pinLogin('999888');
+  check('the PIN locks after five wrong tries', (await pinLogin('482916')).error?.code === 'PIN_LOCKED');
+
+  const reqC = bizReq({company: 'Nope Ltd'});
+  await ask(reqC);
+  const c = (await call('/identity/staff/business', {token: boss})).data?.find((b) => b.request.email === reqC.email);
+  check('reject needs a reason', (await decide(c._id, 'reject')).status === 400);
+  check('rejected', (await decide(c._id, 'reject', 'We could not confirm the company')).data?.status === 'rejected');
+  check('a rejected email may ask again', (await ask(reqC)).status === 201);
+}
 
 // ── Intern exam ─────────────────────────────────────────────────────────
 // Two "start"s at the same moment get one attempt, not two.
@@ -418,7 +909,10 @@ check(
 );
 check(
   'other user cannot download',
-  (await fetch(B + `/vault/files/${file._id}`, {headers: {authorization: `Bearer ${boss}`}})).status === 404,
+  // 403 for someone without a Bharat ID, 404 for anyone else: either way, never the file.
+  [403, 404].includes(
+    (await fetch(B + `/vault/files/${file._id}`, {headers: {authorization: `Bearer ${boss}`}})).status,
+  ),
 );
 const cred = (
   await call('/vault/credentials', {
@@ -460,7 +954,9 @@ check(
 );
 check(
   'health is per person',
-  (await call('/vault/credentials/health', {token: boss})).data?.items.every((i) => i._id !== cred._id),
+  ((r) => r.status === 403 || r.data?.items.every((i) => i._id !== cred._id))(
+    await call('/vault/credentials/health', {token: boss}),
+  ),
 );
 const usage = (await call('/ai/usage', {token: user})).data;
 check('AI usage meter', usage?.limit === 30 && usage.used === 0, usage);
@@ -586,6 +1082,90 @@ const sup = await loginWithCookie(`support${Date.now()}@example.com`);
 const supUser = (await call(`/auth/admin/users?q=${encodeURIComponent('support')}`, {token: boss})).data.users[0];
 await call(`/auth/admin/users/${supUser._id}/role`, {method: 'PATCH', token: boss, body: {role: 'support'}});
 const supToken = (await loginWithCookie(supUser.email)).token;
+
+// ── Staff start a Bharat ID for someone who is not signed in ───────────────
+{
+  const who = `walkin${Date.now()}@example.com`;
+  const enrol = (token, body) => call('/identity/staff/enrol', {method: 'POST', token, body});
+  const body = {email: who, name: 'Ravi Kumar', mobile: '9876500005', agreed: true};
+  check('customers cannot start one for someone', (await enrol(user, body)).status === 403);
+  check('the terms must be confirmed', (await enrol(supToken, {...body, agreed: false})).status === 400);
+  check('the mobile is checked', (await enrol(supToken, {...body, mobile: '12345'})).status === 400);
+  const en = (await enrol(supToken, body)).data;
+  check(
+    'any staffer starts it; the link goes by email and SMS',
+    en?.nextStep === 'Personal details' && en.sent?.email && en.sent.sms && en.sent.devLink && en.enrolledBy?.email,
+    en,
+  );
+  check(
+    'they see what they started',
+    (await call('/identity/staff/enrol', {token: supToken})).data?.some((d) => d._id === en._id),
+  );
+  check('customers cannot list them', (await call('/identity/staff/enrol', {token: user})).status === 403);
+  const step = (
+    await call(`/identity/staff/enrol/${en._id}/draft/personal`, {
+      method: 'PUT',
+      token: supToken,
+      body: {fullName: 'Ravi Kumar', fatherName: 'Mohan Kumar', dob: '1988-02-03', gender: 'Male'},
+    })
+  ).data;
+  check('the staffer fills a step with them', step?.nextStep === 'Identity documents', step);
+  const linkToken = new URL(en.sent.devLink).searchParams.get('token');
+  const viaLink = (await call('/auth/otp/link', {method: 'POST', body: {token: linkToken}})).data;
+  check('the link signs them in, no password or code', Boolean(viaLink?.token) && viaLink.user.email === who);
+  check(
+    'the link works once',
+    (await call('/auth/otp/link', {method: 'POST', body: {token: linkToken}})).error?.code === 'LINK_INVALID',
+  );
+  const theirs = (await call('/identity/me', {token: viaLink.token})).data;
+  check(
+    'they carry on where the staffer stopped',
+    theirs?.sections?.personal?.fullName === 'Ravi Kumar' && theirs.reminders?.nextAt,
+  );
+  const again = (await call(`/identity/staff/enrol/${en._id}/remind`, {method: 'POST', token: supToken})).data;
+  check('the link can be sent again', again?.devLink && again.devLink !== en.sent.devLink);
+  // Enrolment centres: a QR that starts an application on the person's own phone.
+  check(
+    'support cannot make centres',
+    (await call('/identity/staff/centres', {method: 'POST', token: supToken, body: {name: 'Main desk', city: 'Delhi'}}))
+      .status === 403,
+  );
+  const centre = (
+    await call('/identity/staff/centres', {method: 'POST', token: boss, body: {name: 'Main desk', city: 'Delhi'}})
+  ).data;
+  check('centre made with a QR code', /^[A-Z0-9]{6}$/.test(centre?.code ?? ''), centre);
+  check('anyone sees an open centre', (await call(`/identity/centres/${centre.code}`)).data?.name === 'Main desk');
+  const walker = await login(`qr${Date.now()}@example.com`);
+  check(
+    'an unknown centre is refused',
+    (await call('/identity/start', {method: 'POST', token: walker, body: {centre: 'ZZZZZZ'}})).error?.code ===
+      'CENTRE_CLOSED',
+  );
+  const fromQr = (
+    await call('/identity/start', {method: 'POST', token: walker, body: {centre: centre.code.toLowerCase()}})
+  ).data;
+  check(
+    'scanning starts the application at the centre',
+    fromQr?.status === 'draft' && fromQr.centre?.code === centre.code,
+    fromQr,
+  );
+  check(
+    'staff see what the QR started',
+    (await call('/identity/staff/centres', {token: supToken})).data?.find((c) => c.code === centre.code)?.counts
+      ?.draft === 1,
+  );
+  await call(`/identity/staff/centres/${centre._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {name: 'Main desk', city: 'Delhi', active: false},
+  });
+  check('a closed centre stops starting applications', (await call(`/identity/centres/${centre.code}`)).status === 404);
+  const userEmail = (await call('/auth/me', {token: user})).data?.email;
+  check(
+    'not for someone already issued',
+    (await enrol(supToken, {...body, email: userEmail})).error?.code === 'ALREADY_APPLIED',
+  );
+}
 check('support sees tickets', (await call('/support/staff/queue', {token: supToken})).status === 200);
 check('support cannot see orders', (await call('/orders/staff/queue', {token: supToken})).status === 403);
 check('support cannot see the ledger', (await call('/wallet/staff/transactions', {token: supToken})).status === 403);
@@ -633,11 +1213,13 @@ check(
 );
 
 // ── Pirento One + Giftox ────────────────────────────────────────────────
-const partner = (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data;
+// The partner is `user`, who holds an issued Bharat ID by now; `buyer` orders through their link.
+const buyer = await login(`buyer${Date.now()}@example.com`);
+const partner = (await call('/orders/partner/join', {method: 'POST', token: user})).data;
 check('partner code', /^P[0-9A-F]{6}$/.test(partner?.code ?? ''), partner);
 check(
   'join is idempotent',
-  (await call('/orders/partner/join', {method: 'POST', token: staffToken})).data?.code === partner.code,
+  (await call('/orders/partner/join', {method: 'POST', token: user})).data?.code === partner.code,
 );
 const gift = {
   phone: '9876500000',
@@ -653,7 +1235,7 @@ check(
   (
     await call('/orders', {
       method: 'POST',
-      token: user,
+      token: buyer,
       body: {serviceSlug: 'giftox-diwali-collection', intake: {...gift, address: ''}},
     })
   ).status === 400,
@@ -661,7 +1243,7 @@ check(
 const go = (
   await call('/orders', {
     method: 'POST',
-    token: user,
+    token: buyer,
     body: {serviceSlug: 'giftox-diwali-collection', quantity: 2, ref: partner.code.toLowerCase(), intake: gift},
   })
 ).data;
@@ -669,78 +1251,142 @@ check('gift order with referral', go?.amount === 399800 && go.ref === partner.co
 const own = (
   await call('/orders', {
     method: 'POST',
-    token: staffToken,
+    token: user,
     body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
   })
 ).data;
 check('own code is ignored', own && !own.ref);
-const pm = (await call('/orders/partner/me', {token: staffToken})).data;
+const pm = (await call('/orders/partner/me', {token: user})).data;
 check(
   'partner sees referred order without customer data',
   pm?.orders.length === 1 && !JSON.stringify(pm).includes('9876500000') && !JSON.stringify(pm).includes('@'),
   pm,
 );
 
-// Commission: the rate in site settings, paid to the partner's wallet once when a referred order completes.
-await call('/catalog/staff/settings', {
-  method: 'PATCH',
-  token: boss,
-  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 10},
-});
-check('commission rate is public', (await call('/catalog/settings')).data?.commissionPct === 10);
+// Plans: made in admin; the free plan's rate, then a paid plan bought from the wallet, decide the commission.
+const planBody = {features: ['Your own link'], recommended: false, active: true, sort: 0};
 check(
-  'rate is capped',
+  'staff cannot make plans',
   (
-    await call('/catalog/staff/settings', {
-      method: 'PATCH',
+    await call('/orders/staff/partner-plans', {
+      method: 'POST',
+      token: staffToken,
+      body: {...planBody, name: 'X', price: 0, months: 0, commissionPct: 5},
+    })
+  ).status === 403,
+);
+check(
+  'a paid plan needs months',
+  (
+    await call('/orders/staff/partner-plans', {
+      method: 'POST',
       token: boss,
-      body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 90},
+      body: {...planBody, name: 'Bad', price: 999, months: 0, commissionPct: 10},
     })
   ).status === 400,
 );
-{
+const freeP = (
+  await call('/orders/staff/partner-plans', {
+    method: 'POST',
+    token: boss,
+    body: {...planBody, name: 'Free', price: 0, months: 0, commissionPct: 5},
+  })
+).data;
+const proP = (
+  await call('/orders/staff/partner-plans', {
+    method: 'POST',
+    token: boss,
+    body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 15, recommended: true, sort: 1},
+  })
+).data;
+check('plans are public', (await call('/orders/partner-plans')).data?.length >= 2);
+check(
+  'a new partner is on the free plan',
+  (await call('/orders/partner/me', {token: user})).data?.plan?.name === 'Free',
+);
+const completeReferred = async () => {
   const ro = (
     await call('/orders', {
       method: 'POST',
-      token: user,
+      token: buyer,
       body: {serviceSlug: 'giftox-welcome-kit', ref: partner.code, intake: gift},
     })
   ).data;
-  await call('/wallet/topup', {method: 'POST', token: user, body: {amount: ro.amount / 100}});
-  await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: user});
-  const before = (await call('/wallet', {token: staffToken})).data.balance;
+  await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: ro.amount / 100}});
+  await call(`/orders/${ro._id}/pay/wallet`, {method: 'POST', token: buyer});
   await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'in_progress', note: ''}});
   const fin = (
     await call(`/orders/staff/${ro._id}`, {method: 'PATCH', token: boss, body: {status: 'completed', note: ''}})
   ).data;
-  const due = Math.floor(ro.amount / 10);
+  return {ro, fin};
+};
+{
+  const before = (await call('/wallet', {token: user})).data.balance;
+  const {ro, fin} = await completeReferred();
+  const due = Math.floor((ro.amount * 5) / 100);
   check(
-    'commission fixed on completion',
-    fin?.commission?.amount === due && fin.commission.pct === 10,
+    'free plan rate fixed on completion',
+    fin?.commission?.amount === due && fin.commission.pct === 5,
     fin?.commission,
   );
-  const after = (await call('/wallet', {token: staffToken})).data.balance;
+  const after = (await call('/wallet', {token: user})).data.balance;
   check('commission lands in the partner wallet', after - before === due, {before, after, due});
   const again = (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: boss})).data;
   check(
     'nothing owed, nothing paid twice',
-    again?.paid === 0 && (await call('/wallet', {token: staffToken})).data.balance === after,
+    again?.paid === 0 && (await call('/wallet', {token: user})).data.balance === after,
     again,
   );
   const row = (await call('/orders/staff/partners', {token: boss})).data?.find((p) => p.code === partner.code);
   check('admin sees commission paid', row?.earned === due && row.owed === 0, row);
   check(
     'a customer cannot send commission',
-    (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: user})).status === 403,
+    (await call('/orders/staff/partners/pay-owed', {method: 'POST', token: buyer})).status === 403,
   );
-  const mine = (await call('/orders/partner/me', {token: staffToken})).data?.orders.find((x) => x._id === ro._id);
+  const mine = (await call('/orders/partner/me', {token: user})).data?.orders.find((x) => x._id === ro._id);
   check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
 }
-await call('/catalog/staff/settings', {
+{
+  // Two buys at once, the way a double click sends them: one charge, one plan.
+  check(
+    'the free plan is not bought',
+    (await call('/orders/partner/plan', {method: 'POST', token: user, body: {planId: freeP._id}})).error?.code ===
+      'FREE_PLAN',
+  );
+  await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 999}});
+  const start = (await call('/wallet', {token: user})).data.balance;
+  const buys = await Promise.all(
+    [1, 2].map(() => call('/orders/partner/plan', {method: 'POST', token: user, body: {planId: proP._id}})),
+  );
+  check(
+    'buy a paid plan',
+    buys.every((b) => b.data?.plan?.name === 'Pro'),
+    buys.map((b) => b.error),
+  );
+  check('a double click pays once', start - (await call('/wallet', {token: user})).data.balance === 99900);
+  const {ro, fin} = await completeReferred();
+  check('paid plan rate', fin?.commission?.pct === 15 && fin.commission.amount === Math.floor((ro.amount * 15) / 100));
+  await call(`/orders/staff/partner-plans/${proP._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 20, recommended: true, sort: 1},
+  });
+  check(
+    'a bought plan keeps its rate',
+    (await call('/orders/partner/me', {token: user})).data?.plan?.commissionPct === 15,
+  );
+  check(
+    'admin lists the plan',
+    (await call('/orders/staff/partners', {token: boss})).data?.find((p) => p.code === partner.code)?.plan?.name ===
+      'Pro',
+  );
+}
+await call(`/orders/staff/partner-plans/${proP._id}`, {
   method: 'PATCH',
   token: boss,
-  body: {banner: {on: false, text: '', link: ''}, paused: [], commissionPct: 0},
+  body: {...planBody, name: 'Pro', price: 999, months: 12, commissionPct: 20, active: false},
 });
+check('a retired plan is not offered', !(await call('/orders/partner-plans')).data?.some((p) => p._id === proP._id));
 
 // ── Admin: coupons ──────────────────────────────────────────────────────
 const code = `E2E${Date.now().toString().slice(-6)}`;

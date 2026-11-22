@@ -5,6 +5,7 @@ import {Ai} from '../ai/AiPage';
 import {Capital} from '../capital/CapitalPage';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {BharatId} from '../identity/BharatIdPage';
+import {BharatIdGate} from '../identity/BharatIdGate';
 import {Intern} from '../learning/InternPage';
 import {One} from '../partner/OnePage';
 import {OrdersDashboard} from './OrdersDashboard';
@@ -14,6 +15,8 @@ import {usePageMeta} from '../../lib/page';
 import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
 
 const APPS = {intern: Intern, vault: Vault, ai: Ai, one: One, capital: Capital, 'bharat-id': BharatId};
+// These open only once the person's Bharat ID is issued (their services refuse until then too).
+const NEEDS_BHARAT_ID = ['one', 'vault'];
 
 export function ProductDashboard() {
   const {slug, section} = useParams();
@@ -29,7 +32,14 @@ export function ProductDashboard() {
     // An app product shows the sections in its sidebar; anything else in the URL goes to its overview.
     const known = (productDashboards[slug] ?? SINGLE_PAGE_SECTIONS).some((s) => s.id === (section ?? 'overview'));
     if (!known || section === 'overview') return <Navigate to={`/${slug}/dashboard`} replace />;
-    return <App product={product} section={section ?? 'overview'} />;
+    const app = <App product={product} section={section ?? 'overview'} />;
+    return NEEDS_BHARAT_ID.includes(slug) ? (
+      <BharatIdGate product={product} section={section ?? 'overview'}>
+        {app}
+      </BharatIdGate>
+    ) : (
+      app
+    );
   }
   return <OrdersDashboard product={product} section={section} />;
 }

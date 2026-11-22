@@ -13,10 +13,14 @@ import {CSP, SERVICES, config} from './config.js';
 const app = createApp('gateway', {json: false, csp: CSP});
 app.set('trust proxy', 1);
 
+// shortcut: Bharat ID for Business API calls share this per-IP limit; give /api/identity/v1 a per-key limit when a business needs more.
 app.use('/api', rateLimit({windowMs: 60_000, limit: config.rateLimitPerMinute}));
 app.use('/api/auth/otp', rateLimit({windowMs: 15 * 60_000, limit: config.otpRequestsPer15Min}));
 // The contact form needs no account, so it gets its own, tighter limit.
 app.use('/api/support/enquiries', rateLimit({windowMs: 15 * 60_000, limit: config.enquiriesPer15Min}));
+app.use('/api/identity/business/requests', rateLimit({windowMs: 15 * 60_000, limit: config.enquiriesPer15Min}));
+// The Bharat ID check page sends codes and takes PINs, so it gets the sign-in limit too.
+app.use('/api/identity/authorize', rateLimit({windowMs: 15 * 60_000, limit: config.otpRequestsPer15Min}));
 
 // Service-to-service routes (/api/<svc>/internal/…) are never reachable from outside.
 const INTERNAL = /^\/api\/[^/]+\/internal(\/|$)/i;

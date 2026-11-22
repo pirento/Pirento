@@ -7,6 +7,7 @@ x-service: &service
     INTERNAL_KEY: ${INTERNAL_KEY:?set INTERNAL_KEY in .env}
     SUPERADMIN_EMAILS: ${SUPERADMIN_EMAILS:-}
     AUTH_URL: http://auth:4001 # staff actions are written to its audit trail
+    IDENTITY_URL: http://identity:4005 # Pirento One and Vault check for an issued Bharat ID
 
 services:
   mongo:
@@ -21,6 +22,7 @@ services:
       <<: *env
       SERVICE: auth
       MONGO_URI: mongodb://mongo:27017/pirento_auth
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env} # sign-in links in emails and texts
       SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
       EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
@@ -81,6 +83,16 @@ services:
       SERVICE: identity
       MONGO_URI: mongodb://mongo:27017/pirento_identity
       KYC_ENCRYPTION_KEY: ${KYC_ENCRYPTION_KEY:?set KYC_ENCRYPTION_KEY in .env}
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env, e.g. https://pirento.com} # sign-in link in Bharat ID for Business emails
+      DIGIO_ENV: ${DIGIO_ENV:-sandbox}
+      DIGIO_CLIENT_ID: ${DIGIO_CLIENT_ID:-}
+      DIGIO_CLIENT_SECRET: ${DIGIO_CLIENT_SECRET:-}
+      DIGIO_WEBHOOK_SECRET: ${DIGIO_WEBHOOK_SECRET:-}
+      DIGIO_KYC_TEMPLATE: ${DIGIO_KYC_TEMPLATE:-VIDEO_KYC}
+      DIGIO_AADHAAR_TEMPLATE: ${DIGIO_AADHAAR_TEMPLATE:-}
+      DIGIO_FACE_TEMPLATE: ${DIGIO_FACE_TEMPLATE:-}
+      WALLET_URL: http://wallet:4002 # Bharat ID for Business calls are paid from the owner's wallet
+      DIGIO_ESTAMP_TAG: ${DIGIO_ESTAMP_TAG:-}
     depends_on: [mongo]
 
   learning:

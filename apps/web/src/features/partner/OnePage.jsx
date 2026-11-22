@@ -1,5 +1,6 @@
-// Pirento One dashboard: join, the partner link and what it brought, and every referred order.
+// Pirento One dashboard: join, the partner link and what it brought, every referred order, and the plans.
 import {useState} from 'react';
+import {Link} from 'react-router-dom';
 import {Check, Copy} from 'lucide-react';
 import {statusLabel} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
@@ -9,6 +10,7 @@ import {Tag} from '../../components/ui/Tag';
 import {appDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
 import {AppFrame} from '../products/AppFrame';
+import {PlanCards} from './PlanCards';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
@@ -66,9 +68,10 @@ function ReferralList({orders}) {
 export function One({product, section}) {
   const {redirect, user} = useSignedIn();
   const me = useApi(user ? '/orders/partner/me' : null);
-  const pct = useApi('/catalog/settings').data?.commissionPct ?? 0;
+  const plans = useApi('/orders/partner-plans');
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [note, setNote] = useState('');
   usePageMeta({
     title: 'Pirento One — partners',
     description: 'Share your partner code and track the orders it brings.',
@@ -84,8 +87,66 @@ export function One({product, section}) {
       setError(err.message);
     }
   };
+  const buy = async (plan) => {
+    setError('');
+    setNote('');
+    if (!window.confirm(copy.plans.confirm(plan.name, inr(plan.price / 100)))) return;
+    try {
+      await api('/orders/partner/plan', {method: 'POST', body: {planId: plan._id}});
+      setNote(copy.plans.bought);
+      me.reload();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
   const d = me.data;
   const frame = {product, section, ready: !me.loading};
+  const freePlan = plans.data?.find((p) => !p.price);
+
+  if (section === 'plans') {
+    const until = d?.plan && !d.plan.free && new Date(d.plan.until).toLocaleDateString('en-IN', {dateStyle: 'medium'});
+    return (
+      <AppFrame {...frame} ready={frame.ready && !plans.loading} title={copy.plans.title} intro={copy.plans.intro}>
+        {until && <p className="body">{copy.plans.until(until)}</p>}
+        {(error || note) && (
+          <p role={error ? 'alert' : 'status'} className="text-sm">
+            {error ? `⚠ ${error}` : note}{' '}
+            {/balance/i.test(error) && (
+              <Link to={`/${product.slug}/dashboard/wallet`} className="underline">
+                {copy.plans.topUp}
+              </Link>
+            )}
+          </p>
+        )}
+        {plans.error && <p className="body">⚠ {plans.error.message}</p>}
+        {plans.data?.length === 0 && <p className="body text-muted">{copy.plans.empty}</p>}
+        {plans.data?.length > 0 && (
+          <PlanCards
+            plans={plans.data}
+            current={d?.plan}
+            action={(p, mine) =>
+              !p.price ? (
+                !d && (
+                  <Button onClick={join} variant="outline" className="w-full justify-center">
+                    {copy.plans.join}
+                  </Button>
+                )
+              ) : (
+                <Button
+                  onClick={() => buy(p)}
+                  variant={p.recommended ? 'accent' : 'outline'}
+                  className="w-full justify-center"
+                >
+                  {(mine ? copy.plans.renew : copy.plans.buy)(inr(p.price / 100))}
+                </Button>
+              )
+            }
+          />
+        )}
+        <p className="text-sm text-muted">{copy.plans.paid}</p>
+      </AppFrame>
+    );
+  }
 
   if (!me.loading && !d) {
     return (
@@ -100,7 +161,12 @@ export function One({product, section}) {
           <Button onClick={join} variant="accent" className="mt-6">
             Become a partner
           </Button>
-          <p className="mt-4 text-sm text-muted">{copy.commission(pct)}</p>
+          <p className="mt-4 text-sm text-muted">
+            {copy.commission(freePlan)}{' '}
+            <Link to={`/${product.slug}/dashboard/plans`} className="underline">
+              {copy.plans.label}
+            </Link>
+          </p>
         </div>
       </AppFrame>
     );
@@ -152,7 +218,12 @@ export function One({product, section}) {
             },
           ]}
         />
-        <p className="mt-6 text-sm text-muted">{copy.commission(pct)}</p>
+        <p className="mt-6 text-sm text-muted">
+          {copy.commission(d.plan)}{' '}
+          <Link to={`/${product.slug}/dashboard/plans`} className="underline">
+            {copy.plans.label}
+          </Link>
+        </p>
       </DashSection>
     </AppFrame>
   );

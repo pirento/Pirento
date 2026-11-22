@@ -122,8 +122,8 @@ export const PRODUCT_DETAILS = {
     more: [
       {title: 'Saved as you go', body: 'Each of the seven steps saves on its own, so you can stop and come back.'},
       {
-        title: 'Video KYC',
-        body: 'A 20-second video with a one-time code shows it is really you. It is deleted once your ID is issued.',
+        title: 'Video KYC and eSign on Digio',
+        body: 'A video KYC on Digio shows it is really you, and you sign your declaration with Aadhaar eSign.',
       },
       {title: 'Less kept, less at risk', body: 'Only the last 4 digits of your Aadhaar and bank account are stored.'},
     ],

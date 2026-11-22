@@ -1,10 +1,12 @@
 // Sign-in by code: with your mobile (texted), your email, or your Bharat ID (the code goes to that ID's email).
+import crypto from 'node:crypto';
 import {Router} from 'express';
 import {z} from 'zod';
 import {TERMS_VERSION, getProduct, isBharatId, maskPhone, toPhone} from '@pirento/shared';
 import {ApiError, callService, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {User} from '../models/User.js';
+import {LoginLink} from '../models/LoginLink.js';
 import {checkCode, maskEmail, phoneKey, sendCode, sendPhoneCode} from '../lib/otp.js';
 import {issueSession} from '../lib/session.js';
 
@@ -105,5 +107,42 @@ otpRoutes.post(
 otpRoutes.post('/otp/bharat-id/verify', validate(z.object({bharatId, code})), async (req, res) => {
   const user = await holderOf(req.body.bharatId);
   await checkCode(user.email, req.body.code);
+  await issueSession(res, user);
+});
+
+/**
+ * Sign-in with Bharat ID, the 6-digit PIN and the date of birth. The identity service checks them and locks the
+ * PIN after repeated wrong tries; every failure answers alike. Under /otp so the gateway's sign-in limit covers it.
+ */
+otpRoutes.post(
+  '/otp/bharat-id/pin',
+  validate(
+    z.object({
+      bharatId,
+      pin: z.string().regex(/^\d{6}$/, 'Enter your 6-digit PIN'),
+      dob: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Enter your date of birth'),
+    }),
+  ),
+  async (req, res) => {
+    const {userId} = await callService(config.identityUrl, '/internal/pin-check', req.body);
+    const user = await User.findById(userId);
+    if (!user) throw new ApiError(401, 'PIN_WRONG', 'Wrong Bharat ID, PIN or date of birth');
+    await issueSession(res, user);
+  },
+);
+
+/** Signs in with a one-time link from an email or text. Under /otp so the gateway's sign-in limit covers it. */
+otpRoutes.post('/otp/link', validate(z.object({token: z.string().min(20).max(100)})), async (req, res) => {
+  const link = await LoginLink.findOneAndUpdate(
+    {
+      tokenHash: crypto.createHash('sha256').update(req.body.token).digest('hex'),
+      usedAt: null,
+      expiresAt: {$gt: new Date()},
+    },
+    {$set: {usedAt: new Date()}},
+    {new: true},
+  );
+  const user = link && (await User.findById(link.userId));
+  if (!user) throw new ApiError(400, 'LINK_INVALID', 'This link has expired or was already used. Ask for a new one.');
   await issueSession(res, user);
 });

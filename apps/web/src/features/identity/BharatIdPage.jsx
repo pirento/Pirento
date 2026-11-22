@@ -2,13 +2,17 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Check, Clock} from 'lucide-react';
+import {ID_SECTIONS, declarationSigned, kycDone} from '@pirento/shared';
 import {DashSection} from '../../components/ui/DashSection';
 import {Tag} from '../../components/ui/Tag';
 import {appDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
 import {AppFrame} from '../products/AppFrame';
+import {DeclarationLink} from './DeclarationLink';
 import {IdCard} from './IdCard';
 import {SectionSummary} from './SectionSummary';
+import {Sharing} from './Sharing';
+import {PinSettings} from './PinSettings';
 import {Wizard} from './Wizard';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
@@ -17,12 +21,13 @@ import {usePageMeta} from '../../lib/page';
 
 const copy = appDashboards['bharat-id'];
 
-/** How far along the application is, as an index into copy.steps (fill, video, submit, review, issued). */
+/** How far along the application is, as an index into copy.steps (fill, video KYC, sign, submit and review, issued). */
 function stepOf(doc) {
   if (!doc) return 0;
   if (doc.status === 'approved') return 5;
-  if (doc.status === 'submitted') return 3;
-  return doc.kyc?.recordedAt ? 2 : doc.sections && Object.keys(doc.sections).length ? 1 : 0;
+  if (doc.status === 'submitted' || declarationSigned(doc)) return 3;
+  if (kycDone(doc)) return 2;
+  return ID_SECTIONS.every((s) => doc.sections?.[s.id]) ? 1 : 0;
 }
 
 function Timeline({at}) {
@@ -57,17 +62,33 @@ export function BharatId({product, section}) {
   const [fresh, setFresh] = useState(null);
   usePageMeta({
     title: 'Bharat ID — apply',
-    description: 'Apply for your Bharat ID: seven short steps and a short video.',
+    description: 'Apply for your Bharat ID: seven short steps, a video KYC and an Aadhaar eSign on Digio.',
   });
   if (redirect) return redirect;
   const doc = fresh ?? res.data;
   const frame = {product, section, ready: !res.loading};
 
+  if (section === 'pin') {
+    return (
+      <AppFrame {...frame} title={copy.pin.title} intro={copy.pin.intro}>
+        {!res.loading && <PinSettings doc={doc} onChange={setFresh} />}
+      </AppFrame>
+    );
+  }
+
+  if (section === 'sharing') {
+    return (
+      <AppFrame {...frame} title={copy.sharing.title} intro={copy.sharing.intro}>
+        <Sharing />
+      </AppFrame>
+    );
+  }
+
   if (section === 'apply') {
     return (
       <AppFrame {...frame} title={copy.apply.title} intro={copy.intro}>
         {res.loading ? null : doc?.status === 'approved' || doc?.status === 'submitted' ? (
-          <SectionSummary sections={doc.sections} email={me?.email} kyc={doc.kyc ?? null} />
+          <SectionSummary doc={doc} email={me?.email} />
         ) : (
           <>
             {doc?.status === 'rejected' && (
@@ -113,12 +134,25 @@ export function BharatId({product, section}) {
                   </span>
                 </p>
               )}
+              {declarationSigned(doc) && doc.status !== 'draft' && doc.status !== 'rejected' && (
+                <p className="mt-4">
+                  <DeclarationLink />
+                </p>
+              )}
               {doc?.status === 'rejected' && (
                 <p className="body">
                   <strong>Needs a change:</strong> {doc.reason}.{' '}
                   <Link to="/bharat-id/dashboard/apply" className="text-ink underline underline-offset-4">
                     Fix it and submit again
                   </Link>
+                </p>
+              )}
+              {doc?.status === 'approved' && !doc.pinSet && (
+                <p className="body mb-4">
+                  <Link to="/bharat-id/dashboard/pin" className="text-ink underline underline-offset-4">
+                    Set your 6-digit PIN
+                  </Link>{' '}
+                  to sign in with your Bharat ID, the PIN and your date of birth.
                 </p>
               )}
               {doc?.status === 'approved' && (
@@ -130,12 +164,19 @@ export function BharatId({product, section}) {
                   .
                 </p>
               )}
+              {doc?.status === 'draft' && declarationSigned(doc) && (
+                <p className="body mb-4">Everything is done. Submit your application to send it to our team.</p>
+              )}
               {(!doc || doc.status === 'draft') && (
                 <Link
                   to="/bharat-id/dashboard/apply"
                   className="inline-flex rounded-full bg-accent px-6 py-3 text-sm font-medium text-on-accent"
                 >
-                  {at === 0 ? 'Start your application' : 'Continue your application'}
+                  {!doc
+                    ? 'Start your application'
+                    : declarationSigned(doc)
+                      ? 'Review and submit'
+                      : 'Continue your application'}
                 </Link>
               )}
             </div>

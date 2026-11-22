@@ -19,7 +19,7 @@ export const Identity = mongoose.model(
       // (Aadhaar and bank account keep only their last 4 digits).
       sections: {type: Object, default: {}},
 
-      // Video KYC: the code we asked them to say, and facts about the recording.
+      // Video KYC recorded on Pirento before it moved to Digio (older applications only).
       // The recording itself lives encrypted in KycVideo.
       kyc: {
         challenge: String,
@@ -30,6 +30,33 @@ export const Identity = mongoose.model(
         deletedAt: Date, // set when the video is removed after approval
       },
 
+      // Verification on Digio: the video KYC request (with DigiLocker) and the eSigned, e-stamped declaration.
+      digio: {
+        kycId: String,
+        kycToken: String, // opens the request in Digio's web SDK
+        kycAt: Date, // when the request was made; a fresh one is made after a day
+        kycAttempt: {type: Number, default: 0},
+        kycStatus: String, // Digio's status, lower case (requested, approval_pending, approved, rejected…)
+        kycActions: [{_id: false, kind: String, status: String, fileId: String}],
+        docId: String,
+        docToken: String,
+        docAt: Date,
+        signAttempt: {type: Number, default: 0},
+        docStatus: String, // requested, signed or failed
+        signedAt: Date,
+        stamped: Boolean,
+      },
+
+      // The holder's 6-digit Bharat ID PIN (scrypt), and its lockout after wrong tries.
+      pin: {hash: String, setAt: Date, fails: {type: Number, default: 0}, lockedUntil: Date},
+
+      // A staffer who started this application for the person (they finish it themselves, from a link).
+      enrolledBy: {_id: false, id: String, email: String},
+      // The enrolment centre whose QR started it, if any.
+      centre: {_id: false, code: {type: String, index: true}, name: String},
+      // Reminders by email and SMS while it is unfinished: how many were sent and when the next one is due.
+      reminders: {_id: false, count: {type: Number, default: 0}, nextAt: {type: Date, index: true}},
+
       fullName: String, // copied on submit, for the public verify page
       state: String,
       consentAt: Date,
@@ -38,6 +65,22 @@ export const Identity = mongoose.model(
       bharatId: {type: String, unique: true, sparse: true},
       issuedAt: Date,
     },
-    {timestamps: true, minimize: false},
+    {
+      timestamps: true,
+      minimize: false,
+      // Digio's SDK tokens skip its first sign-in step: they go only to the applicant, from the start routes.
+      toJSON: {
+        transform: (_doc, out) => {
+          if (out.digio) {
+            delete out.digio.kycToken;
+            delete out.digio.docToken;
+          }
+          // Only whether a PIN is set leaves, never its hash.
+          out.pinSet = Boolean(out.pin?.hash);
+          delete out.pin;
+          return out;
+        },
+      },
+    },
   ),
 );

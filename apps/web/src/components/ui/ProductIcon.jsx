@@ -1,15 +1,13 @@
-// A product's mark in lists and tabs: its icon on its own colour (the pair the brand test keeps readable).
-import {PRODUCT_ICONS} from '../../lib/productIcons';
-
+// A product's mark in lists and tabs: its own app icon from public/brand/<slug>/.
 export function ProductIcon({product, className = 'size-6'}) {
-  const Icon = PRODUCT_ICONS[product.slug];
   return (
-    <span
+    <img
+      src={`/brand/${product.slug}/icon-192.png`}
+      alt=""
       aria-hidden
-      className={`inline-flex shrink-0 items-center justify-center rounded-[30%] ${className}`}
-      style={{background: product.color, color: product.onColor}}
-    >
-      {Icon && <Icon className="size-[60%]" strokeWidth={2.25} />}
-    </span>
+      loading="lazy"
+      decoding="async"
+      className={`inline-block shrink-0 rounded-[24%] object-cover ${className}`}
+    />
   );
 }

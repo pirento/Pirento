@@ -32,7 +32,7 @@ export function searchFilter(q, numberField, textFields) {
     .replace(/^#/, '')
     .slice(0, 80);
   if (!text) return null;
-  if (/^\d+$/.test(text)) return {[numberField]: Number(text)};
+  if (numberField && /^\d+$/.test(text)) return {[numberField]: Number(text)};
   const match = {$regex: text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i'};
   return {$or: textFields.map((f) => ({[f]: match}))};
 }
