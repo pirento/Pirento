@@ -1,7 +1,7 @@
 // End-to-end flows against a running stack: npm run dev with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0.
 // Usage: npm run e2e
 import {bankForSlug} from '@pirento/shared/exam';
-import {verhoeffCheckDigit} from '@pirento/shared';
+import {TEST_BHARAT_IDS, verhoeffCheckDigit} from '@pirento/shared';
 import crypto from 'node:crypto';
 
 const B = process.env.API_URL ?? 'http://127.0.0.1:4000/api';
@@ -449,6 +449,211 @@ check(
   (await call(`/identity/staff/${app1._id}`, {method: 'PATCH', token: user, body: {decision: 'approve'}})).status ===
     403,
 );
+
+// ── Bharat ID for Business ──────────────────────────────────────────────
+// A request from the public page → staff approve → an account by email → test keys and the sandbox →
+// company details and the owner's own Bharat ID → live keys → a consent the holder allows, then revokes.
+{
+  const T = TEST_BHARAT_IDS;
+  const bizReq = (over = {}) => ({
+    company: 'Asha Bank',
+    type: 'Bank',
+    website: 'https://ashabank.example',
+    contactName: 'Asha Rao',
+    designation: 'Head of KYC',
+    email: `biz${Date.now()}@example.com`,
+    mobile: '9876500000',
+    useCase: 'KYC for new savings accounts',
+    volume: 'Under 1,000',
+    acceptTerms: true,
+    ...over,
+  });
+  const ask = (body) => call('/identity/business/requests', {method: 'POST', body});
+  const api = (path, key, opts = {}) =>
+    call(`/identity/v1${path}`, {...opts, headers: {authorization: `Bearer ${key}`}});
+  const decide = (id, decision, reason = '') =>
+    call(`/identity/staff/business/${id}`, {method: 'PATCH', token: boss, body: {decision, reason}});
+
+  check('business request needs the terms', (await ask(bizReq({acceptTerms: false}))).status === 400);
+  check('business request checks the website', (await ask(bizReq({website: 'ashabank'}))).status === 400);
+  check('a bot filling the hidden field is not kept', (await ask(bizReq({website_confirm: 'x'}))).status === 201);
+  const reqA = bizReq();
+  check('business request received', (await ask(reqA)).status === 201);
+  check('one open request per email', (await ask(reqA)).error?.code === 'ALREADY_ASKED');
+  check(
+    'customers cannot see business requests',
+    (await call('/identity/staff/business', {token: user})).status === 403,
+  );
+  const queued = (await call('/identity/staff/business', {token: boss})).data?.find(
+    (b) => b.request.email === reqA.email,
+  );
+  check('request in the staff queue', queued?.status === 'requested', queued);
+
+  const approved = (await decide(queued._id, 'approve')).data;
+  check('approve makes the account', approved?.status === 'test' && approved.userId && approved.devPassword, approved);
+  check('approved once', (await decide(queued._id, 'approve')).status === 409);
+  const bizLogin = (
+    await call('/auth/password/login', {method: 'POST', body: {login: reqA.email, password: approved.devPassword}})
+  ).data;
+  check('business signs in with the emailed password', Boolean(bizLogin?.token));
+  const biz = bizLogin.token;
+  const meA = (await call('/identity/business/me', {token: biz})).data;
+  check('business dashboard data', meA?.business.status === 'test' && meA.ownerIdIssued === false, meA);
+  check(
+    'no live keys before live access',
+    (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'live'}})).status === 403,
+  );
+  const testKey = (
+    await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test', label: 'CI'}})
+  ).data;
+  check('test key made, shown once', /^bid_test_/.test(testKey?.key ?? ''), testKey);
+  check(
+    'keys are never listed in full',
+    !JSON.stringify((await call('/identity/business/me', {token: biz})).data).includes(testKey.key),
+  );
+  check('API needs a key', (await call(`/identity/v1/ids/${T.approves}`)).error?.code === 'NO_KEY');
+  check('API refuses a wrong key', (await api(`/ids/${T.approves}`, 'bid_test_' + 'x'.repeat(32))).status === 401);
+  const sandboxId = (await api(`/ids/${T.approves}`, testKey.key)).data;
+  check(
+    'sandbox verify',
+    sandboxId?.issued === true && sandboxId.name === 'Asha T.' && sandboxId.mode === 'test',
+    sandboxId,
+  );
+  check('sandbox knows only the test IDs', (await api(`/ids/${appr.bharatId}`, testKey.key)).status === 404);
+  const sc = (
+    await api('/consents', testKey.key, {
+      method: 'POST',
+      body: {bharatId: T.approves, purpose: 'Open an account', fields: ['name', 'pan']},
+    })
+  ).data;
+  check('sandbox consent approves', sc?.status === 'approved', sc);
+  const scRead = (await api(`/consents/${sc.id}`, testKey.key)).data;
+  check(
+    'sandbox details, only the fields asked for',
+    scRead?.details?.name === 'Asha Test' && scRead.details.pan && !('dob' in scRead.details),
+    scRead,
+  );
+  check(
+    'sandbox consent can decline',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.declines, purpose: 'Open an account', fields: ['name']},
+      })
+    ).data?.status === 'declined',
+  );
+  check(
+    'unknown consent fields refused',
+    (
+      await api('/consents', testKey.key, {
+        method: 'POST',
+        body: {bharatId: T.approves, purpose: 'x y z', fields: ['bank']},
+      })
+    ).status === 400,
+  );
+  check(
+    'live needs company details',
+    (await call('/identity/business/me/live', {method: 'POST', token: biz})).error?.code === 'INCOMPLETE',
+  );
+  const profile = {
+    legalName: 'Asha Bank Limited',
+    entity: 'Public limited company',
+    registrationNo: 'U12345MH2020PLC123456',
+    pan: 'AAACB1234C',
+    line: '1 Main Road',
+    city: 'Mumbai',
+    state: 'Maharashtra',
+    pincode: '400001',
+    signatoryName: 'Asha Rao',
+    signatoryDesignation: 'Director',
+  };
+  check(
+    'company PAN checked',
+    (await call('/identity/business/me/profile', {method: 'PUT', token: biz, body: {...profile, pan: 'NOPE'}}))
+      .status === 400,
+  );
+  await call('/identity/business/me/profile', {method: 'PUT', token: biz, body: profile});
+  check(
+    "live needs the owner's own Bharat ID",
+    (await call('/identity/business/me/live', {method: 'POST', token: biz})).error?.code === 'NEEDS_BHARAT_ID',
+  );
+  await call(`/identity/business/me/keys/${testKey.id}`, {method: 'DELETE', token: biz});
+  check('a revoked key stops working', (await api(`/ids/${T.approves}`, testKey.key)).status === 401);
+
+  // Business B: its owner is `user`, whose Bharat ID is issued, so it can go live.
+  const userEmail = (await call('/auth/me', {token: user})).data?.email;
+  check(
+    'request from an existing account',
+    (await ask(bizReq({email: userEmail, company: 'Verma Institute', type: 'Coaching or training institute'})))
+      .status === 201,
+  );
+  const reqB = (await call('/identity/staff/business', {token: boss})).data?.find((b) => b.request.email === userEmail);
+  const appB = (await decide(reqB._id, 'approve')).data;
+  check('an existing account is linked, no new password', appB?.status === 'test' && !appB.devPassword, appB);
+  await call('/identity/business/me/profile', {
+    method: 'PUT',
+    token: user,
+    body: {...profile, legalName: 'Verma Institute LLP', entity: 'LLP'},
+  });
+  check(
+    'live requested',
+    (await call('/identity/business/me/live', {method: 'POST', token: user})).data?.status === 'live_review',
+  );
+  check(
+    'profile locked while in review',
+    (await call('/identity/business/me/profile', {method: 'PUT', token: user, body: profile})).status === 409,
+  );
+  check('send back needs a reason', (await decide(reqB._id, 'sendBack')).status === 400);
+  check('staff opens live', (await decide(reqB._id, 'live')).data?.status === 'live');
+  const liveKey = (await call('/identity/business/me/keys', {method: 'POST', token: user, body: {mode: 'live'}})).data;
+  check('live key made', /^bid_live_/.test(liveKey?.key ?? ''), liveKey);
+  const realId = (await api(`/ids/${appr.bharatId}`, liveKey.key)).data;
+  check('live verify', realId?.issued === true && realId.name === 'Asha V.' && realId.mode === 'live', realId);
+  check('live does not answer for sandbox IDs', (await api(`/ids/${T.approves}`, liveKey.key)).status === 404);
+  const lc = (
+    await api('/consents', liveKey.key, {
+      method: 'POST',
+      body: {bharatId: appr.bharatId, purpose: 'Course admission', fields: ['name', 'pan'], reference: 'ADM-1'},
+    })
+  ).data;
+  check('live consent waits for the holder', lc?.status === 'pending' && !lc.details, lc);
+  const held = (await call('/identity/consents', {token: user})).data?.find((c) => c._id === lc.id);
+  check('the holder sees the request', held?.businessName === 'Verma Institute LLP' && held.fields.length === 2, held);
+  check(
+    'the holder allows it',
+    (await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'approve'}})).data
+      ?.status === 'approved',
+  );
+  check(
+    'decided once',
+    (await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'approve'}})).status ===
+      409,
+  );
+  const lcRead = (await api(`/consents/${lc.id}`, liveKey.key)).data;
+  check(
+    'live details: only what was allowed',
+    lcRead?.details?.name === 'Asha Rani Verma' && lcRead.details.pan === 'ABCDE1234F' && !('dob' in lcRead.details),
+    lcRead,
+  );
+  check('another business cannot read it', (await api(`/consents/${lc.id}`, testKey.key)).status === 401);
+  await call(`/identity/consents/${lc.id}`, {method: 'POST', token: user, body: {decision: 'revoke'}});
+  check('a revoke stops the details', !(await api(`/consents/${lc.id}`, liveKey.key)).data?.details);
+  check('suspend needs a reason', (await decide(reqB._id, 'suspend')).status === 400);
+  await decide(reqB._id, 'suspend', 'Checking unusual traffic');
+  check(
+    'a suspended business is refused',
+    (await api(`/ids/${appr.bharatId}`, liveKey.key)).error?.code === 'NOT_ALLOWED',
+  );
+  check('restored to live', (await decide(reqB._id, 'restore')).data?.status === 'live');
+  check('works again after restore', (await api(`/ids/${appr.bharatId}`, liveKey.key)).status === 200);
+
+  const reqC = bizReq({company: 'Nope Ltd'});
+  await ask(reqC);
+  const c = (await call('/identity/staff/business', {token: boss})).data?.find((b) => b.request.email === reqC.email);
+  check('reject needs a reason', (await decide(c._id, 'reject')).status === 400);
+  check('rejected', (await decide(c._id, 'reject', 'We could not confirm the company')).data?.status === 'rejected');
+  check('a rejected email may ask again', (await ask(reqC)).status === 201);
+}
 
 // ── Intern exam ─────────────────────────────────────────────────────────
 // Two "start"s at the same moment get one attempt, not two.

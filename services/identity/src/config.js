@@ -6,6 +6,8 @@ const digioSandbox = env('DIGIO_ENV', 'sandbox') !== 'production';
 export const config = {
   port: Number(env('PORT', 4005)),
   mongoUri: env('MONGO_URI', 'mongodb://127.0.0.1:27017/pirento_identity'),
+  authUrl: env('AUTH_URL', 'http://127.0.0.1:4001'), // makes Bharat ID for Business accounts and emails them
+  siteUrl: env('SITE_URL', 'http://localhost:5173').replace(/\/$/, ''), // for the sign-in link in those emails
   /** Decrypts videos recorded before KYC moved to Digio. Changing it makes them unreadable. */
   kycKey: keyFrom(env('KYC_ENCRYPTION_KEY', 'dev-only-kyc-key')),
   /**

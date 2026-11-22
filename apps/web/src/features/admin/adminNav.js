@@ -3,6 +3,7 @@
 // the role checks each service makes on its own routes.
 import {
   BadgeCheck,
+  Building2,
   Banknote,
   Briefcase,
   ClipboardList,
@@ -72,6 +73,15 @@ export const ADMIN_SECTIONS = [
     icon: BadgeCheck,
     roles: OPS,
     intro: 'Submitted applications. Check the Digio video KYC and the signed declaration, then approve or reject.',
+  },
+  {
+    id: 'business',
+    group: 'Work',
+    label: 'Bharat ID for Business',
+    icon: Building2,
+    roles: OPS, // ACCESS.business
+    intro:
+      'Requests for the Bharat ID API. Approving makes their account and emails the sign-in; live access opens after the company details are checked.',
   },
   {
     id: 'tickets',

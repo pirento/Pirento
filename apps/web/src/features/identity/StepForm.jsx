@@ -1,4 +1,4 @@
-// One step of the application, drawn from the shared form definition.
+// A form drawn from a shared field definition: a Bharat ID step by default, or any other (`validate` and `save`).
 import {useState} from 'react';
 import {ArrowLeft} from 'lucide-react';
 import {validateSection} from '@pirento/shared';
@@ -30,7 +30,16 @@ function Select({f, value, onChange}) {
 }
 
 /** One step's fields, driven by the shared definition. */
-export function StepForm({section, initial, onSaved, onBack}) {
+export function StepForm({
+  section,
+  initial,
+  onSaved,
+  onBack,
+  validate = (values) => validateSection(section.id, values),
+  save = (values) => api(`/identity/draft/${section.id}`, {method: 'PUT', body: values}),
+  submitLabel = 'Save and continue',
+  children,
+}) {
   // Reduced values (XXXX…) cannot be sent back, so those fields start empty and are typed again.
   const [values, setValues] = useState(() =>
     Object.fromEntries(section.fields.map((f) => [f.id, f.store ? '' : (initial?.[f.id] ?? '')])),
@@ -39,22 +48,23 @@ export function StepForm({section, initial, onSaved, onBack}) {
   const [busy, setBusy] = useState(false);
   const set = (id) => (v) => setValues((s) => ({...s, [id]: v}));
 
-  const save = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError(null);
-    const local = validateSection(section.id, values);
+    const local = validate(values);
     if (local.error) return setError(local);
     setBusy(true);
     try {
-      onSaved(await api(`/identity/draft/${section.id}`, {method: 'PUT', body: values}));
+      onSaved(await save(values));
     } catch (err) {
       setError({error: err.message});
+    } finally {
       setBusy(false);
     }
   };
 
   return (
-    <form onSubmit={save} noValidate className="space-y-6">
+    <form onSubmit={submit} noValidate className="space-y-6">
       {section.intro && <p className="body">{section.intro}</p>}
       <div className="grid gap-6 sm:grid-cols-2">
         {section.fields.map((f) =>
@@ -86,7 +96,7 @@ export function StepForm({section, initial, onSaved, onBack}) {
               </div>
             </fieldset>
           ) : (
-            <div key={f.id} className={f.id === 'line' ? 'sm:col-span-2' : ''}>
+            <div key={f.id} className={f.id === 'line' || f.wide ? 'sm:col-span-2' : ''}>
               <Field
                 label={f.label + (f.optional ? ' (optional)' : '')}
                 required={!f.optional}
@@ -112,6 +122,7 @@ export function StepForm({section, initial, onSaved, onBack}) {
           Emergency contact is the same as my nominee
         </button>
       )}
+      {children}
       {error && !error.field && (
         <p role="alert" className="text-sm">
           ⚠ {error.error}
@@ -119,7 +130,7 @@ export function StepForm({section, initial, onSaved, onBack}) {
       )}
       <div className="flex flex-wrap gap-3 pt-2">
         <Button type="submit" variant="accent" disabled={busy}>
-          {busy ? 'Saving' : 'Save and continue'}
+          {busy ? 'Saving' : submitLabel}
         </Button>
         {onBack && (
           <Button type="button" variant="outline" icon={ArrowLeft} onClick={onBack}>

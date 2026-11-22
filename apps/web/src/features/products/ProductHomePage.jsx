@@ -5,6 +5,7 @@ import {AlertTriangle} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {PlansSection} from '../partner/PlansSection';
+import {BusinessSection} from '../business/BusinessSection';
 import {useApi} from '../../lib/api/useApi';
 import {Faq} from '../../components/ui/Blocks';
 import {Section, SectionHeader} from '../../components/ui/Heading';
@@ -58,6 +59,7 @@ export function ProductHome() {
     design.covers !== 'extra' && ((n) => <Extra key="e" product={product} n={n} />),
     (n) => <Audience key="a" product={product} n={n} />,
     plans.length > 0 && ((n) => <PlansSection key="p" plans={plans} n={n} />),
+    slug === 'bharat-id' && ((n) => <BusinessSection key="b" n={n} />),
     design.covers !== 'how' && ((n) => <How key="h" product={product} variant={design.how} n={n} />),
     (n) => <Questions key="q" product={product} n={n} />,
     (n) => <Related key="r" product={product} n={n} />,

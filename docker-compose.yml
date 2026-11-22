@@ -82,6 +82,7 @@ services:
       SERVICE: identity
       MONGO_URI: mongodb://mongo:27017/pirento_identity
       KYC_ENCRYPTION_KEY: ${KYC_ENCRYPTION_KEY:?set KYC_ENCRYPTION_KEY in .env}
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env, e.g. https://pirento.com} # sign-in link in Bharat ID for Business emails
       DIGIO_ENV: ${DIGIO_ENV:-sandbox}
       DIGIO_CLIENT_ID: ${DIGIO_CLIENT_ID:-}
       DIGIO_CLIENT_SECRET: ${DIGIO_CLIENT_SECRET:-}

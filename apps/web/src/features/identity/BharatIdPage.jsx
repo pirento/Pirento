@@ -11,6 +11,7 @@ import {AppFrame} from '../products/AppFrame';
 import {DeclarationLink} from './DeclarationLink';
 import {IdCard} from './IdCard';
 import {SectionSummary} from './SectionSummary';
+import {Sharing} from './Sharing';
 import {Wizard} from './Wizard';
 import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
@@ -65,6 +66,14 @@ export function BharatId({product, section}) {
   if (redirect) return redirect;
   const doc = fresh ?? res.data;
   const frame = {product, section, ready: !res.loading};
+
+  if (section === 'sharing') {
+    return (
+      <AppFrame {...frame} title={copy.sharing.title} intro={copy.sharing.intro}>
+        <Sharing />
+      </AppFrame>
+    );
+  }
 
   if (section === 'apply') {
     return (

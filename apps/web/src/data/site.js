@@ -265,10 +265,114 @@ export const productDashboards = {
     {id: 'referrals', label: 'Referrals', icon: 'referrals'},
     {id: 'plans', label: 'Plans', icon: 'plans'},
   ),
-  'bharat-id': APP_SECTIONS({id: 'apply', label: 'Application', icon: 'apply'}),
+  'bharat-id': APP_SECTIONS(
+    {id: 'apply', label: 'Application', icon: 'apply'},
+    {id: 'sharing', label: 'Sharing', icon: 'sharing'},
+  ),
 };
 
 // The app products' dashboards (Intern, Vault, One, Bharat ID): headings and the words on each section.
+// Bharat ID for Business: the public page, the request form, the business dashboard and its API reference.
+export const bharatIdBusiness = {
+  label: 'Bharat ID for Business',
+  title: 'Verified people, / with their consent.',
+  hl: 'with their consent.',
+  intro:
+    'An API for banks, NBFCs, schools, colleges, institutes and websites: check a Bharat ID, and with the holder’s consent receive the details they choose to share.',
+  ask: 'Request access',
+  home: {
+    label: 'For business',
+    title: 'Use Bharat ID / in your own checks.',
+    intro: 'Banks, NBFCs, schools, colleges, institutes and websites can check Bharat IDs through our API.',
+    cta: 'Bharat ID for Business',
+  },
+  uses: {
+    label: 'Who it is for',
+    title: 'Wherever you / check people.',
+    items: [
+      {
+        title: 'Banks',
+        body: 'Check a customer’s Bharat ID and, with their consent, receive the details they share for KYC.',
+      },
+      {title: 'NBFCs', body: 'Confirm who an applicant is before a loan, with the details they allow you to see.'},
+      {title: 'Schools', body: 'Check parents, guardians and staff at admission or hiring.'},
+      {title: 'Colleges and universities', body: 'Check students and staff when they join.'},
+      {title: 'Institutes', body: 'Check learners at enrolment for coaching and training courses.'},
+      {title: 'Websites and apps', body: 'Check people at sign-up, with one API call.'},
+    ],
+  },
+  gives: {
+    label: 'What you get',
+    title: 'Two calls, / a sandbox, a dashboard.',
+    items: [
+      {
+        title: 'Verify',
+        body: 'Is this Bharat ID issued? You get the holder’s first name and last initial and their state.',
+      },
+      {
+        title: 'Consent',
+        body: 'Ask the holder to share chosen details (name, date of birth, address, PAN, last 4 of Aadhaar, mobile). They allow or decline it in their Bharat ID dashboard; you read the details only once they allow it, and never after they revoke it.',
+      },
+      {
+        title: 'Test keys and a sandbox',
+        body: 'Build against sandbox Bharat IDs from the day you are approved; no real person is touched.',
+      },
+      {title: 'Live keys', body: 'Open after our team checks your company details and your own Bharat ID.'},
+    ],
+  },
+  how: {
+    label: 'How it works',
+    title: 'From request / to live keys.',
+    steps: [
+      {title: 'Request access', body: 'Tell us about your organisation and what you will use Bharat ID for.'},
+      {title: 'We review it', body: 'Our team checks the request. We take requests only; there is no self sign-up.'},
+      {
+        title: 'Your sign-in by email',
+        body: 'Once approved you get a user ID, a password and the link to your business dashboard.',
+      },
+      {title: 'Build with test keys', body: 'Make test keys and try every call against the sandbox.'},
+      {
+        title: 'Company details',
+        body: 'Add your registration details; the person signing in gets their own Bharat ID.',
+      },
+      {title: 'Go live', body: 'Our team approves live access and your live keys open.'},
+    ],
+  },
+  form: {
+    label: 'Request access',
+    title: 'Tell us / about you.',
+    intro: 'Our team reads every request. If it is approved, the sign-in comes to the work email you give here.',
+    terms: 'I accept the terms and confirm I may ask on behalf of this organisation.',
+    send: 'Send request',
+    sent: 'Thank you. Your request is with our team; we write to your work email once it is reviewed.',
+  },
+  note: 'Bharat ID is a Pirento identifier, not a government ID. Our team gets in touch about pricing once your request is reviewed.',
+  sample: {
+    label: 'The API',
+    title: 'One header, / plain JSON.',
+    intro:
+      'Send your key as a Bearer token. Test keys (bid_test_…) answer from the sandbox; live keys (bid_live_…) from issued Bharat IDs.',
+  },
+  dashboard: {
+    title: 'Bharat ID for Business',
+    none: 'No Bharat ID for Business account is linked to this sign-in.',
+    statuses: {
+      test: 'Test access: build with test keys. Add your company details and ask for live access when ready.',
+      live_review: 'Your live access request is with our team.',
+      live: 'Live: your live keys work.',
+      suspended: 'Your API keys are paused.',
+    },
+    steps: ['Approved', 'Company details', 'Your Bharat ID', 'Live review', 'Live'],
+    sections: [
+      {id: 'overview', label: 'Overview', icon: 'overview'},
+      {id: 'company', label: 'Company', icon: 'company'},
+      {id: 'keys', label: 'API keys', icon: 'passwords'},
+      {id: 'consents', label: 'Consent log', icon: 'consents'},
+      {id: 'docs', label: 'API reference', icon: 'docs'},
+    ],
+  },
+};
+
 // The Bharat ID steps done on Digio: the video KYC, then the Aadhaar eSign of the declaration.
 export const bharatIdVerify = {
   off: 'Verification with Digio is not switched on yet. Your saved steps are kept; come back soon.',
@@ -394,6 +498,10 @@ export const appDashboards = {
     steps: ['Fill the steps', 'Video KYC on Digio', 'Sign the declaration', 'Submit and review', 'ID issued'],
     card: {label: 'Your ID', title: 'Your Bharat ID / card.'},
     apply: {label: 'Application', title: 'Your details, / step by step.'},
+    sharing: {
+      title: 'Who sees / your details.',
+      intro: 'Businesses using Bharat ID ask before they see anything. You decide, and you can stop it later.',
+    },
   },
 };
 

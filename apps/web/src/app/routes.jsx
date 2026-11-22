@@ -61,6 +61,19 @@ export const ROUTES = [
   {path: '/admin/:section/:id', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/staff', Page: page(() => import('../features/admin/StaffRedirect'), 'Staff')},
 
+  // Bharat ID for Business: its page, and the business dashboard (apart from a person's Bharat ID dashboard)
+  {path: '/bharat-id/business', Page: page(() => import('../features/business/BusinessPage'), 'BharatIdBusiness')},
+  {
+    path: '/bharat-id/business/dashboard',
+    layout: 'app',
+    Page: page(() => import('../features/business/BusinessDashboard'), 'BusinessDashboard'),
+  },
+  {
+    path: '/bharat-id/business/dashboard/:section',
+    layout: 'app',
+    Page: page(() => import('../features/business/BusinessDashboard'), 'BusinessDashboard'),
+  },
+
   // The ten product sites: home at /<slug>, app at /<slug>/dashboard, legal pages at /<slug>/terms and so on
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
   {

@@ -4,13 +4,43 @@ import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
+import {ApiKey} from '../models/ApiKey.js';
+import {Business} from '../models/Business.js';
+import {Consent} from '../models/Consent.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
 
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
-  await Promise.all([Identity.deleteOne({userId}), KycVideo.deleteOne({userId})]);
+  // A business account closes: its keys stop, its contact details go. Consents given by this person end.
+  const businesses = await Business.find({userId}, {_id: 1});
+  await Promise.all([
+    Identity.deleteOne({userId}),
+    KycVideo.deleteOne({userId}),
+    ApiKey.updateMany(
+      {businessId: {$in: businesses.map((b) => String(b._id))}, revokedAt: null},
+      {$set: {revokedAt: new Date()}},
+    ),
+    Business.updateMany(
+      {userId},
+      {
+        $set: {
+          status: 'closed',
+          'request.contactName': '',
+          'request.email': `deleted-${userId}@deleted.invalid`,
+          'request.mobile': '',
+        },
+        $unset: {open: 1},
+      },
+    ),
+  ]);
+  // In order: end them first, then drop the link to the person.
+  await Consent.updateMany(
+    {userId, status: {$in: ['pending', 'approved']}},
+    {$set: {status: 'revoked', decidedAt: new Date()}},
+  );
+  await Consent.updateMany({userId}, {$unset: {userId: 1}});
   res.json({data: {forgotten: true}});
 });
 

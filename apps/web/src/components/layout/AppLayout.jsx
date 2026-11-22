@@ -3,32 +3,36 @@
 import {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {Link, NavLink, useLocation} from 'react-router-dom';
 import {
-  Home,
   ArrowLeftRight,
+  Award,
+  BookOpen,
   Briefcase,
-  RefreshCw,
+  Building2,
+  ClipboardList,
   FileText,
+  FolderLock,
   Gem,
-  MessagesSquare,
+  GraduationCap,
+  Handshake,
+  Home,
+  KeyRound,
   LayoutDashboard,
-  Receipt,
-  ShoppingBag,
   LifeBuoy,
+  ListChecks,
   LogOut,
+  Megaphone,
   Menu,
+  MessageSquare,
+  MessagesSquare,
+  Receipt,
+  RefreshCw,
   Search,
+  Share2,
   ShieldCheck,
+  ShoppingBag,
   UserRound,
   Wallet as WalletIcon,
   X,
-  Award,
-  ClipboardList,
-  FolderLock,
-  GraduationCap,
-  KeyRound,
-  Megaphone,
-  MessageSquare,
-  Share2,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
@@ -36,7 +40,7 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
-import {SINGLE_PAGE_SECTIONS, productDashboards} from '../../data/site';
+import {SINGLE_PAGE_SECTIONS, bharatIdBusiness, productDashboards} from '../../data/site';
 
 const SECTION_ICONS = {
   overview: LayoutDashboard,
@@ -55,6 +59,10 @@ const SECTION_ICONS = {
   chat: MessageSquare,
   referrals: Share2,
   plans: Gem,
+  sharing: Handshake,
+  company: Building2,
+  consents: ListChecks,
+  docs: BookOpen,
   apply: ClipboardList,
 };
 
@@ -77,6 +85,25 @@ function useAppNav() {
         label,
         items: items.map((s) => ({...s, to: `/admin/${s.id}`})),
       })),
+    };
+  }
+  // Bharat ID for Business has its own dashboard, apart from a person's Bharat ID.
+  if (pathname.startsWith('/bharat-id/business/dashboard')) {
+    return {
+      title: bharatIdBusiness.dashboard.title,
+      groups: [
+        {
+          label: 'Business',
+          items: [
+            ...bharatIdBusiness.dashboard.sections.map((s, i) => ({
+              label: s.label,
+              to: i === 0 ? '/bharat-id/business/dashboard' : `/bharat-id/business/dashboard/${s.id}`,
+              icon: SECTION_ICONS[s.icon],
+            })),
+            {label: 'Bharat ID for Business', to: '/bharat-id/business', icon: Home},
+          ],
+        },
+      ],
     };
   }
   // A product's dashboard is its own app: only its sections, never the other products. Wallet and Support
