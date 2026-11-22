@@ -13,6 +13,8 @@ import {consentRoutes} from './routes/consent.routes.js';
 import {staffBusinessRoutes} from './routes/staffBusiness.routes.js';
 import {authorizeRoutes} from './routes/authorize.routes.js';
 import {pinRoutes} from './routes/pin.routes.js';
+import {enrolRoutes} from './routes/enrol.routes.js';
+import {startReminders} from './lib/reminders.js';
 
 const app = createApp('identity');
 app.use(
@@ -26,7 +28,9 @@ app.use(
   pinRoutes,
   applicationRoutes,
   staffBusinessRoutes,
+  enrolRoutes,
   staffRoutes,
 );
 
 start(finish(app), {name: 'identity', port: config.port, mongoUri: config.mongoUri});
+startReminders(); // email and SMS reminders for unfinished applications

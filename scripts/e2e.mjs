@@ -1082,6 +1082,54 @@ const sup = await loginWithCookie(`support${Date.now()}@example.com`);
 const supUser = (await call(`/auth/admin/users?q=${encodeURIComponent('support')}`, {token: boss})).data.users[0];
 await call(`/auth/admin/users/${supUser._id}/role`, {method: 'PATCH', token: boss, body: {role: 'support'}});
 const supToken = (await loginWithCookie(supUser.email)).token;
+
+// ── Staff start a Bharat ID for someone who is not signed in ───────────────
+{
+  const who = `walkin${Date.now()}@example.com`;
+  const enrol = (token, body) => call('/identity/staff/enrol', {method: 'POST', token, body});
+  const body = {email: who, name: 'Ravi Kumar', mobile: '9876500005', agreed: true};
+  check('customers cannot start one for someone', (await enrol(user, body)).status === 403);
+  check('the terms must be confirmed', (await enrol(supToken, {...body, agreed: false})).status === 400);
+  check('the mobile is checked', (await enrol(supToken, {...body, mobile: '12345'})).status === 400);
+  const en = (await enrol(supToken, body)).data;
+  check(
+    'any staffer starts it; the link goes by email and SMS',
+    en?.nextStep === 'Personal details' && en.sent?.email && en.sent.sms && en.sent.devLink && en.enrolledBy?.email,
+    en,
+  );
+  check(
+    'they see what they started',
+    (await call('/identity/staff/enrol', {token: supToken})).data?.some((d) => d._id === en._id),
+  );
+  check('customers cannot list them', (await call('/identity/staff/enrol', {token: user})).status === 403);
+  const step = (
+    await call(`/identity/staff/enrol/${en._id}/draft/personal`, {
+      method: 'PUT',
+      token: supToken,
+      body: {fullName: 'Ravi Kumar', fatherName: 'Mohan Kumar', dob: '1988-02-03', gender: 'Male'},
+    })
+  ).data;
+  check('the staffer fills a step with them', step?.nextStep === 'Identity documents', step);
+  const linkToken = new URL(en.sent.devLink).searchParams.get('token');
+  const viaLink = (await call('/auth/otp/link', {method: 'POST', body: {token: linkToken}})).data;
+  check('the link signs them in, no password or code', Boolean(viaLink?.token) && viaLink.user.email === who);
+  check(
+    'the link works once',
+    (await call('/auth/otp/link', {method: 'POST', body: {token: linkToken}})).error?.code === 'LINK_INVALID',
+  );
+  const theirs = (await call('/identity/me', {token: viaLink.token})).data;
+  check(
+    'they carry on where the staffer stopped',
+    theirs?.sections?.personal?.fullName === 'Ravi Kumar' && theirs.reminders?.nextAt,
+  );
+  const again = (await call(`/identity/staff/enrol/${en._id}/remind`, {method: 'POST', token: supToken})).data;
+  check('the link can be sent again', again?.devLink && again.devLink !== en.sent.devLink);
+  const userEmail = (await call('/auth/me', {token: user})).data?.email;
+  check(
+    'not for someone already issued',
+    (await enrol(supToken, {...body, email: userEmail})).error?.code === 'ALREADY_APPLIED',
+  );
+}
 check('support sees tickets', (await call('/support/staff/queue', {token: supToken})).status === 200);
 check('support cannot see orders', (await call('/orders/staff/queue', {token: supToken})).status === 403);
 check('support cannot see the ledger', (await call('/wallet/staff/transactions', {token: supToken})).status === 403);

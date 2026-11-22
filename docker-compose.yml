@@ -22,6 +22,7 @@ services:
       <<: *env
       SERVICE: auth
       MONGO_URI: mongodb://mongo:27017/pirento_auth
+      SITE_URL: ${SITE_URL:?set SITE_URL in .env} # sign-in links in emails and texts
       SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env, sign-in codes are sent by email}
       EMAIL_FROM: ${EMAIL_FROM:-Pirento <no-reply@pirento.com>}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}

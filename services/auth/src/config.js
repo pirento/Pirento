@@ -17,6 +17,7 @@ export const config = {
 
   walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
   identityUrl: env('IDENTITY_URL', 'http://127.0.0.1:4005'),
+  siteUrl: env('SITE_URL', 'http://localhost:5173').replace(/\/$/, ''), // links in emails and texts
   /** Google sign-in shows only when this is set (a Google Identity Services web client id). */
   googleClientId: env('GOOGLE_CLIENT_ID', ''),
   /** The first staff sign-in: a superadmin seeded at boot when both are set. */

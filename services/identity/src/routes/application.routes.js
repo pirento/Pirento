@@ -5,6 +5,7 @@ import {ApiError, badInput, conflict, requireAuth} from '@pirento/shared/server'
 import {config, digioOn} from '../config.js';
 import {Identity} from '../models/Identity.js';
 import {signedDocument} from '../lib/digio.js';
+import {remindFromNow} from '../lib/reminders.js';
 import {UNSIGN, kycDone, refreshKyc, refreshSign, signed, startKyc, startSign} from '../lib/verification.js';
 
 export const applicationRoutes = Router();
@@ -18,7 +19,7 @@ async function editable(req) {
   try {
     return await Identity.findOneAndUpdate(
       {userId: req.user.sub, status: EDITABLE},
-      {$setOnInsert: {email: req.user.email}},
+      {$setOnInsert: {email: req.user.email, ...remindFromNow()}},
       {new: true, upsert: true},
     );
   } catch (err) {
@@ -35,7 +36,8 @@ async function editable(req) {
 async function stillEditable(doc, set, unset) {
   const saved = await Identity.findOneAndUpdate(
     {_id: doc._id, status: EDITABLE},
-    {...(set && {$set: set}), ...(unset && {$unset: unset})},
+    // Every change starts the reminder clock again: reminders follow a stalled application, not a busy one.
+    {$set: {...set, ...remindFromNow()}, ...(unset && {$unset: unset})},
     {new: true},
   );
   if (!saved) throw locked();

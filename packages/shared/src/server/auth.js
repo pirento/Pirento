@@ -14,6 +14,7 @@ export const ACCESS = {
   orders: ['staff', 'finance', 'superadmin'],
   identity: ['staff', 'superadmin'],
   business: ['staff', 'superadmin'], // Bharat ID for Business requests and live approvals
+  enrol: ['support', 'finance', 'staff', 'superadmin'], // any staffer may start a Bharat ID for someone
   support: ['support', 'staff', 'superadmin'],
   users: ['support', 'finance', 'superadmin'],
   payments: ['finance', 'superadmin'],

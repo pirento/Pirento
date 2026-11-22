@@ -8,6 +8,11 @@ import {AuditLog} from '../models/AuditLog.js';
 import {User} from '../models/User.js';
 import {sendNoticeEmail} from '../lib/email.js';
 import {firstPassword, freeUsername} from '../lib/businessAccount.js';
+import {LoginLink} from '../models/LoginLink.js';
+import {sendSms} from '../lib/sms.js';
+import {config} from '../config.js';
+import crypto from 'node:crypto';
+
 import {checkCode, maskEmail, sendKeyedCode} from '../lib/otp.js';
 import {phoneCodesOn} from '../lib/sms.js';
 import {hashPassword} from '../lib/password.js';
@@ -165,5 +170,72 @@ internalRoutes.post(
   async (req, res) => {
     await checkCode(codeKey(req.body), req.body.code);
     res.json({data: {ok: true}});
+  },
+);
+
+/**
+ * The account behind an email, made if there is none, for a Bharat ID a staffer starts for someone. The staffer
+ * confirms the person accepted the terms, so a new account records them as every account does.
+ */
+internalRoutes.post(
+  '/internal/account-for',
+  validate(z.object({email: z.email().toLowerCase(), name: z.string().max(80).default('')})),
+  async (req, res) => {
+    const existing = await User.findOne({email: req.body.email});
+    if (existing?.staffId) throw conflict('STAFF_EMAIL', 'This email belongs to a staff account');
+    if (existing?.suspended) throw conflict('SUSPENDED', 'This account is suspended');
+    if (existing) return res.json({data: {userId: String(existing._id), created: false}});
+    const user = await User.create({
+      email: req.body.email,
+      name: req.body.name,
+      termsAcceptedAt: new Date(),
+      termsVersion: TERMS_VERSION,
+    });
+    res.status(201).json({data: {userId: String(user._id), created: true}});
+  },
+);
+
+const LINK_MS = 3 * 86_400_000;
+
+/**
+ * A one-time sign-in link to `next`, sent to the account's email and, when given, by SMS to `phone`. Used to carry
+ * on work someone has not finished (a Bharat ID application). Off production the link also comes back.
+ */
+internalRoutes.post(
+  '/internal/continue-link',
+  validate(
+    z.object({
+      userId: z.string().max(40),
+      phone: z.string().max(20).optional(),
+      brand: z.string().max(60),
+      label: z.string().max(80),
+      note: z.string().max(300),
+      next: z.string().regex(/^\/(?!\/)[\w\-/?=&.]*$/, 'An internal path'),
+    }),
+  ),
+  async (req, res) => {
+    const user = isId(req.body.userId) && (await User.findById(req.body.userId));
+    if (!user || user.suspended || user.email.endsWith('.invalid'))
+      throw conflict('NO_ACCOUNT', 'No account to send to');
+    const token = crypto.randomBytes(24).toString('base64url');
+    await LoginLink.create({
+      userId: String(user._id),
+      tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
+      expiresAt: new Date(Date.now() + LINK_MS),
+    });
+    const link = `${config.siteUrl}/continue?token=${token}&next=${encodeURIComponent(req.body.next)}`;
+    const {brand, label, note} = req.body;
+    // Each channel on its own: a failed text never stops the email, and the reverse.
+    const [email, sms] = await Promise.allSettled([
+      sendNoticeEmail(user.email, {brand, label, big: 'Continue', note: `${note} ${link} (works once, for 3 days)`}),
+      req.body.phone ? sendSms(req.body.phone, `${brand}: ${note} ${link}`) : Promise.reject(new Error('no phone')),
+    ]);
+    res.json({
+      data: {
+        email: email.status === 'fulfilled' ? maskEmail(user.email) : null,
+        sms: sms.status === 'fulfilled' ? `+91 ••••• •${req.body.phone.slice(-4)}` : null,
+        ...(!isProduction() && {devLink: link}),
+      },
+    });
   },
 );

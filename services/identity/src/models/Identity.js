@@ -50,6 +50,11 @@ export const Identity = mongoose.model(
       // The holder's 6-digit Bharat ID PIN (scrypt), and its lockout after wrong tries.
       pin: {hash: String, setAt: Date, fails: {type: Number, default: 0}, lockedUntil: Date},
 
+      // A staffer who started this application for the person (they finish it themselves, from a link).
+      enrolledBy: {_id: false, id: String, email: String},
+      // Reminders by email and SMS while it is unfinished: how many were sent and when the next one is due.
+      reminders: {_id: false, count: {type: Number, default: 0}, nextAt: {type: Date, index: true}},
+
       fullName: String, // copied on submit, for the public verify page
       state: String,
       consentAt: Date,

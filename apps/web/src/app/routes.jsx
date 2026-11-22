@@ -20,6 +20,7 @@ export const ROUTES = [
   // Signing in and the shared account
   {path: '/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'Login')},
   {path: '/admin/login', layout: 'auth', Page: page(() => import('../features/auth/LoginPage'), 'StaffLogin')},
+  {path: '/continue', layout: 'auth', Page: page(() => import('../features/auth/ContinuePage'), 'Continue')},
   {path: '/register', layout: 'auth', Page: page(() => import('../features/auth/RegisterPage'), 'Register')},
   {
     path: '/forgot-password',

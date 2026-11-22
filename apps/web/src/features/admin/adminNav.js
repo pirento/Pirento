@@ -20,6 +20,7 @@ import {
   SlidersHorizontal,
   TicketPercent,
   UserCog,
+  UserPlus,
   UserX,
   ShoppingBag,
   Users,
@@ -73,6 +74,14 @@ export const ADMIN_SECTIONS = [
     icon: BadgeCheck,
     roles: OPS,
     intro: 'Submitted applications. Check the Digio video KYC and the signed declaration, then approve or reject.',
+  },
+  {
+    id: 'enrol',
+    group: 'Work',
+    label: 'New Bharat ID',
+    icon: UserPlus,
+    roles: ALL_STAFF, // ACCESS.enrol
+    intro: 'Start a Bharat ID for someone who is not signed in. They finish it from a link sent by email and SMS.',
   },
   {
     id: 'business',
