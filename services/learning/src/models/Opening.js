@@ -1,6 +1,7 @@
 // An internship or job on the Pirento Intern site, posted by the team or by an approved company.
 import mongoose from 'mongoose';
 import {forgetOnWrite} from '@pirento/shared/server';
+import {openingDoc, syncDoc} from '../lib/search.js';
 
 const schema = new mongoose.Schema(
   {
@@ -22,4 +23,6 @@ const schema = new mongoose.Schema(
   {timestamps: true},
 );
 forgetOnWrite(schema, 'learning:openings');
+// Kept in the search index (lib/search.js) on every save.
+schema.post(['save', 'findOneAndUpdate'], (doc) => doc && syncDoc(doc._id, openingDoc(doc)));
 export const Opening = mongoose.model('Opening', schema);

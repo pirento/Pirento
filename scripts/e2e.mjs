@@ -2281,6 +2281,12 @@ check(
     .status === 404,
 );
 
+check(
+  'search finds lessons and open roles',
+  (await call('/learning/search?q=What a test')).data?.some((h) => h.kind === 'Lesson'),
+);
+check('search needs two letters', (await call('/learning/search?q=a')).status === 400);
+
 // ── Intern programme: places, AI-set tasks, live classes, paid work ─────
 check('programmes are listed', (await call('/learning/programs')).data?.length === 4);
 check(

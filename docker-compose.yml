@@ -119,6 +119,7 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_learning
       WALLET_URL: http://wallet:4002 # programme places are bought, and paid work is paid, through the wallet
       AI_URL: http://ai:4009 # tasks, reviews, intern matching and resume drafts
+      OPENSEARCH_URL: ${OPENSEARCH_URL:-}
       LEARNING_FILE_KEY: ${LEARNING_FILE_KEY:?set LEARNING_FILE_KEY in .env}
       VIDEO_S3_BUCKET: ${VIDEO_S3_BUCKET:-}
       VIDEO_S3_ENDPOINT: ${VIDEO_S3_ENDPOINT:-}
