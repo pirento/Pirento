@@ -123,6 +123,12 @@ export const ID_SECTIONS = [
   },
 ];
 
+/**
+ * Steps a holder may ask to change once the ID is issued. Name, birth date and documents are not here: they were
+ * checked by the video KYC and eSign, so changing them needs a fresh check by the team.
+ */
+export const CHANGEABLE_SECTIONS = ['contact', 'address', 'work', 'bank', 'nominee'];
+
 /** Checks one step. Returns {data} ready to store, or {error} naming the field. */
 export function validateSection(sectionId, input) {
   const section = ID_SECTIONS.find((s) => s.id === sectionId);

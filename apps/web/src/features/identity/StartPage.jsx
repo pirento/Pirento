@@ -19,7 +19,7 @@ export function Start() {
   const centre = useApi(code ? `/identity/centres/${encodeURIComponent(code)}` : null);
   const {user} = useSession();
   const mine = useApi(user && !isStaffRole(user.role) ? '/identity/me' : null);
-  const already = ['submitted', 'approved'].includes(mine.data?.status);
+  const already = ['submitted', 'approved', 'suspended'].includes(mine.data?.status);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const here = encodeURIComponent(pathname + search);
@@ -71,7 +71,7 @@ export function Start() {
           <p className="text-sm">{copy.staff}</p>
         ) : already ? (
           <>
-            <p className="text-sm">{mine.data.status === 'approved' ? copy.issued : copy.submitted}</p>
+            <p className="text-sm">{mine.data.status !== 'submitted' ? copy.issued : copy.submitted}</p>
             <AuthButton type="button" arrow onClick={() => navigate('/bharat-id/dashboard')}>
               {copy.open}
             </AuthButton>

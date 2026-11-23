@@ -26,7 +26,7 @@ import {flagsFor, lookalikes} from '../lib/flags.js';
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.identity));
 
-const QUEUES = ['submitted', 'approved', 'rejected'];
+const QUEUES = ['submitted', 'approved', 'rejected', 'suspended'];
 
 staffRoutes.get('/staff/queue', async (req, res) => {
   const status = QUEUES.includes(req.query.status) ? req.query.status : 'submitted';
@@ -38,7 +38,6 @@ staffRoutes.get('/staff/queue', async (req, res) => {
 staffRoutes.get('/staff/:id/flags', async (req, res) => {
   const doc = isId(req.params.id) && (await Identity.findById(req.params.id).lean());
   if (!doc) throw notFound('Application not found');
-  // shortcut: the sections fields are not indexed; add indexes on PAN and mobile past ~100k applications.
   const filter = lookalikes(doc);
   const others = filter
     ? await Identity.find(filter, {userId: 1, status: 1, bharatId: 1, sections: 1}).limit(20).lean()
@@ -143,6 +142,40 @@ staffRoutes.patch(
             ? 'Your Bharat ID is issued. You can now sign in with your Bharat ID, the PIN you set and your date of birth. Open the Bharat ID dashboard to see and download your card.'
             : 'Your Bharat ID is issued. Set your 6-digit PIN in the Bharat ID dashboard (PIN) to sign in with it, and open the dashboard to see your card.'
           : `Our team could not approve it yet: ${reason}. Fix it and submit again from your dashboard.`,
+    });
+    res.json({data: doc});
+  },
+);
+
+// Suspending stops every use of an issued ID at once (sign-in, verify, business checks, One and Vault), since
+// they all ask for 'approved'; restoring brings it back with the same number.
+const HOLD = {suspend: ['approved', 'suspended'], restore: ['suspended', 'approved']};
+
+staffRoutes.patch(
+  '/staff/:id/hold',
+  validate(z.object({action: z.enum(['suspend', 'restore']), reason: z.string().trim().max(300).default('')})),
+  async (req, res) => {
+    if (!isId(req.params.id)) throw notFound('Application not found');
+    const {action, reason} = req.body;
+    if (action === 'suspend' && !reason) throw badInput('Say why the ID is suspended');
+    const [from, to] = HOLD[action];
+    const doc = await Identity.findOneAndUpdate(
+      {_id: req.params.id, status: from},
+      action === 'suspend'
+        ? {$set: {status: to, suspension: {reason, at: new Date()}}}
+        : {$set: {status: to}, $unset: {suspension: 1}},
+      {new: true},
+    );
+    if (!doc) throw conflict('CHANGED', `This ID is not ${from}`);
+    audit(req, `bharat-id.${action}`, doc.bharatId, reason);
+    notify(doc.userId, {
+      brand: 'Bharat ID',
+      label: action === 'suspend' ? 'Your Bharat ID is suspended' : 'Your Bharat ID works again',
+      big: doc.bharatId,
+      note:
+        action === 'suspend'
+          ? `Our team suspended it: ${reason}. It cannot be used to sign in or be checked until it is restored. Reply to this email or open a support ticket if you think this is wrong.`
+          : 'Our team restored it. You can sign in and share it again as before.',
     });
     res.json({data: doc});
   },

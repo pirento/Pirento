@@ -710,6 +710,88 @@ check(
     (await pinLogin('482916', '1991-05-01')).error?.code === 'PIN_WRONG',
   );
 
+  // Suspending an issued ID stops it everywhere; restoring brings it back with the same number.
+  const hold = (body, token = boss) => call(`/identity/staff/${app1._id}/hold`, {method: 'PATCH', token, body});
+  check('suspending needs a reason', (await hold({action: 'suspend'})).status === 400);
+  check('a customer cannot suspend', (await hold({action: 'suspend', reason: 'x'}, user)).status === 403);
+  check(
+    'staff suspend an issued ID',
+    (await hold({action: 'suspend', reason: 'Reported as misused'})).data?.status === 'suspended',
+  );
+  check('no double suspend', (await hold({action: 'suspend', reason: 'again'})).status === 409);
+  check(
+    'its verify page says suspended',
+    (await call(`/identity/verify/${appr.bharatId}`)).error?.code === 'SUSPENDED',
+  );
+  check('a suspended ID cannot sign in', !(await pinLogin('482916')).data?.token);
+  check(
+    'the holder sees why',
+    (await call('/identity/me', {token: user})).data?.suspension?.reason === 'Reported as misused',
+  );
+  check(
+    'it shows in the suspended queue',
+    (await call('/identity/staff/queue?status=suspended', {token: boss})).data?.some((d) => d._id === app1._id),
+  );
+  check('staff restore it', (await hold({action: 'restore'})).data?.status === 'approved');
+  check('it signs in again', Boolean((await pinLogin('482916')).data?.token));
+
+  // Changing an issued ID: the holder asks, the team approves, the ID shows the new details.
+  const newAddr = {line: '7 Park Street', city: 'Kolkata', state: 'West Bengal', pincode: '700016'};
+  const askChange = (body) => call('/identity/changes', {method: 'POST', token: user, body});
+  check(
+    'name and documents cannot be changed here',
+    (await askChange({section: 'personal', values: {}})).status === 400,
+  );
+  check(
+    'a change is checked like the form',
+    (await askChange({section: 'address', values: {...newAddr, pincode: '12'}})).status === 400,
+  );
+  const ch = (await askChange({section: 'address', values: newAddr, note: 'Moved'})).data;
+  check('the holder asks to change the address', ch?.status === 'pending', ch);
+  check(
+    'one waiting change at a time',
+    (await askChange({section: 'contact', values: {mobile: '9876500000'}})).error?.code === 'OPEN',
+  );
+  const staffCh = (await call('/identity/staff/changes', {token: boss})).data?.find((c) => c._id === ch._id);
+  check(
+    'staff see the current and asked values',
+    staffCh?.current?.city === 'Delhi' && staffCh?.data?.city === 'Kolkata',
+  );
+  check(
+    'a customer cannot decide a change',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: user, body: {decision: 'approve'}}))
+      .status === 403,
+  );
+  check(
+    'turning down needs a reason',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'reject'}}))
+      .status === 400,
+  );
+  check(
+    'staff approve the change',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).data
+      ?.status === 'approved',
+  );
+  check(
+    'no double decision',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
+      .status === 409,
+  );
+  const afterCh = (await call('/identity/me', {token: user})).data;
+  check(
+    'the ID shows the new address',
+    afterCh?.sections?.address?.city === 'Kolkata' && afterCh?.state === 'West Bengal',
+  );
+  check(
+    'the verify page shows the new state',
+    (await call(`/identity/verify/${appr.bharatId}`)).data?.state === 'West Bengal',
+  );
+  const ch2 = (await askChange({section: 'contact', values: {mobile: '9876500000'}})).data;
+  check(
+    'the holder can take a waiting change back',
+    (await call(`/identity/changes/${ch2._id}`, {method: 'DELETE', token: user})).status === 200,
+  );
+
   // Checking a holder: the business sends them to Pirento's page; it never sees what they type.
   const testKey2 = (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test'}})).data
     .key;

@@ -2,12 +2,13 @@
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {Check, Clock} from 'lucide-react';
-import {ID_SECTIONS, declarationSigned, kycDone} from '@pirento/shared';
+import {ID_SECTIONS, declarationSigned, formatBharatId, kycDone} from '@pirento/shared';
 import {DashSection} from '../../components/ui/DashSection';
 import {Tag} from '../../components/ui/Tag';
 import {appDashboards} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
 import {AppFrame} from '../products/AppFrame';
+import {ChangeDetails} from './ChangeDetails';
 import {DeclarationLink} from './DeclarationLink';
 import {IdCard} from './IdCard';
 import {SectionSummary} from './SectionSummary';
@@ -24,7 +25,7 @@ const copy = appDashboards['bharat-id'];
 /** How far along the application is, as an index into copy.steps (fill, video KYC, sign, submit and review, issued). */
 function stepOf(doc) {
   if (!doc) return 0;
-  if (doc.status === 'approved') return 5;
+  if (doc.status === 'approved' || doc.status === 'suspended') return 5;
   if (doc.status === 'submitted' || declarationSigned(doc)) return 3;
   if (kycDone(doc)) return 2;
   return ID_SECTIONS.every((s) => doc.sections?.[s.id]) ? 1 : 0;
@@ -87,8 +88,15 @@ export function BharatId({product, section}) {
   if (section === 'apply') {
     return (
       <AppFrame {...frame} title={copy.apply.title} intro={copy.intro}>
-        {res.loading ? null : doc?.status === 'approved' || doc?.status === 'submitted' ? (
-          <SectionSummary doc={doc} email={me?.email} />
+        {res.loading ? null : ['approved', 'submitted', 'suspended'].includes(doc?.status) ? (
+          <>
+            <SectionSummary doc={doc} email={me?.email} />
+            {doc.status === 'approved' && (
+              <DashSection n={2} id="changes" label={copy.changes.label} title={copy.changes.title}>
+                <ChangeDetails doc={doc} />
+              </DashSection>
+            )}
+          </>
         ) : (
           <>
             {doc?.status === 'rejected' && (
@@ -137,6 +145,15 @@ export function BharatId({product, section}) {
               {declarationSigned(doc) && doc.status !== 'draft' && doc.status !== 'rejected' && (
                 <p className="mt-4">
                   <DeclarationLink />
+                </p>
+              )}
+              {doc?.status === 'suspended' && (
+                <p role="status" className="body rounded-[22px] border border-accent p-6">
+                  <strong>Your Bharat ID {formatBharatId(doc.bharatId)} is suspended:</strong> {doc.suspension?.reason}.
+                  It cannot be used to sign in or be checked until our team restores it.{' '}
+                  <Link to="/support?product=bharat-id" className="text-ink underline underline-offset-4">
+                    Ask support
+                  </Link>
                 </p>
               )}
               {doc?.status === 'rejected' && (

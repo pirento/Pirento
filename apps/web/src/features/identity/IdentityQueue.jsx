@@ -7,6 +7,7 @@ import {Tag} from '../../components/ui/Tag';
 import {StaffQueue} from '../admin/StaffQueue';
 import {SectionSummary} from './SectionSummary';
 import {useApi} from '../../lib/api/useApi';
+import {ChangeQueue} from './ChangeQueue';
 import {DigioFiles} from './DigioFiles';
 import {KycVideoPlayer} from './KycVideoPlayer';
 import {api} from '../../lib/api/client';
@@ -30,15 +31,17 @@ function Application({doc, onChange}) {
       setBusy(false);
     }
   };
-  const decide = async (decision) => {
+  const send = async (path, body) => {
     setError('');
     try {
-      await api(`/identity/staff/${doc._id}`, {method: 'PATCH', body: {decision, reason}});
+      await api(`/identity/staff/${doc._id}${path}`, {method: 'PATCH', body});
       onChange();
     } catch (err) {
       setError(err.message);
     }
   };
+  const decide = (decision) => send('', {decision, reason});
+  const hold = (action) => send('/hold', {action, reason});
   return (
     <details className="border-b border-rule">
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
@@ -48,9 +51,12 @@ function Application({doc, onChange}) {
             {doc.email} · {formatDate(doc.submittedAt ?? doc.createdAt)}
           </span>
         </span>
-        <Tag tone={doc.status === 'submitted' ? 'accent' : 'rule'}>
-          {doc.bharatId ? formatBharatId(doc.bharatId) : doc.status}
-        </Tag>
+        <span className="flex flex-wrap gap-2">
+          {doc.status === 'suspended' && <Tag tone="accent">Suspended</Tag>}
+          <Tag tone={doc.status === 'submitted' ? 'accent' : 'rule'}>
+            {doc.bharatId ? formatBharatId(doc.bharatId) : doc.status}
+          </Tag>
+        </span>
       </summary>
       <div className="space-y-6 pb-8">
         <Flags id={doc._id} />
@@ -74,6 +80,44 @@ function Application({doc, onChange}) {
           declaration match the details above.
         </p>
         {doc.reason && <p className="text-sm">Reason given: {doc.reason}</p>}
+        {doc.status === 'suspended' && (
+          <p className="text-sm">
+            Suspended on {formatDate(doc.suspension?.at)}: {doc.suspension?.reason}
+          </p>
+        )}
+        {(doc.status === 'approved' || doc.status === 'suspended') && (
+          <div className="max-w-xl">
+            {doc.status === 'approved' && (
+              <Field
+                label="Reason (needed to suspend)"
+                value={reason}
+                maxLength={300}
+                onChange={(e) => setReason(e.target.value)}
+                error={error}
+              />
+            )}
+            {doc.status === 'suspended' && error && (
+              <p role="alert" className="text-sm">
+                ⚠ {error}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              {doc.status === 'approved' ? (
+                <Button onClick={() => hold('suspend')} variant="outline" icon={null}>
+                  Suspend this ID
+                </Button>
+              ) : (
+                <Button onClick={() => hold('restore')} icon={null}>
+                  Restore this ID
+                </Button>
+              )}
+            </div>
+            <p className="mt-3 text-xs text-muted">
+              A suspended ID stops working everywhere at once: sign-in, its verify page, business checks, Pirento One
+              and Vault. The holder is emailed either way.
+            </p>
+          </div>
+        )}
         {doc.status === 'submitted' && (
           <div className="max-w-xl">
             {!verified && (
@@ -110,6 +154,7 @@ export const IdentityQueue = () => (
       {label: 'To review', value: 'submitted'},
       {label: 'Approved', value: 'approved'},
       {label: 'Rejected', value: 'rejected'},
+      {label: 'Suspended', value: 'suspended'},
     ]}
     render={(d, reload) => <Application key={d._id} doc={d} onChange={reload} />}
   />
@@ -128,5 +173,31 @@ function Flags({id}) {
       ))}
       <li className="text-xs text-muted">Check before deciding; a family can share a mobile.</li>
     </ul>
+  );
+}
+
+/** The Bharat ID admin page: applications and issued IDs, or the changes holders ask for. */
+export function IdentityAdmin() {
+  const [view, setView] = useState('applications');
+  return (
+    <>
+      <div role="tablist" aria-label="View" className="mt-8 flex flex-wrap gap-2">
+        {[
+          ['applications', 'Applications and IDs'],
+          ['changes', 'Change requests'],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            role="tab"
+            aria-selected={view === id}
+            onClick={() => setView(id)}
+            className={`rounded-full border px-4 py-2 text-sm ${view === id ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {view === 'changes' ? <ChangeQueue /> : <IdentityQueue />}
+    </>
   );
 }

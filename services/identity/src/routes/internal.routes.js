@@ -11,6 +11,7 @@ import {Business} from '../models/Business.js';
 import {Consent} from '../models/Consent.js';
 import {AccessLog} from '../models/AccessLog.js';
 import {AuthSession} from '../models/AuthSession.js';
+import {ChangeRequest} from '../models/ChangeRequest.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -22,6 +23,7 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   await Promise.all([
     Identity.deleteOne({userId}),
     KycVideo.deleteOne({userId}),
+    ChangeRequest.deleteMany({userId}),
     ApiKey.updateMany(
       {businessId: {$in: businesses.map((b) => String(b._id))}, revokedAt: null},
       {$set: {revokedAt: new Date()}},

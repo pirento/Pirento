@@ -580,12 +580,14 @@ export const bharatIdGate = {
     draft: 'Your application is saved as a draft. Finish the steps and submit it.',
     submitted: 'Your application is with our team for review. This opens as soon as your ID is issued.',
     rejected: 'Your application needs changes. Open it to see what to fix, then submit it again.',
+    suspended: 'Your Bharat ID is suspended, so this stays closed until our team restores it.',
   },
   button: {
     none: 'Start my Bharat ID',
     draft: 'Continue my application',
     submitted: 'See my application',
     rejected: 'Fix my application',
+    suspended: 'See my Bharat ID',
   },
 };
 
@@ -780,6 +782,20 @@ export const appDashboards = {
     sharing: {
       title: 'Who sees / your details.',
       intro: 'Businesses using Bharat ID ask before they see anything. You decide, and you can stop it later.',
+    },
+    changes: {
+      label: 'Changes',
+      title: 'Moved, or a / new number?',
+      intro: 'Pick what changed and type the new details. Our team checks them, and your ID shows them once approved.',
+      note: 'What changed, and why (optional)',
+      send: 'Send to our team',
+      waiting: (what) => `Your change to ${what.toLowerCase()} is with our team.`,
+      sent: (when) => `Sent on ${when}. We email you when it is decided.`,
+      takeBack: 'Take it back',
+      fixed:
+        'Your name, date of birth and documents were checked by the video KYC and eSign, so they cannot be changed here. Ask support if one of them is wrong.',
+      approved: 'Changed',
+      rejected: 'Not changed',
     },
   },
 };

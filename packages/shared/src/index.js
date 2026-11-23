@@ -36,7 +36,7 @@ export {
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';
-export {ID_SECTIONS, RELATIONS, validateFields, validateSection} from './identity/form.js';
+export {CHANGEABLE_SECTIONS, ID_SECTIONS, RELATIONS, validateFields, validateSection} from './identity/form.js';
 export {
   BUSINESS_PROFILE,
   BUSINESS_REQUEST,

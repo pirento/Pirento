@@ -76,7 +76,8 @@ export const ADMIN_SECTIONS = [
     label: 'Bharat ID review',
     icon: BadgeCheck,
     roles: OPS,
-    intro: 'Submitted applications. Check the Digio video KYC and the signed declaration, then approve or reject.',
+    intro:
+      'Check the Digio video KYC and the signed declaration, then approve or reject. Suspend or restore issued IDs, and review the changes holders ask for.',
   },
   {
     id: 'enrol',
