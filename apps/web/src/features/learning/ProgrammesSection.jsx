@@ -1,6 +1,7 @@
-// The Pirento Intern home page's programme section: the four lengths with the prices a superadmin set (read live).
-import {Check} from 'lucide-react';
+// The Pirento Intern home page's programme section: the four lengths as pricing cards, with the prices a superadmin
+// set (read live), and what every programme includes.
 import {Button} from '../../components/ui/Button';
+import {CheckList} from '../../components/ui/Blocks';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {appDashboards} from '../../data/site';
 import {useApi} from '../../lib/api/useApi';
@@ -13,29 +14,27 @@ export function ProgrammesSection({n}) {
   return (
     <Section id="programmes">
       <SectionHeader n={n} label={copy.label} title={copy.title} intro={copy.homeIntro} />
-      <ul className="mt-16 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {programs.map((p) => (
-          <li key={p.months} className="rounded-[22px] border border-rule p-6" data-reveal>
-            <p className="eyebrow">{copy.packageLabel}</p>
-            <p className="num mt-6">{p.months}</p>
-            <p className="mt-2 text-sm text-muted">{copy.months}</p>
-            <p className="mt-4 text-lg">{p.onSale ? (p.price ? inr(p.price / 100) : 'Free') : copy.soon}</p>
+          <li key={p.months} className="flex flex-col rounded-[22px] border border-rule p-6 md:p-8" data-reveal>
+            <h3 className="eyebrow">{copy.monthsLabel(p.months)}</h3>
+            <p className="mt-6 display text-5xl tabular-nums">
+              {p.onSale ? p.price ? inr(p.price / 100) : 'Free' : <span className="text-muted">—</span>}
+            </p>
+            <p className="mt-2 text-sm text-muted">{p.onSale ? copy.packageLabel : copy.soon}</p>
+            <div className="mt-auto pt-8">
+              <Button to="/intern/dashboard/programme" variant="outline" className="w-full justify-center">
+                {copy.see}
+              </Button>
+            </div>
           </li>
         ))}
       </ul>
-      <ul className="mt-10 grid gap-3 md:grid-cols-2">
-        {copy.includes.map((item) => (
-          <li key={item} className="flex items-start gap-3" data-reveal>
-            <Check aria-hidden className="mt-1 size-4 shrink-0" />
-            {item}
-          </li>
-        ))}
-      </ul>
-      <div className="mt-8 flex flex-wrap items-center gap-4">
-        <Button to="/intern/dashboard/programme" variant="outline">
-          {copy.see}
-        </Button>
-        <p className="max-w-2xl text-sm text-muted">{copy.note}</p>
+      <div className="mt-12 grid gap-8 lg:grid-cols-12">
+        <div className="lg:col-span-7">
+          <CheckList items={copy.includes} />
+        </div>
+        <p className="text-sm text-muted lg:col-span-5">{copy.note}</p>
       </div>
     </Section>
   );
