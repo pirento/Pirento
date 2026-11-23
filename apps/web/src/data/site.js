@@ -51,6 +51,7 @@ export const productNav = {
   intern: {
     links: [
       ['Tracks', '/intern#more'],
+      ['Programmes', '/intern#programmes'],
       ['How it works', '/intern#how'],
       ['Questions', '/intern#faq'],
     ],
@@ -67,7 +68,8 @@ export const productNav = {
   ai: {
     links: [
       ['What it does', '/ai#features'],
-      ['How it works', '/ai#how'],
+      ['Everywhere', '/ai#everywhere'],
+      ['Plans', '/ai#plans'],
       ['Questions', '/ai#faq'],
     ],
     cta: ['Start a chat', '/ai/dashboard', 'Chat'],
@@ -92,6 +94,7 @@ export const productNav = {
     links: [
       ['Apply', '/bharat-id#apply'],
       ['Checks', '/bharat-id#checks'],
+      ['Questions', '/bharat-id#faq'],
       ['For business', '/bharat-id/business'],
     ],
     cta: ['Apply now', '/bharat-id/start', 'Apply'],
@@ -352,7 +355,12 @@ export const productDashboards = {
     {id: 'files', label: 'Files', icon: 'files'},
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
   ),
-  ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, ...SHARED_SECTIONS],
+  ai: [
+    {id: 'overview', label: 'Chat', icon: 'chat'},
+    {id: 'memory', label: 'Memory', icon: 'memory'},
+    {id: 'plans', label: 'Plans', icon: 'plans'},
+    ...SHARED_SECTIONS,
+  ],
   one: APP_SECTIONS(
     {id: 'referrals', label: 'Referrals', icon: 'referrals'},
     {id: 'plans', label: 'Plans', icon: 'plans'},
@@ -573,20 +581,88 @@ export const bharatIdGate = {
     draft: 'Your application is saved as a draft. Finish the steps and submit it.',
     submitted: 'Your application is with our team for review. This opens as soon as your ID is issued.',
     rejected: 'Your application needs changes. Open it to see what to fix, then submit it again.',
+    suspended: 'Your Bharat ID is suspended, so this stays closed until our team restores it.',
   },
   button: {
     none: 'Start my Bharat ID',
     draft: 'Continue my application',
     submitted: 'See my application',
     rejected: 'Fix my application',
+    suspended: 'See my Bharat ID',
   },
 };
 
 export const appDashboards = {
+  ai: {
+    hello: 'Ask Pirento AI.',
+    intro:
+      'It knows every Pirento service and price, and, when you ask, it reads your own orders, wallet, Bharat ID, Pirento Intern and tickets. General information, not legal or tax advice.',
+    examples: [
+      'I want to start a company with two friends. What do I need?',
+      'What is happening with my latest order?',
+      'How much is in my wallet?',
+      'What is left in my Bharat ID application?',
+    ],
+    askExamples: {
+      default: [
+        'What is happening with my latest order?',
+        'How much is in my wallet?',
+        'Which Pirento service fits me?',
+      ],
+      legal: ['Which legal service do I need to register a trademark?', 'What is happening with my latest order?'],
+      intern: ['What tasks are due for me?', 'How is my programme mark looking?', 'Which track should I take?'],
+      'bharat-id': ['What is left in my Bharat ID application?', 'How do I sign in with my Bharat ID?'],
+      one: ['How does the Pirento One commission work?', 'How much is in my wallet?'],
+    },
+    memory: {
+      page: 'What Pirento AI / remembers about you.',
+      intro:
+        'Write a few facts you want it to keep in mind in every chat (your company, your city, how you like answers). Only what you write here is kept; delete any line, or switch memory off, whenever you like.',
+      placeholder: 'e.g. My company is Asha Foods Pvt Ltd, in Pune',
+    },
+    home: {
+      everywhere: {
+        label: 'Across Pirento',
+        title: 'One assistant, / in every product.',
+        intro: 'Pirento AI works inside each product, on your own data, and the team always has the last word.',
+        items: [
+          [
+            'legal',
+            'Fill the checkout by chatting, review a contract, reply to a notice, ask about your order, read a document in your language.',
+          ],
+          ['black', 'Explain a tax notice, list your filing dates and add them to your calendar.'],
+          ['green', 'A report of your tree sponsorships, and a CSR section for your company.'],
+          ['giftox', 'The right gift box for a budget, and the message to go with it.'],
+          ['intern', 'Tasks set for you, a tutor in every lesson, mock interviews and a resume draft.'],
+          ['bharat-id', 'Help with each step of the application; it never sees what you type.'],
+          ['vault', 'Labels for your files from their names, and a reminder before a document expires.'],
+          ['one', 'Messages to share your code, and tips on what your referrals buy.'],
+        ],
+      },
+      plans: {
+        label: 'Plans',
+        title: 'Free every day, / more with a plan.',
+        free: 'Free',
+        forever: 'For everyone, every day',
+        months: (m) => `For ${m} month${m === 1 ? '' : 's'}`,
+        perDay: 'messages a day',
+        note: 'Plans are paid from your Pirento wallet and can renew themselves if you choose.',
+        choose: 'Choose this plan',
+        start: 'Start chatting',
+      },
+    },
+    plans: {
+      page: 'More messages, / when you need them.',
+      label: 'Your allowance',
+      title: 'Messages / a day.',
+      none: 'No paid plans yet; the free allowance is for everyone.',
+      note: 'Paid from your Pirento wallet. A plan adds messages a day for its months; buying the same plan again adds months.',
+    },
+  },
   intern: {
     hello: 'Learn, prove it, / get the internship.',
     intro:
-      'Read the lessons, take a final exam for a certificate anyone can check, apply to openings, and do the internship here: interview, offer, tasks and a completion certificate.',
+      'Read the lessons, take a final exam for a certificate anyone can check, join a programme with live classes, tasks and paid work, and apply to internships companies post here.',
     glance: {label: 'At a glance', title: 'Where you / stand.'},
     next: {label: 'Next', title: 'What to / do next.'},
     exams: {
@@ -610,6 +686,10 @@ export const appDashboards = {
     programme: {
       label: 'Programmes',
       title: 'Three months / to a year.',
+      monthsLabel: (m) => `${m} months`,
+      homeIntro: 'Prices are set by Pirento and paid from your wallet. Exams and their certificates stay free.',
+      months: 'months',
+      see: 'Join',
       packageLabel: 'Internship programme',
       soon: 'Price coming soon',
       buy: 'Join from my wallet',
@@ -704,7 +784,79 @@ export const appDashboards = {
       title: 'Who sees / your details.',
       intro: 'Businesses using Bharat ID ask before they see anything. You decide, and you can stop it later.',
     },
+    changes: {
+      label: 'Changes',
+      title: 'Moved, or a / new number?',
+      intro: 'Pick what changed and type the new details. Our team checks them, and your ID shows them once approved.',
+      note: 'What changed, and why (optional)',
+      send: 'Send to our team',
+      waiting: (what) => `Your change to ${what.toLowerCase()} is with our team.`,
+      sent: (when) => `Sent on ${when}. We email you when it is decided.`,
+      takeBack: 'Take it back',
+      fixed:
+        'Your name, date of birth and documents were checked by the video KYC and eSign, so they cannot be changed here. Ask support if one of them is wrong.',
+      approved: 'Changed',
+      rejected: 'Not changed',
+    },
   },
+};
+
+// A service's own page (features/legal/ServicePage.jsx): headings around the catalogue's sections.
+export const servicePageCopy = {
+  from: 'From',
+  choose: 'See the packages',
+  ask: 'Ask a question first',
+  quote: 'Request a quote',
+  recommended: 'Recommended',
+  buy: (name) => `Buy ${name}`,
+  buyOne: 'Buy now',
+  book: 'Book a consultation',
+  packages: {
+    label: 'Packages',
+    title: 'Pick what / you need.',
+    intro: 'The price is fixed before you pay. You can buy without an account; we make one with your mobile.',
+  },
+  overview: {label: 'Overview', title: 'What it is.'},
+  whoFor: 'Who it is for',
+  ready: {
+    label: 'What you get',
+    title: 'Included, and / what to keep ready.',
+    included: 'Included',
+    notIncluded: 'Confirmed separately',
+    documents: 'Documents needed',
+    ai: 'What should I have ready for my case? (Pirento AI)',
+  },
+  how: {label: 'How it works', title: 'Step by / step.'},
+  plan: {
+    label: 'Plan ahead',
+    title: 'What to / expect.',
+    timeline: 'What affects the timeline',
+    mistakes: 'Common mistakes to avoid',
+  },
+  costs: {label: 'Understand the cost', title: 'Read the fee / part by part.'},
+  deliverables: {label: 'At the end', title: 'What you / receive.'},
+  benefits: {label: 'Why do it', title: 'What it / gives you.'},
+  faq: {label: 'Questions', title: 'Before you / buy.'},
+  related: {label: 'Related', title: 'Often bought / alongside.'},
+};
+
+// Checkout for someone not signed in (features/orders/GuestDetails.jsx).
+export const checkoutGuest = {
+  label: 'Your details',
+  title: 'Buy without an account.',
+  intro:
+    'We send a code to your mobile to check it is yours, then make your Pirento account, so you can follow your order and sign in later with your mobile.',
+  name: 'Full name',
+  email: 'Email',
+  terms: 'I have read and accept the',
+  termsLink: 'Terms and Conditions',
+  send: 'Send code',
+  verify: 'Verify and continue',
+  wait: 'Please wait',
+  change: 'Change details',
+  sentTo: (to) => `We sent a 6-digit code to ${to}.`,
+  dev: (code) => `Test mode: your code is ${code}.`,
+  haveAccount: 'I already have an account',
 };
 
 // The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).

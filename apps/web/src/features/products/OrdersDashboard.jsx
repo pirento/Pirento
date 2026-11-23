@@ -27,6 +27,8 @@ import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
 import {orderDashboard as copy, productDashboards} from '../../data/site';
+import {AI_TOOLS_FOR} from '../../data/aiTools';
+import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
 import {OrderRow} from '../orders/OrderRow';
 import {ReceiptList} from '../orders/ReceiptList';
@@ -401,6 +403,11 @@ export function OrdersDashboard({product, section = 'overview'}) {
           >
             <StartGrid product={product} browse={`${base}/services`} limit={6} />
           </DashSection>
+          {AI_TOOLS_FOR[product.slug] && (
+            <DashSection n={++n} id="ai" label="Pirento AI" title="Let AI / do the first step.">
+              <AiToolBox product={product.slug} />
+            </DashSection>
+          )}
         </>
       )}
 

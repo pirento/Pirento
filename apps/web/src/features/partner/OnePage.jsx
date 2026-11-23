@@ -15,6 +15,7 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
+import {AiTool} from '../ai/AiTool';
 
 const copy = appDashboards.one;
 const PAID = ['paid', 'in_progress', 'completed'];
@@ -224,6 +225,12 @@ export function One({product, section}) {
             {copy.plans.label}
           </Link>
         </p>
+      </DashSection>
+      <DashSection n={3} id="ai" label="Pirento AI" title="Words to share, / and what to try next.">
+        <div className="grid gap-6 xl:grid-cols-2">
+          <AiTool id="shareMessage" fixed={{code: d.code}} />
+          <AiTool id="partnerCoach" />
+        </div>
       </DashSection>
     </AppFrame>
   );

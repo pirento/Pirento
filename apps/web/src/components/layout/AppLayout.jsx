@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
+import {AskAi} from '../../features/ai/AskAi';
 import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
@@ -58,6 +59,7 @@ const SECTION_ICONS = {
   openings: Megaphone,
   learn: BookOpen,
   programme: Gem,
+  memory: BookOpen,
   tasks: ListChecks,
   classes: Video,
   work: Wallet2,
@@ -69,7 +71,6 @@ const SECTION_ICONS = {
   referrals: Share2,
   plans: Gem,
   sharing: Handshake,
-  company: Building2,
   consents: ListChecks,
   docs: BookOpen,
   checks: ShieldCheck,
@@ -345,6 +346,7 @@ export function AppLayout({children}) {
           {children}
         </main>
         <CommandPalette />
+        <AskAi />
       </div>
     </InApp.Provider>
   );

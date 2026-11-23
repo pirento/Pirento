@@ -1,3 +1,4 @@
+// Tests for plans.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {endOf, paidPlanOf} from './plans.js';

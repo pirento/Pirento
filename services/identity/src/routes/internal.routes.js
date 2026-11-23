@@ -1,5 +1,6 @@
 // Called by other services: forget a deleted account, find who holds an issued Bharat ID, and whether someone has one.
 import {Router} from 'express';
+import {nextStep} from '../lib/reminders.js';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
@@ -10,6 +11,7 @@ import {Business} from '../models/Business.js';
 import {Consent} from '../models/Consent.js';
 import {AccessLog} from '../models/AccessLog.js';
 import {AuthSession} from '../models/AuthSession.js';
+import {ChangeRequest} from '../models/ChangeRequest.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -21,6 +23,7 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   await Promise.all([
     Identity.deleteOne({userId}),
     KycVideo.deleteOne({userId}),
+    ChangeRequest.deleteMany({userId}),
     ApiKey.updateMany(
       {businessId: {$in: businesses.map((b) => String(b._id))}, revokedAt: null},
       {$set: {revokedAt: new Date()}},
@@ -77,3 +80,27 @@ internalRoutes.post(
     res.json({data: {userId: doc.userId}});
   },
 );
+
+/** Pirento AI's look at a person's own Bharat ID: where the application stands and what is next. No details. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const doc = await Identity.findOne({userId: req.body.userId}).sort({createdAt: -1}).lean();
+    res.json({
+      data: doc
+        ? {
+            status: doc.status,
+            issued: doc.status === 'approved',
+            nextStep: ['draft', 'rejected'].includes(doc.status) ? nextStep(doc) : null,
+          }
+        : {status: 'not started', issued: false, nextStep: 'Start your application at /bharat-id/dashboard/apply'},
+    });
+  },
+);
+
+/** Pirento AI's admin answers: applications by status, and how many wait for review. No personal details. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const counts = await Identity.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]);
+  res.json({data: {applicationsByStatus: Object.fromEntries(counts.map((c) => [c._id, c.n]))}});
+});

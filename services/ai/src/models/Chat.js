@@ -7,6 +7,7 @@ export const Chat = mongoose.model(
     {
       userId: {type: String, required: true, index: true},
       title: {type: String, maxlength: 80}, // the first question, shortened
+      product: {type: String, default: ''}, // where it was started: the assistant leans to that product
       messages: [
         {
           _id: false,

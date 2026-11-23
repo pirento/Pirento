@@ -1,12 +1,29 @@
-// Vault files: upload, download, delete.
+// Vault files: upload, download, delete; a label and expiry date on each (Pirento AI can suggest labels from the
+// file names alone, never the contents), and a reminder email 30 days before expiry.
 import {useRef, useState} from 'react';
-import {Download, FileText, Trash2, Upload} from 'lucide-react';
+import {Download, FileText, Sparkles, Trash2, Upload} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
 import {Label} from '../../components/ui/Heading';
 import {mb, raw} from './files';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
+
+const LABELS = [
+  'Aadhaar',
+  'PAN',
+  'Passport',
+  'Driving licence',
+  'Voter ID',
+  'Bank',
+  'Bill',
+  'Agreement',
+  'Certificate',
+  'Insurance',
+  'Tax',
+  'Photo',
+  'Other',
+];
 
 export function Files() {
   const files = useApi('/vault/files');
@@ -54,15 +71,52 @@ export function Files() {
     }
   };
   const d = files.data;
+  const patch = async (f, body) => {
+    setError('');
+    try {
+      await api(`/vault/files/${f._id}`, {method: 'PATCH', body});
+      files.reload();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  /** Pirento AI labels the unlabelled files from their names; nothing inside a file is sent. */
+  const autoLabel = async () => {
+    const todo = d.files.filter((f) => !f.label);
+    if (!todo.length) return;
+    setError('');
+    setBusy(true);
+    try {
+      const {labels} = await api('/ai/assist/label', {method: 'POST', body: {names: todo.map((f) => f.name)}});
+      await Promise.all(
+        todo.map((f) => {
+          const label = labels.find((l) => l.name === f.name)?.label;
+          return LABELS.includes(label) ? api(`/vault/files/${f._id}`, {method: 'PATCH', body: {label}}) : null;
+        }),
+      );
+      files.reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="rounded-[22px] border border-rule p-8" data-reveal>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <Label n={1}>Files</Label>
         <input ref={input} type="file" className="sr-only" onChange={upload} aria-label="Choose a file to upload" />
-        <Button onClick={() => input.current.click()} variant="accent" icon={Upload} disabled={busy}>
-          {busy ? 'Encrypting' : 'Upload'}
-        </Button>
+        <span className="flex flex-wrap gap-2">
+          {d?.files.some((f) => !f.label) && (
+            <Button onClick={autoLabel} variant="outline" icon={Sparkles} disabled={busy}>
+              Label with AI
+            </Button>
+          )}
+          <Button onClick={() => input.current.click()} variant="accent" icon={Upload} disabled={busy}>
+            {busy ? 'Working' : 'Upload'}
+          </Button>
+        </span>
       </div>
       {d && (
         <div className="mt-6">
@@ -89,6 +143,28 @@ export function Files() {
                 <span className="block truncate font-medium">{f.name}</span>
                 <span className="text-xs text-muted">
                   {mb(f.size)} · {formatDate(f.createdAt)}
+                </span>
+                <span className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <select
+                    aria-label={`Label for ${f.name}`}
+                    value={f.label ?? ''}
+                    onChange={(e) => patch(f, {label: e.target.value})}
+                    className="rounded-full border border-rule bg-paper px-3 py-1"
+                  >
+                    <option value="">No label</option>
+                    {LABELS.map((l) => (
+                      <option key={l}>{l}</option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-1 text-muted">
+                    Expires
+                    <input
+                      type="date"
+                      value={f.expiresOn ? f.expiresOn.slice(0, 10) : ''}
+                      onChange={(e) => patch(f, {expiresOn: e.target.value})}
+                      className="rounded-full border border-rule bg-paper px-3 py-1 text-ink"
+                    />
+                  </label>
                 </span>
               </span>
             </span>

@@ -1,6 +1,7 @@
 // Load test with k6 (https://k6.io): a crowd browsing the public pages and the API reads every page makes.
 // Run against a test stack, never production: `k6 run -e BASE=https://staging.example.com scripts/load/k6.js`.
 // Raise TARGET step by step (1k, 10k, 50k …) and watch p95 latency, errors and the autoscaling in CloudWatch.
+/* global __ENV */
 import http from 'k6/http';
 import {check, sleep} from 'k6';
 

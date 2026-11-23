@@ -42,3 +42,39 @@ for (const type of ['debit', 'credit']) {
 internalRoutes.post('/internal/balance', validate(z.object({userId: z.string().min(1)})), async (req, res) => {
   res.json({data: await balanceOf(req.body.userId)});
 });
+
+/** Pirento AI's look at a person's own wallet: the balance and the last few movements, nothing else. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const [{balance}, rows] = await Promise.all([
+      balanceOf(req.body.userId),
+      query(
+        'SELECT type, amount, note, created_at FROM transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5',
+        [req.body.userId],
+      ),
+    ]);
+    res.json({
+      data: {
+        balanceRupees: balance / 100,
+        recent: rows.rows.map((t) => ({type: t.type, rupees: t.amount / 100, note: t.note, at: t.created_at})),
+      },
+    });
+  },
+);
+
+/** Pirento AI's admin answers (finance): withdrawals by status with amounts, and the money held in wallets. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const [w, held] = await Promise.all([
+    query(`SELECT status, COUNT(*) AS n, COALESCE(SUM(amount), 0) AS paise FROM withdrawals GROUP BY status`),
+    query('SELECT COALESCE(SUM(balance), 0) AS paise, COUNT(*) AS wallets FROM wallets'),
+  ]);
+  res.json({
+    data: {
+      withdrawals: w.rows.map((r) => ({status: r.status, count: r.n, rupees: r.paise / 100})),
+      heldRupees: held.rows[0].paise / 100,
+      wallets: held.rows[0].wallets,
+    },
+  });
+});

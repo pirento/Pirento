@@ -1,3 +1,4 @@
+// The auth service's settings, read from the environment with safe defaults for local work.
 import {env, isProduction} from '@pirento/shared/server';
 
 // Everything the auth service reads from the environment, in one place.

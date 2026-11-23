@@ -1,3 +1,4 @@
+// The catalog service's settings, read from the environment with safe defaults for local work.
 import {env} from '@pirento/shared/server';
 
 // Everything the catalog service reads from the environment.

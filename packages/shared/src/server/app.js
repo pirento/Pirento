@@ -11,15 +11,15 @@ import {usesMongo} from './db.js';
  *
  * `json: false` is for the gateway, which must pass request bodies through
  * untouched. `csp` replaces helmet's Content-Security-Policy directives. `ready` (async, throws when not)
- * adds a check to /health.
+ * adds a check to /health. `jsonLimit` raises the body limit for a service that takes files in JSON (the AI).
  */
-export function createApp(name, {json = true, csp, ready} = {}) {
+export function createApp(name, {json = true, jsonLimit = '100kb', csp, ready} = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet(csp ? {contentSecurityPolicy: {directives: csp}} : {}));
 
   // rawBody keeps the exact bytes: payment webhooks are signed over them.
-  if (json) app.use(express.json({limit: '100kb', verify: (req, _res, buf) => (req.rawBody = buf)}));
+  if (json) app.use(express.json({limit: jsonLimit, verify: (req, _res, buf) => (req.rawBody = buf)}));
 
   // The load balancer's check: a copy that lost its database is taken out of rotation until it reconnects.
   // `ready` is a service's own check of its other stores (the wallet's PostgreSQL).
@@ -41,7 +41,6 @@ export function finish(app) {
   app.use((_req, _res, next) => next(new ApiError(404, 'NOT_FOUND', 'Route not found')));
 
   // Express recognises an error handler by its four arguments, so `_next` stays.
-  // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     const status = err.status ?? 500;
     const meantForUser = err instanceof ApiError || status < 500;

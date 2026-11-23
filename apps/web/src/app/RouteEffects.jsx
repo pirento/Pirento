@@ -28,7 +28,7 @@ export function RouteEffects() {
     }
     scrollToTop();
     if (!reducedMotion()) {
-      gsap.fromTo('#main', {opacity: 0, y: 12}, {opacity: 1, y: 0, duration: 0.6, ease: 'power3.out'});
+      gsap.fromTo('#main', {opacity: 0, y: 24}, {opacity: 1, y: 0, duration: 0.7, ease: 'power3.out'});
     }
   }, [pathname, hash]);
 

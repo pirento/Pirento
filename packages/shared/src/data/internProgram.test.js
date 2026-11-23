@@ -1,3 +1,4 @@
+// Tests for internProgram.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {PROGRAM_SCORE, finalMark, gradeFor} from './internProgram.js';

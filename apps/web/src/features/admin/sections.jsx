@@ -19,9 +19,10 @@ import {Settings} from './Settings';
 import {Openings} from './Openings';
 import {Companies} from './Companies';
 import {Courses} from './Courses';
+import {AiAdmin} from './AiAdmin';
 import {Programme} from './Programme';
 import {InternWork} from './InternWork';
-import {IdentityQueue} from '../identity/IdentityQueue';
+import {IdentityAdmin} from '../identity/IdentityQueue';
 import {BusinessQueue} from '../business/BusinessQueue';
 import {EnrolQueue} from '../identity/EnrolQueue';
 import {Centres} from '../identity/Centres';
@@ -42,7 +43,7 @@ export const SECTIONS = {
     />
   ),
   // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
-  'bharat-id': () => <IdentityQueue />,
+  'bharat-id': () => <IdentityAdmin />,
   business: () => <BusinessQueue />,
   enrol: () => <EnrolQueue />,
   centres: () => <Centres />,
@@ -59,6 +60,7 @@ export const SECTIONS = {
   openings: Openings,
   companies: Companies,
   courses: Courses,
+  ai: AiAdmin,
   programme: Programme,
   'intern-work': InternWork,
   certificates: Certificates,

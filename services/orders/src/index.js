@@ -10,11 +10,13 @@ import {customerRoutes} from './routes/customer.routes.js';
 import {couponRoutes} from './routes/coupon.routes.js';
 import {internalRoutes} from './routes/internal.routes.js';
 import {fileRoutes} from './routes/file.routes.js';
+import {aiRoutes} from './routes/ai.routes.js';
 
 const app = createApp('orders');
 // Order matters: the fixed paths (/partner, /staff) must come before /:id.
 app.use(
   internalRoutes,
+  aiRoutes,
   publicRoutes,
   partnerRoutes,
   couponRoutes,

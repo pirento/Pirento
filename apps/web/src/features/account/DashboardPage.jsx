@@ -21,6 +21,7 @@ import {formatDate, inr} from '../../lib/format';
 import {accountStats} from './accountStats';
 import {greeting, summaryLine} from './summary';
 import {useDashboardData} from './useDashboardData';
+import {AiToolBox} from '../ai/AiTool';
 
 const pill = 'inline-flex items-center gap-2 rounded-full border border-rule px-5 py-2.5 text-sm hover:border-ink';
 
@@ -91,6 +92,9 @@ export function Dashboard() {
         <div className={`min-w-0 ${showSteps ? 'lg:col-span-7' : ''}`}>
           <DashSection n={++n} id="waiting" label="Needs you" title="Across / every product.">
             <ContinueList items={waiting} />
+          </DashSection>
+          <DashSection n={++n} id="ai" label="Pirento AI" title="Your month, / and what fits you.">
+            <AiToolBox product="ecosystem" />
           </DashSection>
         </div>
         {showSteps && (

@@ -1,3 +1,4 @@
+// The learning service's settings, read from the environment with safe defaults for local work.
 import {EXAM_RULES} from '@pirento/shared';
 import {env, keyFrom} from '@pirento/shared/server';
 

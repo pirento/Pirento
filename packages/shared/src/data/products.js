@@ -81,9 +81,22 @@ const SITE = {
     tracks: ['General', 'Web development', 'Data science', 'Marketing', 'Design'],
     steps: [
       signIn,
-      {title: 'Pick a track', body: 'Five tracks, from general skills to design.'},
-      {title: 'Take the exam', body: '10 questions in 30 minutes. 60% passes; a retake is open after 24 hours.'},
-      {title: 'Share your certificate', body: 'A PC- code and QR open its public verify page.'},
+      {
+        title: 'Learn and pass an exam',
+        body: 'Read a track’s lessons, with an AI tutor and a mock interview, then take its timed exam for a free certificate anyone can verify.',
+      },
+      {
+        title: 'Join a programme',
+        body: '3, 6, 9 or 12 months from your wallet: live classes, recorded videos and daily, weekly and monthly tasks set for you.',
+      },
+      {
+        title: 'Do real work',
+        body: 'Once eligible, paid work from across Pirento is matched to you, and you can apply to internships companies post here.',
+      },
+      {
+        title: 'Finish with a grade',
+        body: 'Tasks, work, attendance and lessons make your final mark; passing gives a programme certificate.',
+      },
     ],
     faq: [
       {
@@ -98,6 +111,14 @@ const SITE = {
         q: 'Does a certificate get me a job?',
         a: 'It proves you passed our exam. It does not guarantee placement, accreditation or income.',
       },
+      {
+        q: 'How do live classes work?',
+        a: 'Each class has a time and a Meet or Zoom link in your dashboard; pressing Join while it runs counts your attendance. Recordings stay for interns on a programme.',
+      },
+      {
+        q: 'Can my company hire interns here?',
+        a: 'Yes. Ask from Intern → Company; once the team approves you, post openings and take applicants from interview to offer, tasks and certificate.',
+      },
     ],
   },
   ai: {
@@ -109,14 +130,40 @@ const SITE = {
     ],
     steps: [
       signIn,
-      {title: 'Ask in your words', body: 'English, Hindi or a mix. Up to 30 messages a day.'},
-      {title: 'Get a service link', body: 'Answers point to the exact Pirento service and its price.'},
+      {
+        title: 'Ask your way',
+        body: 'Type or speak in English, Hindi or a mix, or attach a notice or bill to have it explained.',
+      },
+      {
+        title: 'Get answers that know you',
+        body: 'It points to the exact Pirento service and price, and, when you ask, reads your own orders, wallet, Bharat ID, Intern and tickets.',
+      },
+      {
+        title: 'Use it everywhere',
+        body: 'Ask Pirento AI from any Pirento dashboard; it knows which product you are in.',
+      },
     ],
     faq: [
       {q: 'Is this legal advice?', a: 'No. It gives general information. For your matter, book a consultation.'},
       {
         q: 'Are my chats private?',
         a: 'They are saved in your account until you delete them, and sent to our AI provider to answer you.',
+      },
+      {
+        q: 'Can it see my account?',
+        a: 'Only yours, and only when you ask about it: your orders, wallet, Bharat ID, Intern and tickets, as short summaries. It never sees anyone else’s.',
+      },
+      {
+        q: 'What happens to a file I attach?',
+        a: 'It is sent with that one question to be explained and is not stored; the chat keeps only its name.',
+      },
+      {
+        q: 'Does it remember me?',
+        a: 'Only if you switch on Memory and write the notes yourself. You can delete any note, or switch it off, whenever you like.',
+      },
+      {
+        q: 'How many messages can I send?',
+        a: 'Everyone gets a free number each day; plans paid from your Pirento wallet give more. Both are shown on this page.',
       },
     ],
   },
@@ -185,6 +232,7 @@ const SITE = {
         title: 'Sign with Aadhaar',
         body: 'You sign your declaration with Aadhaar eSign on Digio, with a one-time code to your Aadhaar mobile.',
       },
+      {title: 'Set your PIN', body: 'A 6-digit PIN only you know, to sign in and to prove it is you later.'},
       {title: 'We review by hand', body: 'Our team checks your details. If something needs a change, we tell you why.'},
       {title: 'Get your ID', body: 'A 10-digit Bharat ID with a QR to its public verify page.'},
     ],
@@ -202,6 +250,18 @@ const SITE = {
       {
         q: 'Why do I sign a declaration?',
         a: 'It records your details and your consent. You sign it with Aadhaar eSign on Digio and can download the signed copy from your dashboard.',
+      },
+      {
+        q: 'Can I change my details later?',
+        a: 'Your contact, address, work, bank and nominee, yes: ask from your dashboard and our team checks the change first. Your name, date of birth and documents were checked by the video KYC and eSign, so ask support if one is wrong.',
+      },
+      {
+        q: 'Who can see my details?',
+        a: 'Only the short public facts on the verify page: your masked name, state and issue date. A business sees more only after you approve its request in your dashboard, and you can stop it there.',
+      },
+      {
+        q: 'Can a Bharat ID be suspended?',
+        a: 'Yes, if our team finds it misused or wrong. It then stops working everywhere until it is restored, its verify page says so, and we email you why.',
       },
     ],
   },
@@ -294,11 +354,18 @@ export const PRODUCTS = [
     name: 'Pirento AI',
     short: 'AI',
     quote: 'The future belongs to those who prepare for it today.',
-    overview: 'Ask the Pirento assistant which service fits your need, in English or Hindi.',
+    overview:
+      'Ask the Pirento assistant which service fits your need, or about your own orders, wallet, Bharat ID and Intern, in English or Hindi.',
     highlights: [
       {title: 'Knows the catalog', body: 'Answers with real Pirento services, prices and links.'},
-      {title: 'Saved chats', body: 'Your conversations stay in your account until you delete them.'},
-      {title: 'Fair use', body: '30 messages a day per account.'},
+      {
+        title: 'Knows your account',
+        body: 'When you ask, it reads your own orders, wallet, Bharat ID, Intern and tickets, and nobody else’s.',
+      },
+      {
+        title: 'Everywhere you work',
+        body: 'Ask from any Pirento dashboard, by typing or speaking, or attach a notice or bill to have it explained. Free daily messages, more with a plan.',
+      },
     ],
     caveat: 'AI answers can be wrong and are not legal, tax or financial advice. Check before you act.',
     status: 'now',

@@ -11,7 +11,7 @@ import {NotFound} from '../ecosystem/NotFoundPage';
 import {PayPanel} from './PayPanel';
 import {DetailsRecord} from './OrderDetails';
 import {Timeline} from './Timeline';
-import {qty} from './helpers';
+import {qty, orderTitle} from './helpers';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
@@ -35,7 +35,7 @@ export function OrderPage() {
 
   return (
     <div ref={ref}>
-      <PageHero label={`Order #${order.orderNo}${qty(order)}`} title={order.serviceName}>
+      <PageHero label={`Order #${order.orderNo}${qty(order)}`} title={orderTitle(order)}>
         <div className="mt-8 flex flex-wrap items-center gap-3" data-hero-fade>
           <Tag tone={order.status === 'completed' ? 'accent' : 'rule'}>{statusLabel(order.status)}</Tag>
           <span className="text-sm text-muted">Placed {formatDate(order.createdAt)}</span>

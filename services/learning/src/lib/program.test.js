@@ -1,3 +1,4 @@
+// Tests for program.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {periodOf} from './program.js';

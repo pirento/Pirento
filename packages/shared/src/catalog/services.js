@@ -5,16 +5,22 @@ import {LEGAL_PRICING} from '../data/legalPricing.js';
 import {STATIC_SERVICE_PRICES} from '../data/servicePricing.js';
 import {GREEN_DRIVES} from '../data/greenDrives.js';
 import {GIFT_BOXES} from '../data/giftBoxes.js';
+import {LEGAL_PAGES} from '../data/legalPages.js';
+
+const cheapest = (packages) => Math.min(...packages.map((p) => p.price));
 
 const legal = LEGAL_SERVICES.map(({name, slug, category}) => {
   const fixed = STATIC_SERVICE_PRICES[slug];
   const extra = LEGAL_PRICING[slug];
+  const packages = LEGAL_PAGES[slug]?.packages;
   return {
     slug,
     product: 'legal',
     name: fixed?.name ?? name,
     category,
-    price: fixed?.price ?? extra?.price ?? null,
+    // With packages, the service sells "from" its cheapest one.
+    price: packages ? cheapest(packages) : (fixed?.price ?? extra?.price ?? null),
+    ...(packages && {packages}),
     deliveryTime: fixed?.deliveryTime ?? extra?.deliveryTime ?? null,
     model: extra?.model ?? 'fixed',
   };
@@ -66,9 +72,62 @@ export function applyEdit(service, edit) {
   const s = {...service};
   if (edit.questions) s.questions = edit.questions;
   if (edit.afterQuestions) s.afterQuestions = edit.afterQuestions;
+  if (edit.packages) s.packages = edit.packages;
+  else if (edit.price && s.packages?.length) {
+    // A plain price change on a service with packages moves its cheapest package, the "from" price.
+    const low = s.packages.reduce((a, b) => (b.price < a.price ? b : a));
+    s.packages = s.packages.map((p) => (p === low ? {...p, price: edit.price} : p));
+  }
   if (edit.offSale) s.price = null;
+  else if (s.packages?.length) s.price = cheapest(s.packages);
   else if (edit.price) s.price = edit.price;
   return s;
+}
+
+/**
+ * The packages a service sells, cheapest first. A service without its own packages sells one, at its price, so
+ * checkout and orders always work with a package.
+ */
+export function packagesOf(service) {
+  if (!service?.price) return [];
+  const list = service.packages?.length
+    ? service.packages
+    : [
+        {
+          id: 'standard',
+          name: 'Standard',
+          price: service.price,
+          deliveryTime: service.deliveryTime ?? '',
+          includes: service.includes ?? [],
+        },
+      ];
+  return [...list].sort((a, b) => a.price - b.price);
+}
+
+/** The package bought: the one asked for by id, or the cheapest when none is named. Null for an unknown id. */
+export function packageOf(service, id) {
+  const list = packagesOf(service);
+  return (id ? list.find((p) => p.id === id) : list[0]) ?? null;
+}
+
+/** The sections of a service's page. Admin's text wins section by section; an empty list hides a section. */
+export const PAGE_SECTIONS = [
+  'intro',
+  'whoFor',
+  'included',
+  'notIncluded',
+  'documents',
+  'steps',
+  'timeline',
+  'costs',
+  'deliverables',
+  'mistakes',
+  'benefits',
+  'faqs',
+];
+export function servicePage(slug, pageEdit) {
+  const base = LEGAL_PAGES[slug]?.page ?? {};
+  return Object.fromEntries(PAGE_SECTIONS.map((k) => [k, pageEdit?.[k] ?? base[k] ?? (k === 'intro' ? '' : [])]));
 }
 
 // A service made in admin: its slug starts with its product's (legal-startup-pack), so any page can tell whose it is.

@@ -4,6 +4,7 @@ import {ID_SECTIONS, declarationSigned, kycDone} from '@pirento/shared';
 import {Label} from '../../components/ui/Heading';
 import {Review} from './ReviewStep';
 import {StepForm} from './StepForm';
+import {AiTool} from '../ai/AiTool';
 import {DigioStep} from './DigioStep';
 import {PinSettings} from './PinSettings';
 
@@ -94,13 +95,22 @@ export function Wizard({doc, email, onChange}) {
               onBack={() => setStep(step - 1)}
             />
           ) : (
-            <StepForm
-              key={current.id}
-              section={current}
-              initial={doc?.sections?.[current.id]}
-              onBack={step > 0 ? () => setStep(step - 1) : null}
-              onSaved={advance}
-            />
+            <>
+              <StepForm
+                key={current.id}
+                section={current}
+                initial={doc?.sections?.[current.id]}
+                onBack={step > 0 ? () => setStep(step - 1) : null}
+                onSaved={advance}
+              />
+              {/* Pirento AI explains the step; it never sees what is typed in the form. */}
+              <details key={`help-${current.id}`} className="mt-8 rounded-[18px] border border-rule px-5 py-4">
+                <summary className="cursor-pointer font-medium">Help with this step (Pirento AI)</summary>
+                <div className="mt-4">
+                  <AiTool id="idHelp" fixed={{step: current.id}} />
+                </div>
+              </details>
+            </>
           )}
         </div>
       </div>

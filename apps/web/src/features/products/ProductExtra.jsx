@@ -98,7 +98,7 @@ export function Extra({product, n}) {
     );
   }
   const blocks = {
-    intern: {title: 'Five tracks, / one exam each.', items: product.tracks},
+    intern: {title: 'Pick a track, / take its exam.', items: product.tracks},
     'bharat-id': {
       title: 'Seven steps, / then Digio.',
       items: [

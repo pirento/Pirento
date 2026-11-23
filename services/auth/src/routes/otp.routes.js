@@ -9,6 +9,7 @@ import {User} from '../models/User.js';
 import {LoginLink} from '../models/LoginLink.js';
 import {checkCode, maskEmail, phoneKey, sendCode, sendPhoneCode} from '../lib/otp.js';
 import {issueSession} from '../lib/session.js';
+import {phoneCodesOn} from '../lib/sms.js';
 
 export const otpRoutes = Router();
 
@@ -146,3 +147,72 @@ otpRoutes.post('/otp/link', validate(z.object({token: z.string().min(20).max(100
   if (!user) throw new ApiError(400, 'LINK_INVALID', 'This link has expired or was already used. Ask for a new one.');
   await issueSession(res, user);
 });
+
+/**
+ * Buying without an account: checkout asks for a name, email and mobile, and a code proves the person holds one of
+ * them: the mobile when texts can be sent, else the email. Only the proven one may open an existing account; a new
+ * account is made otherwise (with the mobile only when the mobile was proven, so mobile sign-in works later).
+ */
+const guest = z.object({
+  name: z.string().trim().min(2, 'Enter your name').max(80),
+  email,
+  phone,
+  product: z.string().max(20).optional(),
+});
+const guestChannel = () => (phoneCodesOn() ? 'phone' : 'email');
+
+otpRoutes.post('/otp/checkout/request', validate(guest), async (req, res) => {
+  const {email: mail, phone: mobile, product} = req.body;
+  const channel = guestChannel();
+  const sent =
+    channel === 'phone'
+      ? {...(await sendPhoneCode(mobile, brandOf(product))), sentTo: maskPhone(mobile)}
+      : {...(await sendCode(mail, brandOf(product))), sentTo: maskEmail(mail)};
+  res.json({data: {...sent, channel}});
+});
+
+otpRoutes.post(
+  '/otp/checkout/verify',
+  validate(guest.extend({code, acceptTerms: z.literal(true, {error: 'Accept the terms to continue'})})),
+  async (req, res) => {
+    const {name, email: mail, phone: mobile} = req.body;
+    const channel = guestChannel();
+    await checkCode(channel === 'phone' ? phoneKey(mobile) : mail, req.body.code);
+    const proven = channel === 'phone' ? {phone: mobile} : {email: mail};
+    const other = channel === 'phone' ? {email: mail} : {phone: mobile};
+
+    let user = await User.findOne(proven);
+    if (!user) {
+      // The detail we did not prove may not open, or be added to, someone else's account.
+      if (await User.exists(other)) {
+        throw new ApiError(
+          409,
+          channel === 'phone' ? 'EMAIL_TAKEN' : 'PHONE_TAKEN',
+          channel === 'phone'
+            ? 'This email already has a Pirento account. Sign in with it to buy.'
+            : 'This mobile already has a Pirento account. Sign in with it to buy.',
+        );
+      }
+      try {
+        user = await User.create({
+          email: mail,
+          name,
+          ...(channel === 'phone' && {phone: mobile}),
+          role: 'customer',
+          termsAcceptedAt: new Date(),
+          termsVersion: TERMS_VERSION,
+        });
+      } catch (err) {
+        if (err.code === 11000) throw new ApiError(409, 'TAKEN', 'This account was just made. Sign in to buy.');
+        throw err;
+      }
+    }
+    if (user.role !== 'customer')
+      throw new ApiError(403, 'STAFF', 'Staff accounts cannot buy here. Use a customer account.');
+    if (!user.name) {
+      user.name = name;
+      await user.save();
+    }
+    await issueSession(res, user);
+  },
+);

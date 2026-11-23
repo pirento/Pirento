@@ -1,3 +1,4 @@
+// Tests for business.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BUSINESS_PROFILE, BUSINESS_REQUEST, TEST_BHARAT_IDS} from './business.js';

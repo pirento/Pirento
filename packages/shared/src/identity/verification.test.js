@@ -1,3 +1,4 @@
+// Tests for verification.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {declarationSigned, kycDone, kycFailed} from './verification.js';

@@ -710,6 +710,88 @@ check(
     (await pinLogin('482916', '1991-05-01')).error?.code === 'PIN_WRONG',
   );
 
+  // Suspending an issued ID stops it everywhere; restoring brings it back with the same number.
+  const hold = (body, token = boss) => call(`/identity/staff/${app1._id}/hold`, {method: 'PATCH', token, body});
+  check('suspending needs a reason', (await hold({action: 'suspend'})).status === 400);
+  check('a customer cannot suspend', (await hold({action: 'suspend', reason: 'x'}, user)).status === 403);
+  check(
+    'staff suspend an issued ID',
+    (await hold({action: 'suspend', reason: 'Reported as misused'})).data?.status === 'suspended',
+  );
+  check('no double suspend', (await hold({action: 'suspend', reason: 'again'})).status === 409);
+  check(
+    'its verify page says suspended',
+    (await call(`/identity/verify/${appr.bharatId}`)).error?.code === 'SUSPENDED',
+  );
+  check('a suspended ID cannot sign in', !(await pinLogin('482916')).data?.token);
+  check(
+    'the holder sees why',
+    (await call('/identity/me', {token: user})).data?.suspension?.reason === 'Reported as misused',
+  );
+  check(
+    'it shows in the suspended queue',
+    (await call('/identity/staff/queue?status=suspended', {token: boss})).data?.some((d) => d._id === app1._id),
+  );
+  check('staff restore it', (await hold({action: 'restore'})).data?.status === 'approved');
+  check('it signs in again', Boolean((await pinLogin('482916')).data?.token));
+
+  // Changing an issued ID: the holder asks, the team approves, the ID shows the new details.
+  const newAddr = {line: '7 Park Street', city: 'Kolkata', state: 'West Bengal', pincode: '700016'};
+  const askChange = (body) => call('/identity/changes', {method: 'POST', token: user, body});
+  check(
+    'name and documents cannot be changed here',
+    (await askChange({section: 'personal', values: {}})).status === 400,
+  );
+  check(
+    'a change is checked like the form',
+    (await askChange({section: 'address', values: {...newAddr, pincode: '12'}})).status === 400,
+  );
+  const ch = (await askChange({section: 'address', values: newAddr, note: 'Moved'})).data;
+  check('the holder asks to change the address', ch?.status === 'pending', ch);
+  check(
+    'one waiting change at a time',
+    (await askChange({section: 'contact', values: {mobile: '9876500000'}})).error?.code === 'OPEN',
+  );
+  const staffCh = (await call('/identity/staff/changes', {token: boss})).data?.find((c) => c._id === ch._id);
+  check(
+    'staff see the current and asked values',
+    staffCh?.current?.city === 'Delhi' && staffCh?.data?.city === 'Kolkata',
+  );
+  check(
+    'a customer cannot decide a change',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: user, body: {decision: 'approve'}}))
+      .status === 403,
+  );
+  check(
+    'turning down needs a reason',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'reject'}}))
+      .status === 400,
+  );
+  check(
+    'staff approve the change',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}})).data
+      ?.status === 'approved',
+  );
+  check(
+    'no double decision',
+    (await call(`/identity/staff/changes/${ch._id}`, {method: 'PATCH', token: boss, body: {decision: 'approve'}}))
+      .status === 409,
+  );
+  const afterCh = (await call('/identity/me', {token: user})).data;
+  check(
+    'the ID shows the new address',
+    afterCh?.sections?.address?.city === 'Kolkata' && afterCh?.state === 'West Bengal',
+  );
+  check(
+    'the verify page shows the new state',
+    (await call(`/identity/verify/${appr.bharatId}`)).data?.state === 'West Bengal',
+  );
+  const ch2 = (await askChange({section: 'contact', values: {mobile: '9876500000'}})).data;
+  check(
+    'the holder can take a waiting change back',
+    (await call(`/identity/changes/${ch2._id}`, {method: 'DELETE', token: user})).status === 200,
+  );
+
   // Checking a holder: the business sends them to Pirento's page; it never sees what they type.
   const testKey2 = (await call('/identity/business/me/keys', {method: 'POST', token: biz, body: {mode: 'test'}})).data
     .key;
@@ -926,6 +1008,25 @@ check('password not in list', list2.length === 1 && !JSON.stringify(list2).inclu
 check(
   'reveal password',
   (await call(`/vault/credentials/${cred._id}/secret`, {token: user})).data?.password === 'p@ss',
+);
+const labelled = (
+  await call(`/vault/files/${file._id}`, {method: 'PATCH', token: user, body: {label: 'PAN', expiresOn: '2030-01-31'}})
+).data;
+check(
+  'a vault file takes a label and an expiry date',
+  labelled?.label === 'PAN' && labelled.expiresOn?.startsWith('2030-01-31'),
+  labelled,
+);
+check(
+  'only known labels',
+  (await call(`/vault/files/${file._id}`, {method: 'PATCH', token: user, body: {label: 'Secret stuff'}})).status ===
+    400,
+);
+check(
+  "someone else's file cannot be labelled",
+  [403, 404].includes(
+    (await call(`/vault/files/${file._id}`, {method: 'PATCH', token: boss, body: {label: 'PAN'}})).status,
+  ),
 );
 check('delete file', (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).data?.deleted);
 check(
@@ -1512,7 +1613,49 @@ check(
   (await call(`/orders/${disc._id}/files`, {token: otherUser})).status === 404 &&
     (await uploadDoc(otherUser, 'x.txt', 'x')).status === 404,
 );
-check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 2);
+const docCheck = (token) => call(`/orders/${disc._id}/files/check`, {method: 'POST', token});
+check('the AI check needs a PDF or photo', (await docCheck(user)).status === 400);
+const photoUp = await fetch(`${B}/orders/${disc._id}/files`, {
+  method: 'POST',
+  headers: {
+    authorization: `Bearer ${user}`,
+    'content-type': 'application/octet-stream',
+    'x-file-name': 'pan.png',
+    'x-file-type': 'image/png',
+  },
+  body: Buffer.from('not really a png'),
+});
+check('a photo is added', photoUp.status === 201);
+check('the AI document check is for the customer only', (await docCheck(staffToken)).status === 403);
+check('the AI document check waits for the AI key', (await docCheck(user)).status === 503);
+// Pirento Legal AI: ownership and roles are checked before the AI (which is off here) is asked.
+const assist = (kind, body, token = user) => call(`/ai/assist/${kind}`, {method: 'POST', token, body});
+check(
+  'AI intake needs a real service',
+  (await assist('intake', {serviceSlug: 'no-such-service', turns: []})).status === 404,
+);
+check(
+  'AI intake waits for the key',
+  (await assist('intake', {serviceSlug: 'gst-registration', turns: []})).status === 503,
+);
+check(
+  "nobody asks the AI about someone else's order",
+  (await assist('orderStatus', {orderId: disc._id}, otherUser)).status === 404,
+);
+check(
+  'the order AI waits for the key',
+  (await assist('orderAsk', {orderId: disc._id, question: 'When is it done?'})).status === 503,
+);
+check('company dates need a business type', (await assist('companyCompliance', {entity: 'Club'})).status === 400);
+const staffAi = (kind, body, token) => call(`/orders/staff/${disc._id}/ai/${kind}`, {method: 'POST', token, body});
+check('order AI tools are for the team', (await staffAi('orderSummary', {}, user)).status === 403);
+check('an unknown order AI tool is not found', (await staffAi('nope', {}, boss)).status === 404);
+check(
+  'reading details needs a real document',
+  (await staffAi('extract', {fileId: '000000000000000000000000'}, boss)).status === 404,
+);
+check('the team AI waits for the key', (await staffAi('orderSummary', {}, boss)).status === 503);
+check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 3);
 check(
   'team list',
   (await call('/auth/admin/team', {token: staffToken})).data?.some((m) => m._id === me2._id),
@@ -2159,6 +2302,15 @@ check(
   'approved company opening is public',
   (await call('/learning/openings')).data?.find((o) => o._id === cop._id)?.company === 'Acme Labs',
 );
+const coPage = (await call(`/learning/companies/${acme._id}`)).data;
+check(
+  'the company has a public page with its open roles and no contact details',
+  coPage?.company === 'Acme Labs' &&
+    coPage.openings.some((o) => o._id === cop._id) &&
+    !('phone' in coPage) &&
+    !('email' in coPage),
+  coPage,
+);
 await call(`/learning/openings/${cop._id}/apply`, {method: 'POST', token: user, body: applyBody});
 const coApps = (await call('/learning/employer/applications', {token: co})).data;
 check(
@@ -2186,6 +2338,7 @@ check(
   !(await call('/learning/openings')).data?.some((o) => o._id === cop._id),
 );
 check('a paused company is locked out', (await call('/learning/employer/applications', {token: co})).status === 403);
+check('a paused company has no public page', (await call(`/learning/companies/${acme._id}`)).status === 404);
 
 // ── Intern courses: tracks, question bank, lessons ──────────────────────
 const slug = `qa-${Date.now() % 1_000_000}`;
@@ -2689,7 +2842,7 @@ const wrong = await call('/auth/staff/login', {method: 'POST', body: {staffId: s
 check('wrong password', wrong.status === 401 && wrong.error.message === 'Wrong staff ID or password');
 const unknown = await call('/auth/staff/login', {
   method: 'POST',
-  body: {staffId: 'nobody.here', password: 'whatever-123'},
+  body: {staffId: `nobody.${Date.now()}`, password: 'whatever-123'}, // new each run: the backoff remembers a day
 });
 check('unknown staff ID answers the same', unknown.status === 401 && unknown.error.message === wrong.error.message);
 check(
@@ -3081,6 +3234,133 @@ await call(`/catalog/staff/services/${pkg?.slug}`, {method: 'DELETE', token: bos
 check('a deleted package takes no orders', (await packOrder({phone: '9876500000'})).error?.code === 'NOT_FOR_SALE');
 check('its order stays', (await call(`/orders/${pkgOrder?._id}`, {token: user})).data?.serviceName === pack);
 
+// ── Service pages and packages ───────────────────────────────────────────
+const pvt = (await call('/catalog/services/private-limited-company')).data;
+check(
+  'a service page carries its packages and sections',
+  pvt?.packages?.length === 3 &&
+    pvt.page?.documents?.length > 0 &&
+    pvt.page?.faqs?.length > 0 &&
+    pvt.page?.deliverables?.length > 0,
+);
+const buyPack = (packageId, body = {}) =>
+  call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'private-limited-company', packageId, intake: {...intake, directors: '2 directors'}, ...body},
+  });
+const stdOrder = (await buyPack('standard')).data;
+check(
+  'a package is charged at its own price and named on the order',
+  stdOrder?.amount === 499900 && stdOrder.package?.name === 'Standard',
+  stdOrder,
+);
+check('an unknown package is refused', (await buyPack('gold')).status === 400);
+check('no package means the cheapest', (await buyPack(undefined)).data?.amount === 199900);
+
+const putPacks = (packages, token = boss) =>
+  call('/catalog/staff/services/gst-registration/packages', {method: 'PUT', token, body: {packages}});
+const twoPacks = [
+  {id: 'lite', name: 'Lite', price: 1099, includes: ['Filing'], deliveryTime: '5 days'},
+  {id: 'plus', name: 'Plus', price: 2999, strike: 3499, includes: ['Filing', '3 returns'], recommended: true},
+];
+check('only a superadmin sets packages', (await putPacks(twoPacks, staffToken)).status === 403);
+check(
+  'two packages with one id are refused',
+  (await putPacks([twoPacks[0], {...twoPacks[1], id: 'lite'}])).status === 400,
+);
+check('a struck price must be higher', (await putPacks([{...twoPacks[1], strike: 100}])).status === 400);
+check('admin sets the packages', (await putPacks(twoPacks)).data?.price === 1099);
+const gstPlus = (
+  await call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'gst-registration', packageId: 'plus', intake},
+  })
+).data;
+check('checkout charges the admin package', gstPlus?.amount === 299900, gstPlus);
+check('the catalogue packages come back on reset', (await putPacks(null)).data?.packages?.[0]?.id === 'basic');
+
+const putPage = (page, token = boss) =>
+  call('/catalog/staff/services/gst-registration/page', {method: 'PUT', token, body: {page}});
+check('only a superadmin edits a page', (await putPage({intro: 'x'}, staffToken)).status === 403);
+check('an unknown section is refused', (await putPage({colour: 'red'})).status === 400);
+await putPage({
+  documents: [],
+  faqs: [{q: 'Is this a test?', a: 'Yes, it is.'}],
+  mistakes: ['Testing on live'],
+  costs: [{title: 'Fee', body: 'The price.'}],
+});
+const editedPage = (await call('/catalog/services/gst-registration')).data?.page;
+check(
+  'admin can hide a section and rewrite another',
+  editedPage?.documents?.length === 0 &&
+    editedPage.faqs[0]?.q === 'Is this a test?' &&
+    editedPage.steps.length > 0 &&
+    editedPage.mistakes[0] === 'Testing on live' &&
+    editedPage.costs[0]?.title === 'Fee',
+  editedPage,
+);
+await putPage(null);
+check(
+  'the standard page comes back on reset',
+  (await call('/catalog/services/gst-registration')).data?.page?.documents?.length > 0,
+);
+
+// ── Buying without an account ────────────────────────────────────────────
+const gMobile = `7${String(Date.now()).slice(-9)}`;
+const gEmail = `guest${Date.now()}@example.com`;
+const guestBody = {name: 'Kiran Rao', email: gEmail, phone: gMobile, product: 'legal'};
+const gReq = (await call('/auth/otp/checkout/request', {method: 'POST', body: guestBody})).data;
+check('checkout sends a code to the mobile', gReq?.channel === 'phone' && /•••/.test(gReq.sentTo ?? ''), gReq);
+check(
+  'the terms must be accepted',
+  (await call('/auth/otp/checkout/verify', {method: 'POST', body: {...guestBody, code: gReq.devCode}})).status === 400,
+);
+const gIn = (
+  await call('/auth/otp/checkout/verify', {
+    method: 'POST',
+    body: {...guestBody, code: gReq.devCode, acceptTerms: true},
+  })
+).data;
+check('verifying makes the account and signs in', Boolean(gIn?.token) && gIn.user?.name === 'Kiran Rao', gIn);
+const gOrder = (
+  await call('/orders', {
+    method: 'POST',
+    token: gIn.token,
+    body: {
+      serviceSlug: 'private-limited-company',
+      packageId: 'basic',
+      intake: {...intake, directors: '2 directors', phone: gMobile},
+    },
+  })
+).data;
+check('the new customer can order', gOrder?.amount === 199900);
+const gPhone = (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: gMobile}})).data;
+const gBack = (await call('/auth/otp/phone/verify', {method: 'POST', body: {phone: gMobile, code: gPhone?.devCode}}))
+  .data;
+check(
+  'they sign in later with a mobile code',
+  gBack?.user?.id === gIn.user.id || gBack?.user?._id === gIn.user._id,
+  gBack,
+);
+const gReq2 = (await call('/auth/otp/checkout/request', {method: 'POST', body: guestBody})).data;
+const gAgain = (
+  await call('/auth/otp/checkout/verify', {
+    method: 'POST',
+    body: {...guestBody, code: gReq2.devCode, acceptTerms: true},
+  })
+).data;
+check('the same mobile opens the same account', gAgain?.user?.email === gEmail, gAgain);
+const otherMobile = `6${String(Date.now()).slice(-9)}`;
+const taken = {...guestBody, phone: otherMobile};
+const tReq = (await call('/auth/otp/checkout/request', {method: 'POST', body: taken})).data;
+check(
+  'an email that has an account is not opened by another mobile',
+  (await call('/auth/otp/checkout/verify', {method: 'POST', body: {...taken, code: tReq.devCode, acceptTerms: true}}))
+    .error?.code === 'EMAIL_TAKEN',
+);
+
 // ── Contact form ────────────────────────────────────────────────────────
 const enquiry = {
   name: 'Meera Iyer',
@@ -3123,6 +3403,139 @@ check('marked handled with a note', handled?.status === 'handled' && handled.han
 check(
   'handled ones leave the new list',
   !(await call('/support/staff/enquiries', {token: boss})).data?.some((e) => e._id === mineEnq?._id),
+);
+
+// ── Pirento AI: allowance, plans, knowledge, admin ─────────────────────
+check('AI status gives the free allowance', (await call('/ai/status', {token: user})).data?.dailyLimit >= 0);
+check(
+  'only a superadmin changes AI settings',
+  (await call('/ai/staff/ai/settings', {method: 'PUT', token: user, body: {on: true, freeDailyLimit: 5}})).status ===
+    403,
+);
+await call('/ai/staff/ai/settings', {method: 'PUT', token: boss, body: {on: true, freeDailyLimit: 7}});
+check('the free allowance follows admin', (await call('/ai/usage', {token: user})).data?.limit === 7);
+const aiPlan = (
+  await call('/ai/staff/ai/plans', {
+    method: 'POST',
+    token: boss,
+    body: {name: 'Pro', price: 9900, dailyLimit: 200, months: 1},
+  })
+).data;
+check('superadmin makes an AI plan', aiPlan?.name === 'Pro', aiPlan);
+check(
+  'plans are listed',
+  (await call('/ai/plans', {token: user})).data?.plans?.some((p) => p._id === aiPlan._id),
+);
+const aiWalletBefore = (await call('/wallet', {token: user})).data.balance;
+const bought = (await call(`/ai/plans/${aiPlan._id}/buy`, {method: 'POST', token: user})).data;
+check('buy an AI plan from the wallet', bought?.dailyLimit === 200, bought);
+check('paid once', (await call('/wallet', {token: user})).data.balance === aiWalletBefore - 9900);
+await call(`/ai/plans/${aiPlan._id}/buy`, {method: 'POST', token: user});
+check('a double click pays once', (await call('/wallet', {token: user})).data.balance === aiWalletBefore - 9900);
+check('the plan raises the allowance', (await call('/ai/usage', {token: user})).data?.limit === 200);
+check(
+  'auto-renew can be switched on for the running plan',
+  (await call('/ai/plans/auto-renew', {method: 'PUT', token: user, body: {on: true}})).data?.autoRenew === true &&
+    (await call('/ai/usage', {token: user})).data?.plan?.autoRenew === true,
+);
+check('memory starts off', (await call('/ai/memory', {token: user})).data?.on === false);
+check(
+  'memory keeps what the person writes',
+  (await call('/ai/memory', {method: 'PUT', token: user, body: {on: true, notes: ['My company is Asha Foods']}})).data
+    ?.notes?.length === 1,
+);
+check(
+  'memory has a limit',
+  (await call('/ai/memory', {method: 'PUT', token: user, body: {on: true, notes: Array(11).fill('x')}})).status === 400,
+);
+const note = (
+  await call('/ai/staff/ai/knowledge', {
+    method: 'POST',
+    token: boss,
+    body: {title: 'Refund timing', body: 'Card refunds reach the bank in 5 to 7 working days.', published: true},
+  })
+).data;
+check('a knowledge note is saved', Boolean(note?._id), note);
+check('customers cannot edit knowledge', (await call('/ai/staff/ai/knowledge', {token: user})).status === 403);
+const aiOverview = (await call('/ai/staff/ai/overview', {token: boss})).data;
+check('AI overview counts the plan', aiOverview?.subscribers >= 1 && aiOverview.freeDailyLimit === 7, aiOverview);
+check(
+  'rating needs your own chat',
+  (
+    await call('/ai/chats/000000000000000000000000/feedback', {
+      method: 'POST',
+      token: user,
+      body: {index: 1, rating: 'up'},
+    })
+  ).status === 404,
+);
+check(
+  'reply drafts need the AI',
+  (
+    await call('/ai/staff/ai/draft-reply', {
+      method: 'POST',
+      token: boss,
+      body: {subject: 'Refund', messages: [{from: 'customer', body: 'Where is my refund?'}]},
+    })
+  ).status === 503,
+);
+check(
+  'customers cannot ask for drafts',
+  (
+    await call('/ai/staff/ai/draft-reply', {
+      method: 'POST',
+      token: user,
+      body: {subject: 'x', messages: [{from: 'customer', body: 'x'}]},
+    })
+  ).status === 403,
+);
+check(
+  'a product the assistant does not know is refused',
+  (await call('/ai/chats/new/messages', {method: 'POST', token: user, body: {content: 'hi', product: 'nope'}}))
+    .status === 400,
+);
+check(
+  'an unknown AI tool is not found',
+  (await call('/ai/assist/nope', {method: 'POST', token: user, body: {}})).status === 404,
+);
+check(
+  'AI tools check their input first',
+  (await call('/ai/assist/recommend', {method: 'POST', token: user, body: {need: 'x'}})).status === 400,
+);
+check(
+  'AI tools wait for the key',
+  (
+    await call('/ai/assist/recommend', {
+      method: 'POST',
+      token: user,
+      body: {need: 'register my company', product: 'legal'},
+    })
+  ).status === 503,
+);
+check(
+  'the Bharat ID helper takes a step, never values',
+  (await call('/ai/assist/idHelp', {method: 'POST', token: user, body: {step: 'not-a-step'}})).status === 400,
+);
+check(
+  'staff AI tools are for staff',
+  (await call('/ai/assist/impactStory', {method: 'POST', token: user, body: {facts: 'Planted 100 trees in Ajmer'}}))
+    .status === 403,
+);
+check(
+  'the admin assistant waits for the key too',
+  (await call('/ai/assist/adminAnswer', {method: 'POST', token: boss, body: {question: 'How many orders are late?'}}))
+    .status === 503,
+);
+check(
+  'reviewers see warning signs',
+  Array.isArray((await call(`/identity/staff/${app1._id}/flags`, {token: boss})).data),
+);
+check('customers do not', (await call(`/identity/staff/${app1._id}/flags`, {token: user})).status === 403);
+// Back to the default, so the next run starts where a fresh database does.
+await call('/ai/staff/ai/settings', {method: 'PUT', token: boss, body: {on: true, freeDailyLimit: 30}});
+check(
+  'account summaries stay internal',
+  (await call('/wallet/internal/assistant', {method: 'POST', token: user, body: {userId: 'x'}})).status === 404,
 );
 
 // ── AI ──────────────────────────────────────────────────────────────────

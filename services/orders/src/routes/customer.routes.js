@@ -1,7 +1,7 @@
 // Placing, listing, reading and cancelling your own orders.
 import {Router} from 'express';
 import {z} from 'zod';
-import {checkAnswers, validateIntake} from '@pirento/shared';
+import {checkAnswers, packageOf, validateIntake} from '@pirento/shared';
 import {liveService} from '../lib/catalog.js';
 import {ApiError, badInput, callService, conflict, requireAuth, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
@@ -18,6 +18,7 @@ customerRoutes.post(
   validate(
     z.object({
       serviceSlug: z.string().max(80),
+      packageId: z.string().max(40).optional(),
       quantity: z.number().int().min(1).default(1),
       ref: z.string().trim().toUpperCase().max(12).optional(),
       coupon: z.string().trim().toUpperCase().max(16).optional(),
@@ -43,7 +44,9 @@ customerRoutes.post(
     const partner = req.body.ref && (await Partner.findOne({code: req.body.ref}));
     const ref = partner && partner.userId !== req.user.sub ? partner.code : undefined;
 
-    const full = service.price * 100 * req.body.quantity; // the price is always the server's
+    const pack = packageOf(service, req.body.packageId);
+    if (!pack) throw badInput('Choose one of the packages on offer');
+    const full = pack.price * 100 * req.body.quantity; // the price is always the server's
     const coupon = req.body.coupon || undefined;
     const discount = coupon ? await discountOf(coupon, service.product, full) : 0;
 
@@ -54,6 +57,7 @@ customerRoutes.post(
       product: service.product,
       serviceSlug: service.slug,
       serviceName: service.name,
+      package: {id: pack.id, name: pack.name},
       quantity: req.body.quantity,
       amount: full - discount,
       coupon,

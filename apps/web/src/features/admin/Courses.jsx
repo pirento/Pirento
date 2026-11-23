@@ -219,7 +219,7 @@ function LessonForm({track, initial, onSaved, nextOrder}) {
         <Field label="Title" required value={l.title} onChange={(e) => setL({...l, title: e.target.value})} />
       </div>
       <TextArea
-        label="Lesson (plain text; blank lines make paragraphs)"
+        label="Lesson (blank line = new paragraph; # heading, - list, **bold**, [link](https://…), ![image](https://…), ``` code)"
         rows={10}
         maxLength={20000}
         value={l.body}

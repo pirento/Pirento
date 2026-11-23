@@ -8,6 +8,8 @@ import {Tag} from '../../components/ui/Tag';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {VideoPlayer} from './Video';
+import {LessonText} from './LessonText';
+import {AiTool} from '../ai/AiTool';
 
 function Lesson({id, done, onDone, onBack}) {
   const lesson = useApi(`/learning/lessons/${id}`);
@@ -55,7 +57,13 @@ function Lesson({id, done, onDone, onBack}) {
         )}
       </header>
       {l.hasVideo && <VideoPlayer path={`/learning/lesson-video/${l._id}`} />}
-      <div className="body space-y-4 whitespace-pre-line">{l.body}</div>
+      <LessonText text={l.body} />
+      <details className="rounded-[18px] border border-rule px-5 py-4">
+        <summary className="cursor-pointer font-medium">Explain with Pirento AI</summary>
+        <div className="mt-4">
+          <AiTool id="tutor" fixed={{lessonTitle: l.title, lessonText: l.body.slice(0, 6000)}} />
+        </div>
+      </details>
       {l.practice.length > 0 && (
         <form onSubmit={check} className="space-y-6 rounded-[22px] border border-rule p-6">
           <p className="eyebrow">Practice</p>

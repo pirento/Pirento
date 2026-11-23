@@ -16,7 +16,12 @@ export {
   basePrice,
   categoriesOf,
   slugify,
+  packagesOf,
+  packageOf,
+  servicePage,
+  PAGE_SECTIONS,
 } from './catalog/services.js';
+export {LEGAL_PAGES} from './data/legalPages.js';
 
 // Orders: life cycle and checkout questions
 export {
@@ -36,7 +41,7 @@ export {
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';
-export {ID_SECTIONS, RELATIONS, validateFields, validateSection} from './identity/form.js';
+export {CHANGEABLE_SECTIONS, ID_SECTIONS, RELATIONS, validateFields, validateSection} from './identity/form.js';
 export {
   BUSINESS_PROFILE,
   BUSINESS_REQUEST,

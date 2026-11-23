@@ -25,6 +25,7 @@ import {
   UserPlus,
   UserX,
   ShoppingBag,
+  Sparkles,
   Users,
 } from 'lucide-react';
 
@@ -75,7 +76,8 @@ export const ADMIN_SECTIONS = [
     label: 'Bharat ID review',
     icon: BadgeCheck,
     roles: OPS,
-    intro: 'Submitted applications. Check the Digio video KYC and the signed declaration, then approve or reject.',
+    intro:
+      'Check the Digio video KYC and the signed declaration, then approve or reject. Suspend or restore issued IDs, and review the changes holders ask for.',
   },
   {
     id: 'enrol',
@@ -228,6 +230,15 @@ export const ADMIN_SECTIONS = [
       'Paid work from across Pirento for eligible interns. The AI suggests who fits and why; you confirm, review, and approving pays their wallet.',
   },
   {
+    id: 'ai',
+    group: 'Records',
+    label: 'Pirento AI',
+    icon: Sparkles,
+    roles: ['support', 'staff', 'superadmin'], // ACCESS.ai; settings and plans: superadmin
+    intro:
+      'How much the assistant is used, its switch and free allowance, paid plans, the knowledge it answers from, and answers people rated.',
+  },
+  {
     id: 'courses',
     group: 'Records',
     label: 'Intern courses',
@@ -243,7 +254,7 @@ export const ADMIN_SECTIONS = [
     icon: Briefcase,
     roles: ALL_STAFF,
     intro:
-      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services and packages and set the questions asked before and after payment.',
+      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services, set each one’s packages and page, and the questions asked before and after payment.',
   },
   {
     id: 'settings',

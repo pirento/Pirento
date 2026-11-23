@@ -1,3 +1,4 @@
+// Vite build and dev server for the web app; /api is proxied to the gateway in development.
 import {defineConfig} from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';

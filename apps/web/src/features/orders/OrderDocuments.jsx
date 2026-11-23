@@ -1,10 +1,11 @@
 // The documents on one order, for its customer and for the team: add one, download any, remove your own.
 import {useRef, useState} from 'react';
-import {Download, FileText, Trash2, Upload} from 'lucide-react';
+import {Download, FileText, Trash2, Sparkles, Upload} from 'lucide-react';
 import {api} from '../../lib/api/client';
 import {mb, saveFile, uploadFile} from '../../lib/api/binary';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
+import {AiResult} from '../ai/AiTool';
 
 const MAX_MB = 5;
 
@@ -39,6 +40,19 @@ export function OrderDocuments({order, side, canAdd = true}) {
       files.reload();
     } catch (err) {
       setError(err.message);
+    }
+  };
+  // The customer can have Pirento AI look over their papers before the team does (same files: same answer for an hour).
+  const [check, setCheck] = useState(null);
+  const runCheck = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      setCheck(await api(`/orders/${order._id}/files/check`, {method: 'POST'}));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
     }
   };
   const fromLabel = (f) =>
@@ -97,6 +111,21 @@ export function OrderDocuments({order, side, canAdd = true}) {
             <Upload aria-hidden className="size-4" /> {busy ? 'Encrypting…' : 'Add a document'}
           </button>
           <span className="text-xs text-muted">Up to {MAX_MB} MB, stored encrypted.</span>
+          {side === 'customer' && files.data?.some((f) => f.from === 'customer') && (
+            <button
+              onClick={runCheck}
+              disabled={busy}
+              className="inline-flex items-center gap-2 rounded-full border border-rule px-4 py-2 text-sm hover:border-ink disabled:opacity-50"
+            >
+              <Sparkles aria-hidden className="size-4" /> Check my documents with AI
+            </button>
+          )}
+        </div>
+      )}
+      {check && (
+        <div className="mt-4 rounded-[18px] border border-rule p-5 text-sm" aria-live="polite">
+          <AiResult value={check} />
+          <p className="mt-3 text-xs text-muted">A first look by AI; the team still checks everything.</p>
         </div>
       )}
       {error && (

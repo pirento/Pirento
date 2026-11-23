@@ -1,3 +1,4 @@
+// The orders service's settings, read from the environment with safe defaults for local work.
 import {env, keyFrom} from '@pirento/shared/server';
 
 export const config = {
@@ -6,6 +7,7 @@ export const config = {
   walletUrl: env('WALLET_URL', 'http://127.0.0.1:4002'),
   catalogUrl: env('CATALOG_URL', 'http://127.0.0.1:4003'),
   authUrl: env('AUTH_URL', 'http://127.0.0.1:4001'), // who a staff booking is for
+  aiUrl: env('AI_URL', 'http://127.0.0.1:4009'), // checks a customer's documents before the team does
   /** Encrypts the documents attached to orders. Changing it makes stored documents unreadable. */
   fileKey: keyFrom(env('ORDERS_FILE_KEY', 'dev-only-orders-file-key')),
   // shortcut: documents live inside MongoDB documents (16 MB cap each); move them to S3 before raising these.

@@ -1,3 +1,4 @@
+// Tests for crypto.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {decrypt, encrypt, keyFrom} from './crypto.js';

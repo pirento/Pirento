@@ -26,6 +26,7 @@ Open http://localhost:5173. Sign in with any email: outside production the 6-dig
 npm test         # unit tests, next to the code they check
 npm run build    # website → apps/web/dist
 npm run e2e      # every flow against a running stack (start it with SUPERADMIN_EMAILS=boss@example.com SUPERADMIN_STAFF_ID=root.admin SUPERADMIN_PASSWORD=change-me-now-123 OTP_RESEND_SECONDS=0)
+npm run lint     # eslint: unused code and React hook mistakes
 npm run format   # prettier
 ```
 
@@ -37,7 +38,7 @@ npm run format   # prettier
 - **Pirento Ecosystem home** (`/`): pick any product in the hero to preview its site, what one account gives you, the ten products grouped by need, Legal search.
 - **Pirento Ecosystem dashboard** (`/dashboard`): a greeting with one plain line of what needs you, the wallet card with its balance history, open orders, spend this month, Bharat ID and certificates, "pick up where you left off" (pay, read a reply, finish your ID), one activity timeline across products, spend by product, a get-started checklist and every product as an app. Wallet (`/wallet`) and Account (`/account`) have their own pages. Press Ctrl/Cmd+K anywhere in the app to jump to any product, page or service.
 - **Product sites** at `/<product>` with dashboards at `/<product>/dashboard`, each in the product's dark and accent colours from the brand guidelines, with its own home layout and a working widget in the hero (search Legal services, Black rate card, Green tree calculator, Capital EMI calculator and more).
-- **Orders**: server-priced checkout for Legal, Black, Green (trees) and Giftox (gift boxes), paid from the wallet or Razorpay, worked by staff, finished with a public code (`LGL-`, `BLK-`, `GRN-`, `GFT-`).
+- **Orders**: server-priced checkout for Legal, Black, Green (trees) and Giftox (gift boxes), with packages per service and buying without an account (a code to the mobile makes the account), paid from the wallet or Razorpay, worked by staff, finished with a public code (`LGL-`, `BLK-`, `GRN-`, `GFT-`).
 - **Bharat ID**: seven saved steps (Aadhaar checked by checksum, only its last 4 digits kept), a **video KYC on Digio** (with DigiLocker), then an **Aadhaar eSign** of the declaration on Digio, e-stamped when a stamp tag is set, then submit. Staff open the Digio KYC files and the signed declaration and approve or reject; the video and the signed PDF stay with Digio. A 10-digit ID with a QR verify page. **Bharat ID for Business** (`/bharat-id/business`): organisations request API access, our team approves and emails a sign-in, and the business dashboard gives test keys (sandbox), company details, live keys after review, and a consent log; the API verifies an ID, shares the details the holder allows, and checks that a person is the holder on a Pirento page (PIN and date of birth, mobile and email codes, Aadhaar OTP or face through Digio; app QR and biometrics Expected). Our team picks each business's methods and fields and sets a prepaid price list; every live call is logged, and the holder sees who checked them. Holders can also sign in to Pirento with Bharat ID, a 6-digit PIN and their date of birth. Any staffer can start a Bharat ID for someone who is not signed in; the person finishes it from a one-time link sent by email and SMS, and unfinished applications get reminders after 1, 3 and 7 days. Enrolment centres each get a QR (and a printable poster) that starts the application on the person's own phone. Without Digio keys the verification steps say it is not switched on.
 - **Intern** exam and certificates, **Vault** encrypted files and passwords, **AI** assistant on Claude, **One** partner referrals, **Capital** EMI calculator and waitlist, **Support** tickets.
 - **Admin** (`/admin/<section>`), each staff role seeing only its sections (support, finance, staff = operations, superadmin):
@@ -54,7 +55,7 @@ Copy `.env.example` to `.env`. Required in production: `JWT_SECRET`, `INTERNAL_K
 
 ## Deploy
 
-On one server with Docker: point your domain's DNS at it, fill `.env`, then `docker compose up -d --build`. Caddy gets the HTTPS certificate itself. Back up the `mongo-data` volume. CI runs prettier, tests, the build, the full e2e suite and a Docker build on every push.
+On one server with Docker: point your domain's DNS at it, fill `.env`, then `docker compose up -d --build`. Caddy gets the HTTPS certificate itself. Back up the `mongo-data` volume. CI runs prettier, lint, tests, the build, the full e2e suite and a Docker build on every push.
 
 © Venturecore Solutions Private Limited (Pirento Ecosystem is its brand) · CIN U63121UP2023PTC188021
 

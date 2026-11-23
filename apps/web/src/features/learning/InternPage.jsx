@@ -15,6 +15,7 @@ import {Openings} from './Openings';
 import {Company} from './Company';
 import {Internships} from './Internships';
 import {Learn} from './Learn';
+import {MockInterview} from './MockInterview';
 import {Programme} from './Programme';
 import {Classes, PaidWork, Tasks} from './ProgramWork';
 import {StartForm} from './StartForm';
@@ -137,6 +138,9 @@ export function Intern({product, section}) {
     return (
       <AppFrame {...frame} title={copy.learn.title} intro={copy.intro}>
         <Learn tracks={tracks.data} />
+        <DashSection n={1} id="interview" label="Pirento AI" title="Practise / an interview.">
+          <MockInterview tracks={tracks.data} />
+        </DashSection>
       </AppFrame>
     );
   }

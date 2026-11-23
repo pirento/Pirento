@@ -2,7 +2,8 @@
 // but without the person: their email, their checkout answers, their messages and their documents go.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {isId, notFound, requireInternal, validate} from '@pirento/shared/server';
+import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
 import {OrderFile} from '../models/OrderFile.js';
 import {Partner} from '../models/Partner.js';
@@ -34,3 +35,93 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
   ]);
   res.json({data: {forgotten: true}});
 });
+
+/** Pirento AI's look at a person's own orders: number, service, status and amount of the latest ten. */
+internalRoutes.post(
+  '/internal/assistant',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const orders = await Order.find(
+      {userId: req.body.userId},
+      {orderNo: 1, product: 1, serviceName: 1, status: 1, amount: 1, createdAt: 1},
+    )
+      .sort({createdAt: -1})
+      .limit(10)
+      .lean();
+    res.json({
+      data: orders.map((o) => ({
+        orderNo: o.orderNo,
+        product: o.product,
+        service: o.serviceName,
+        status: o.status,
+        rupees: o.amount / 100,
+        placed: o.createdAt,
+        link: `/${o.product}/dashboard/orders/${o._id}`,
+      })),
+    });
+  },
+);
+
+/** Pirento AI's partner coach: the person's Pirento One code, plan and the orders their code brought (no buyers). */
+internalRoutes.post(
+  '/internal/partner-summary',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const partner = await Partner.findOne({userId: req.body.userId}).lean();
+    if (!partner) return res.json({data: null});
+    const orders = await Order.find(
+      {ref: partner.code},
+      {serviceName: 1, product: 1, status: 1, commission: 1, createdAt: 1},
+    )
+      .sort({createdAt: -1})
+      .limit(100)
+      .lean();
+    res.json({
+      data: {
+        code: partner.code,
+        plan: partner.plan?.name ?? 'Free',
+        referredOrders: orders.map((o) => ({
+          service: o.serviceName,
+          product: o.product,
+          status: o.status,
+          commissionRupees: o.commission?.amount ? o.commission.amount / 100 : 0,
+          at: o.createdAt,
+        })),
+      },
+    });
+  },
+);
+
+/** Pirento AI's admin answers: live order counts by status and product, and paid orders waiting over 3 days. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const stale = new Date(Date.now() - 3 * 86_400_000);
+  const [byStatus, waiting, today] = await Promise.all([
+    Order.aggregate([{$group: {_id: {status: '$status', product: '$product'}, n: {$sum: 1}}}]),
+    Order.find(
+      {status: {$in: ['paid', 'in_progress']}, updatedAt: {$lt: stale}},
+      {orderNo: 1, product: 1, serviceName: 1, status: 1, updatedAt: 1},
+    )
+      .sort({updatedAt: 1})
+      .limit(20)
+      .lean(),
+    Order.countDocuments({createdAt: {$gte: new Date(new Date().toISOString().slice(0, 10))}}),
+  ]);
+  res.json({
+    data: {
+      byStatus: byStatus.map((r) => ({...r._id, count: r.n})),
+      placedToday: today,
+      waitingOver3Days: waiting.map(({_id, ...o}) => o),
+    },
+  });
+});
+
+/** Pirento AI's look at one order for its own customer (the Legal tools); anyone else's order is not found. */
+internalRoutes.post(
+  '/internal/order-summary',
+  validate(z.object({orderId: z.string().min(1).max(40), userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const order = isId(req.body.orderId) && (await Order.findById(req.body.orderId));
+    if (!order || order.userId !== req.body.userId) throw notFound('Order not found');
+    res.json({data: await orderFacts(order)});
+  },
+);

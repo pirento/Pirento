@@ -27,6 +27,7 @@ export const ACCESS = {
   accounts: ['superadmin'], // deletion requests, site settings
   openings: ['staff', 'superadmin'],
   booking: ['staff', 'superadmin'], // placing an order for a customer
+  ai: ['support', 'staff', 'superadmin'], // Pirento AI: usage, knowledge base, feedback (settings and plans: superadmin)
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');

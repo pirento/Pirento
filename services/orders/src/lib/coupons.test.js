@@ -1,3 +1,4 @@
+// Tests for coupons.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {discountFor} from './coupons.js';

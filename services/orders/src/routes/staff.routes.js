@@ -5,6 +5,7 @@ import {
   FULFILMENT,
   STAFF_TRANSITIONS,
   getProduct,
+  packageOf,
   statusLabel,
   validateFulfilment,
   validateIntake,
@@ -216,6 +217,7 @@ staffRoutes.post(
     z.object({
       userId: z.string().max(40),
       serviceSlug: z.string().max(80),
+      packageId: z.string().max(40).optional(),
       intake: z.record(z.string(), z.string()).default({}),
       note: z.string().trim().max(500).default(''),
     }),
@@ -235,6 +237,8 @@ staffRoutes.post(
     }
     const {answers, error} = validateIntake(service, req.body.intake);
     if (error) throw badInput(error);
+    const pack = packageOf(service, req.body.packageId);
+    if (!pack) throw badInput('Choose one of the packages on offer');
 
     const order = await Order.create({
       orderNo: await nextOrderNo(),
@@ -243,8 +247,9 @@ staffRoutes.post(
       product: service.product,
       serviceSlug: service.slug,
       serviceName: service.name,
+      package: {id: pack.id, name: pack.name},
       quantity: 1,
-      amount: service.price * 100,
+      amount: pack.price * 100,
       intake: answers,
       ...questionsOf(service),
       bookedBy: {id: req.user.sub, email: req.user.email},

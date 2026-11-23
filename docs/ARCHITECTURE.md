@@ -38,7 +38,8 @@ apps/web/public/brand      the Pirento logo and "t" mark (dark and light), squar
 
 packages/shared/src
   index.js                 browser-safe exports
-  data/                    raw data: products, brand colours, catalogue, prices, intake, exam bank
+  data/                    raw data: products, brand colours, catalogue, prices, intake, exam bank,
+                           and legalPages/ (every Legal service's page, one file per area)
   catalog/ orders/ identity/ money/   rules shared by browser and server
   server/                  createApp, errors, env, auth, internal calls, validate, db, crypto
 
@@ -80,4 +81,4 @@ Colours come from the **Pirento Ecosystem Consolidated Brand Guidelines** (`docs
 
 ## Quality gates
 
-`npm test` (unit tests next to the code), `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`. CI runs all of them.
+`npm test` (unit tests next to the code), `npm run lint`, `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`. CI runs all of them.

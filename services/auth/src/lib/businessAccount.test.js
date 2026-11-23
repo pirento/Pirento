@@ -1,3 +1,4 @@
+// Tests for businessAccount.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {isUsername, passwordProblem} from '@pirento/shared';

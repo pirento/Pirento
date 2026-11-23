@@ -1,3 +1,4 @@
+// Tests for brand.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BRAND, PRODUCT_COLOURS, contrast, textOn} from './brand.js';
