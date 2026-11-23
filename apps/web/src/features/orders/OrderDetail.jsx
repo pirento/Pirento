@@ -12,6 +12,7 @@ import {useSignedIn} from '../auth/useSignedIn';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {OrderConversation, customerSend} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
+import {OrderAi} from './OrderAi';
 import {FulfilmentRecord} from './Fulfilment';
 import {DetailsForm} from './OrderDetails';
 import {PayPanel} from './PayPanel';
@@ -116,6 +117,13 @@ export function OrderDetail() {
         </div>
         <div className="min-w-0 space-y-6 lg:col-span-5">
           {order.status === 'pending_payment' && <PayPanel order={order} onPaid={setFresh} />}
+          <OrderAi
+            order={order}
+            onSent={() => {
+              setFresh(null);
+              fetched.reload();
+            }}
+          />
           {!needsDetails(order) && <DetailsForm key={order.detailsAt ?? 'new'} order={order} onSaved={setFresh} />}
           {order.code && (
             <div className="flex items-center gap-4 rounded-[22px] border border-rule p-6" data-reveal>

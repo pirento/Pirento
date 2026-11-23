@@ -2,7 +2,8 @@
 // but without the person: their email, their checkout answers, their messages and their documents go.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {isId, notFound, requireInternal, validate} from '@pirento/shared/server';
+import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
 import {OrderFile} from '../models/OrderFile.js';
 import {Partner} from '../models/Partner.js';
@@ -113,3 +114,14 @@ internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough
     },
   });
 });
+
+/** Pirento AI's look at one order for its own customer (the Legal tools); anyone else's order is not found. */
+internalRoutes.post(
+  '/internal/order-summary',
+  validate(z.object({orderId: z.string().min(1).max(40), userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const order = isId(req.body.orderId) && (await Order.findById(req.body.orderId));
+    if (!order || order.userId !== req.body.userId) throw notFound('Order not found');
+    res.json({data: await orderFacts(order)});
+  },
+);

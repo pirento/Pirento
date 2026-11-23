@@ -1546,6 +1546,33 @@ const photoUp = await fetch(`${B}/orders/${disc._id}/files`, {
 check('a photo is added', photoUp.status === 201);
 check('the AI document check is for the customer only', (await docCheck(staffToken)).status === 403);
 check('the AI document check waits for the AI key', (await docCheck(user)).status === 503);
+// Pirento Legal AI: ownership and roles are checked before the AI (which is off here) is asked.
+const assist = (kind, body, token = user) => call(`/ai/assist/${kind}`, {method: 'POST', token, body});
+check(
+  'AI intake needs a real service',
+  (await assist('intake', {serviceSlug: 'no-such-service', turns: []})).status === 404,
+);
+check(
+  'AI intake waits for the key',
+  (await assist('intake', {serviceSlug: 'gst-registration', turns: []})).status === 503,
+);
+check(
+  "nobody asks the AI about someone else's order",
+  (await assist('orderStatus', {orderId: disc._id}, otherUser)).status === 404,
+);
+check(
+  'the order AI waits for the key',
+  (await assist('orderAsk', {orderId: disc._id, question: 'When is it done?'})).status === 503,
+);
+check('company dates need a business type', (await assist('companyCompliance', {entity: 'Club'})).status === 400);
+const staffAi = (kind, body, token) => call(`/orders/staff/${disc._id}/ai/${kind}`, {method: 'POST', token, body});
+check('order AI tools are for the team', (await staffAi('orderSummary', {}, user)).status === 403);
+check('an unknown order AI tool is not found', (await staffAi('nope', {}, boss)).status === 404);
+check(
+  'reading details needs a real document',
+  (await staffAi('extract', {fileId: '000000000000000000000000'}, boss)).status === 404,
+);
+check('the team AI waits for the key', (await staffAi('orderSummary', {}, boss)).status === 503);
 check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 3);
 check(
   'team list',

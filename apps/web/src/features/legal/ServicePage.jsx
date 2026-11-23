@@ -13,10 +13,13 @@ import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {useService} from '../../lib/prices';
+import {useSession} from '../../lib/api/session';
+import {AiTool} from '../ai/AiTool';
 
 export function Service() {
   const {slug} = useParams();
   const service = useService(slug);
+  const {user} = useSession();
   const ref = useRef(null);
   usePageMotion(ref, [slug]);
   usePageMeta({
@@ -63,6 +66,14 @@ export function Service() {
                 }
               />
             </div>
+            {user && service.price && (
+              <details className="mt-8 rounded-[18px] border border-rule px-5 py-4">
+                <summary className="cursor-pointer font-medium">What should I have ready? (Pirento AI)</summary>
+                <div className="mt-4">
+                  <AiTool id="checklist" fixed={{serviceSlug: service.slug}} />
+                </div>
+              </details>
+            )}
           </div>
           <aside className="rounded-[22px] border border-accent p-6 md:col-span-5 lg:p-8" data-reveal>
             <Tag tone="accent">{consult ? 'Consultation' : 'Fixed price'}</Tag>

@@ -8,6 +8,7 @@ export const config = {
   /** Without a key the assistant stays off and says so, instead of failing. */
   enabled: Boolean(process.env.ANTHROPIC_API_KEY),
   walletUrl: url('WALLET', 4002),
+  catalogUrl: url('CATALOG', 4003), // a service as it sells now (questions, price) for the Legal tools
   // Where the assistant reads a person's own account (each service's /internal/assistant).
   areas: {
     wallet: url('WALLET', 4002),

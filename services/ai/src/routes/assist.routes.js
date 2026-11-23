@@ -3,7 +3,7 @@
 // message from the daily allowance, given back if the AI fails.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ID_SECTIONS, SERVICES, emi} from '@pirento/shared';
+import {ID_SECTIONS, SERVICES, emi, serviceQuestions} from '@pirento/shared';
 import {ACCESS, ApiError, callService, notFound, requireAuth} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {readSettings} from '../models/Settings.js';
@@ -45,6 +45,21 @@ const known = (slugs, list) =>
 const area = (name, userId) => callService(config.areas[name], '/internal/assistant', {userId}).catch(() => null);
 
 const today = () => new Date().toISOString().slice(0, 10);
+
+/** A service as it sells now (with admin edits), and its checkout questions; 404 when there is no such service. */
+async function liveService(slug) {
+  const service = await callService(config.catalogUrl, '/internal/service', {slug}).catch(() => null);
+  if (!service) throw notFound('No such service');
+  return service;
+}
+
+/** The person's own order, as facts for the AI; the orders service refuses anyone else's. */
+const ownOrder = (req, orderId) =>
+  callService(config.areas.orders, '/internal/order-summary', {orderId, userId: req.user.sub}).catch((err) => {
+    throw err.status === 404 ? notFound('Order not found') : err;
+  });
+const orderId = z.string().regex(/^[a-f0-9]{24}$/, 'No such order');
+const QUESTION_KEYS = ['id', 'label', 'type', 'options', 'required'];
 
 /**
  * kind → {input: zod schema, gather(req, body) → {input, attachments?, notes?}, after?(out, body), staff?: roles}.
@@ -228,6 +243,97 @@ export const ASSISTS = {
       return {...out, monthlyEmi: monthly, totalPaid: monthly * b.months, interest: monthly * b.months - b.amount};
     },
   },
+
+  // ---- Pirento Legal (docs/AI.md, Legal 1–13; staff ones run in the orders service) ----
+  intake: {
+    // 1: the checkout questions filled by talking; answers checked against the questions here
+    input: z.object({
+      serviceSlug: slug.min(1),
+      turns: z.array(z.object({question: text(600), answer: text(1000)})).max(15),
+    }),
+    gather: async (_req, b) => {
+      const service = await liveService(b.serviceSlug);
+      const questions = serviceQuestions(service).map((q) => Object.fromEntries(QUESTION_KEYS.map((k) => [k, q[k]])));
+      return {input: {service: service.name, questions, turns: b.turns}, questions};
+    },
+    after: (out, _b, ctx) => {
+      const byId = Object.fromEntries(ctx.questions.map((q) => [q.id, q]));
+      const answers = {};
+      for (const {id, value} of out.answers) {
+        const q = byId[id];
+        if (q && value && (!q.options?.length || q.options.includes(value))) answers[id] = value.slice(0, 500);
+      }
+      return {question: out.question, done: out.done, answers};
+    },
+  },
+  checklist: {
+    // 2
+    input: z.object({serviceSlug: slug.min(1), situation: text(600).default(''), language: lang}),
+    gather: async (_req, b) => ({
+      input: {service: (await liveService(b.serviceSlug)).name, situation: b.situation, language: b.language},
+    }),
+  },
+  contractReview: {
+    // 3
+    input: z.object({file, side: text(120).default('the customer'), question: text(600).default(''), language: lang}),
+    gather: (_req, b) => ({
+      input: {side: b.side, question: b.question, language: b.language, catalogue: catalogue('legal')},
+      attachments: [attach(b.file)],
+    }),
+    after: (out) => ({...out, services: known(out.services, catalogue('legal'))}),
+  },
+  noticeReply: {
+    // 4
+    input: z.object({file, facts: text(3000).min(10, 'Tell your side of it'), language: lang}),
+    gather: (_req, b) => ({input: {facts: b.facts, language: b.language}, attachments: [attach(b.file)]}),
+  },
+  orderAsk: {
+    // 5
+    input: z.object({orderId, question: text(600).min(3, 'Ask a question'), language: lang}),
+    gather: async (req, b) => ({
+      input: {order: await ownOrder(req, b.orderId), question: b.question, language: b.language},
+    }),
+  },
+  orderStatus: {
+    // 6
+    input: z.object({orderId, language: lang}),
+    gather: async (req, b) => ({input: {order: await ownOrder(req, b.orderId), language: b.language}}),
+  },
+  consultBrief: {
+    // 7 (the customer's side; the lawyer's after-call summary runs in the orders service)
+    input: z.object({orderId, notes: text(4000).min(10, 'Write what happened and what you want to ask')}),
+    gather: async (req, b) => ({input: {order: await ownOrder(req, b.orderId), notes: b.notes}}),
+  },
+  translate: {
+    // 12
+    input: z.object({
+      file,
+      language: z.enum([
+        'Hindi',
+        'Marathi',
+        'Bengali',
+        'Tamil',
+        'Telugu',
+        'Gujarati',
+        'Kannada',
+        'Malayalam',
+        'Punjabi',
+        'Odia',
+        'English',
+      ]),
+    }),
+    gather: (_req, b) => ({input: {language: b.language}, attachments: [attach(b.file)]}),
+  },
+  companyCompliance: {
+    // 13
+    input: z.object({
+      entity: z.enum(['Private limited company', 'One person company', 'LLP', 'Partnership firm', 'Proprietorship']),
+      incorporated: z.iso.date().optional(),
+      gstRegistered: z.boolean().default(false),
+      audit: z.boolean().default(false),
+    }),
+    gather: (_req, b) => ({input: {...b, today: today()}}),
+  },
   impactStory: {
     // 23 (staff)
     staff: ACCESS.ai,
@@ -270,6 +376,8 @@ assistRoutes.post('/assist/:kind', requireAuth, async (req, res) => {
     throw new ApiError(403, 'FORBIDDEN', 'You do not have access to this');
   const parsed = a.input.safeParse(req.body);
   if (!parsed.success) throw new ApiError(400, 'INVALID_INPUT', parsed.error.issues[0].message);
+  // Gathered first: a wrong order or service is refused before any allowance is taken.
+  const ctx = await a.gather(req, parsed.data);
   const settings = await readSettings();
   if (!config.enabled) throw new ApiError(503, 'AI_UNAVAILABLE', 'Pirento AI is not switched on yet');
   if (!settings.on) throw new ApiError(503, 'AI_PAUSED', 'Pirento AI is paused for a short while. Try again soon.');
@@ -284,7 +392,7 @@ assistRoutes.post('/assist/:kind', requireAuth, async (req, res) => {
       );
     }
   }
-  const {input, attachments, notes} = await a.gather(req, parsed.data);
+  const {input, attachments, notes} = ctx;
   const out = await runJob(req.params.kind, input, notes ? await knowledgeText() : '', attachments).catch((err) => {
     console.error('assist', req.params.kind, err.message);
     return null;
@@ -293,5 +401,5 @@ assistRoutes.post('/assist/:kind', requireAuth, async (req, res) => {
     if (!a.staff) await giveBack(req.user.sub);
     throw new ApiError(502, 'AI_NO_ANSWER', 'The AI could not answer that just now. Please try again.');
   }
-  res.json({data: a.after ? a.after(out, parsed.data) : out});
+  res.json({data: a.after ? a.after(out, parsed.data, ctx) : out});
 });

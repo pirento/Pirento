@@ -32,3 +32,26 @@ Without `ANTHROPIC_API_KEY` every tool answers 503 and the rule-based parts keep
 | 23  | Foundation story            | Admin → Pirento AI → Foundation story    | `impactStory` (staff)                                                                       |
 | 24  | Ask about today             | Admin → Pirento AI → Ask                 | `adminAnswer` (each service's `/internal/staff-summary`, only areas the role may see)       |
 | 25  | Ticket triage               | Every new ticket                         | support `lib/triage.js` → AI job `triage`, in the background; raises priority, never lowers |
+
+## Pirento Legal
+
+Customer tools run through `/ai/assist/:kind` (prompts in `services/ai/src/lib/legalJobs.js`); a tool about an order reads
+it through orders' `/internal/order-summary`, which refuses anyone else's order. Team tools run in the orders service at
+`POST /orders/staff/:id/ai/:kind` (`routes/ai.routes.js`): the staffer must be able to open the order, the job goes to the
+AI service, and every use is audited. Nothing an AI writes is sent or saved without a person choosing to.
+
+| #   | What                              | Where it shows                                                                                       | How                                                                                                          |
+| --- | --------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | Fill the checkout by chatting     | Checkout → Fill this with Pirento AI                                                                 | `intake`: asks one question at a time; answers checked against the service's questions, then put in the form |
+| 2   | What to have ready                | Service page                                                                                         | `checklist` (the service's live name, the person's situation)                                                |
+| 3   | Contract review                   | Legal dashboard → Pirento AI                                                                         | `contractReview` (risky clauses with level and what to ask; suggests a lawyer review)                        |
+| 4   | Reply to a notice                 | Legal dashboard → Pirento AI                                                                         | `noticeReply` (a first draft and what a lawyer must check)                                                   |
+| 5   | Ask about my order                | Customer's order page                                                                                | `orderAsk`                                                                                                   |
+| 6   | Where is my order?                | Customer's order page                                                                                | `orderStatus` (now, what is needed from them, next)                                                          |
+| 7   | Consultation brief / call summary | Customer's order page (brief, sent as their message) · staff order (summary, sent as a team message) | `consultBrief`, `consultSummary`                                                                             |
+| 8   | Draft from the order              | Admin → Orders → an order                                                                            | `orderDraft`; "Add as a document" saves it as a text document to finish                                      |
+| 9   | Check before sending              | Admin → Orders → an order → a document                                                               | `deliverableCheck` (names, dates, amounts, blanks, signatures against the order)                             |
+| 10  | Sum up the order                  | Admin → Orders → an order                                                                            | `orderSummary` (what, where it stands, who it waits on, next steps)                                          |
+| 11  | Read details from a document      | Admin → Orders → an order → a document                                                               | `extract` (Aadhaar, PAN and account numbers masked to the last 4; shown, never saved)                        |
+| 12  | Read it in my language            | Legal dashboard → Pirento AI                                                                         | `translate` (the original language version counts)                                                           |
+| 13  | Company compliance dates          | Legal dashboard → Pirento AI                                                                         | `companyCompliance`; Add to my calendar (.ics, reminder 3 days before)                                       |

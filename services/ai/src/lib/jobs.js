@@ -8,6 +8,7 @@ import {z} from 'zod';
 import {config} from '../config.js';
 import {MODEL} from './prompt.js';
 import {ASSIST_JOBS} from './assistJobs.js';
+import {LEGAL_JOBS} from './legalJobs.js';
 
 const client = config.enabled ? new Anthropic() : null;
 
@@ -17,6 +18,7 @@ Only refer to lessons by the ids given in the input; never invent an id.`;
 
 export const JOBS = {
   ...ASSIST_JOBS,
+  ...LEGAL_JOBS,
   task: {
     system: `${RULES}
 Job: write one practice task for an intern for the period named ("daily" is about 1 hour of work, "weekly" about 5 hours, "monthly" a small project).

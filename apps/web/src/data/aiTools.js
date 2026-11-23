@@ -134,6 +134,69 @@ export const AI_TOOLS = {
     intro: 'What this step needs and where to find it. Never type your numbers here; only in the form.',
     fields: [['question', 'Your question (optional)']],
   },
+  checklist: {
+    title: 'What should I have ready?',
+    intro: 'Your situation in a line; Pirento AI lists the documents and details to keep ready for this service.',
+    fields: [['situation', 'Your situation (e.g. two partners, office in Pune)'], LANG],
+  },
+  contractReview: {
+    title: 'Review a contract',
+    intro:
+      'Upload the agreement (PDF or photo, up to 5 MB). Pirento AI flags clauses that could hurt you and what to ask for instead. A first look, not legal advice; the file is not stored.',
+    fields: [
+      ['file', 'Contract', 'file'],
+      ['side', 'You are (e.g. the tenant, the employee, the vendor)'],
+      ['question', 'Anything you are worried about? (optional)'],
+      LANG,
+    ],
+  },
+  noticeReply: {
+    title: 'Draft a reply to a notice',
+    intro:
+      'Upload the notice and tell your side. Pirento AI writes a first reply for a lawyer to check before it is sent.',
+    fields: [['file', 'The notice', 'file'], ['facts', 'Your side of it', 'area'], LANG],
+  },
+  translate: {
+    title: 'Read a legal document in your language',
+    intro: 'A summary and a plain translation. The original language version is the one that counts legally.',
+    fields: [
+      ['file', 'Document', 'file'],
+      [
+        'language',
+        'Language',
+        'select',
+        [
+          'Hindi',
+          'Marathi',
+          'Bengali',
+          'Tamil',
+          'Telugu',
+          'Gujarati',
+          'Kannada',
+          'Malayalam',
+          'Punjabi',
+          'Odia',
+          'English',
+        ],
+      ],
+    ],
+  },
+  companyCompliance: {
+    title: 'My company compliance dates',
+    intro:
+      'The usual ROC, tax and GST dates for the next 12 months for your kind of business; add them to your calendar. Confirm on the MCA and tax portals.',
+    fields: [
+      [
+        'entity',
+        'Business type',
+        'select',
+        ['Private limited company', 'One person company', 'LLP', 'Partnership firm', 'Proprietorship'],
+      ],
+      ['incorporated', 'Date of incorporation (optional)', 'date'],
+      ['gstRegistered', 'GST registered', 'check'],
+      ['audit', 'Accounts audited', 'check'],
+    ],
+  },
   impactStory: {
     title: 'Pirento Foundation story',
     intro: 'Facts in, a short story out. Only the facts you give are used.',
@@ -152,7 +215,15 @@ export const AI_TOOLS = {
 /** Which tools each product shows, and fixed values sent with them. */
 export const AI_TOOLS_FOR = {
   ecosystem: [['monthly'], ['recommend']],
-  legal: [['recommend', {product: 'legal'}], ['draftDoc'], ['explainDoc', {product: 'legal'}]],
+  legal: [
+    ['recommend', {product: 'legal'}],
+    ['contractReview'],
+    ['noticeReply'],
+    ['draftDoc'],
+    ['explainDoc', {product: 'legal'}],
+    ['translate'],
+    ['companyCompliance'],
+  ],
   black: [['explainDoc', {product: 'black'}], ['compliance'], ['recommend', {product: 'black'}]],
   green: [['greenImpact'], ['csrReport']],
   giftox: [['giftPick', {product: 'giftox'}], ['giftMessage']],

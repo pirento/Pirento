@@ -17,6 +17,7 @@ import {usePageMotion} from '../../lib/motion';
 import {useApi} from '../../lib/api/useApi';
 import {usePageMeta} from '../../lib/page';
 import {useService} from '../../lib/prices';
+import {IntakeChat} from './IntakeChat';
 
 export function Checkout() {
   const {slug} = useParams();
@@ -83,6 +84,9 @@ export function Checkout() {
                 value={quantity}
                 onChange={(e) => setQuantity(Math.max(1, Math.min(service.maxQty, Number(e.target.value) || 1)))}
               />
+            )}
+            {questions.length > 0 && (
+              <IntakeChat slug={slug} onAnswers={(a) => setAnswers((prev) => ({...prev, ...a}))} />
             )}
             {questions.map((q) => (
               <Question

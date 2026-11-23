@@ -145,6 +145,7 @@ export function AiTool({id, fixed = {}}) {
         if (type === 'file') body[name] = v ? await readFile(v) : undefined;
         else if (type === 'number') body[name] = v === '' || v == null ? undefined : Number(v);
         else if (type === 'multi') body[name] = v ?? [];
+        else if (type === 'check') body[name] = Boolean(v);
         else if (v != null && v !== '') body[name] = v;
       }
       setResult(await api(`/ai/assist/${tool.kind ?? id}`, {method: 'POST', body}));
@@ -202,6 +203,16 @@ export function AiTool({id, fixed = {}}) {
                 </label>
               ))}
             </fieldset>
+          ) : type === 'check' ? (
+            <label key={name} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={Boolean(values[name])}
+                onChange={(e) => set(name, e.target.checked)}
+              />
+              {label}
+            </label>
           ) : type === 'file' ? (
             <label key={name} className="grid gap-1 text-sm">
               <span className="font-medium">{label}</span>
@@ -216,7 +227,7 @@ export function AiTool({id, fixed = {}}) {
             <Field
               key={name}
               label={label}
-              type={type === 'number' ? 'number' : 'text'}
+              type={type === 'number' || type === 'date' ? type : 'text'}
               value={values[name] ?? ''}
               onChange={(e) => set(name, e.target.value)}
             />

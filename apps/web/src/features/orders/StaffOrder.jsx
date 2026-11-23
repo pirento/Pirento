@@ -7,6 +7,7 @@ import {Tag} from '../../components/ui/Tag';
 import {qty} from './helpers';
 import {OrderConversation} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
+import {StaffOrderAi} from './StaffOrderAi';
 import {FulfilmentForm, FulfilmentRecord, takesFulfilment} from './Fulfilment';
 import {DetailsRecord} from './OrderDetails';
 import {api} from '../../lib/api/client';
@@ -167,6 +168,11 @@ export function StaffOrder({order, onChange}) {
               <OrderDocuments order={order} side="team" canAdd={user?.role !== 'support'} />
             </div>
           </div>
+          {user?.role !== 'support' && (
+            <div className="md:col-span-2">
+              <StaffOrderAi order={order} onChange={onChange} />
+            </div>
+          )}
         </div>
       )}
     </details>
