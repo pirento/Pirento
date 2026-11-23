@@ -39,10 +39,7 @@ export const PRODUCT_DETAILS = {
   },
   green: {
     more: [
-      {
-        title: 'Carbon market',
-        body: 'Buy and sell carbon credits to 0.01 with your wallet, with the price on a chart.',
-      },
+      {title: 'Trade to 0.01', body: 'Buy or sell part of a credit; every trade shows on your record at once.'},
       {title: 'From one tree to 500', body: 'Sponsor as many trees as you like in a single order.'},
       {title: 'Pay from your wallet', body: 'Or by card and UPI. The price per tree is set by the drive.'},
       {title: 'Gift a tree', body: 'Sponsor for someone else and tell us their name in the notes.'},

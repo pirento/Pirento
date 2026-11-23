@@ -899,6 +899,18 @@ export const green = {
     trades: 'Your trades',
     noTrades: 'No trades yet.',
   },
+  snapshot: {
+    label: 'Carbon account',
+    title: 'Your credits / at a glance.',
+    open: 'Market open',
+    closed: 'Market closed',
+    links: [
+      ['Trade credits', '/green/dashboard/market'],
+      ['Claim from your trees', '/green/dashboard/trees'],
+      ['Buy trees', '/green#services'],
+      ['Donate trees', '/services/green-donate'],
+    ],
+  },
   widget: {label: 'Carbon credit', cta: 'Open the market', closed: 'Market closed', unpriced: 'Price not set yet'},
   admin: {
     drives: 'By drive',

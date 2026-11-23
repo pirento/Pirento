@@ -25,6 +25,8 @@ staffRoutes.get('/staff/market', async (_req, res) => {
     ]),
     Trade.find({}).sort({createdAt: -1}).limit(50).lean(),
   ]);
+  // Who set each recent price, for the team's record (the public chart carries no names).
+  const prices = await PricePoint.find({}, {_id: 0, price: 1, by: 1, at: 1}).sort({at: -1}).limit(20).lean();
   res.json({
     data: {
       price: m.price ?? null,
@@ -36,6 +38,7 @@ staffRoutes.get('/staff/market', async (_req, res) => {
       volume: Object.fromEntries(volume.map(({_id, ...v}) => [_id, v])),
       owed: await Trade.countDocuments({status: 'owed'}),
       recent,
+      prices,
     },
   });
 });

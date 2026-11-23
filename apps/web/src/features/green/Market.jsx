@@ -89,6 +89,15 @@ function TradeForm({market, me, onDone}) {
           : ''}
         {side === 'sell' && ` · you hold ${credits(me.units)}`}
       </p>
+      {side === 'sell' && me.units > 0 && (
+        <button
+          type="button"
+          onClick={() => setAmount(String(me.units / 100))}
+          className="rounded-full border border-rule px-4 py-1.5 text-sm hover:border-ink"
+        >
+          Sell all {credits(me.units)}
+        </button>
+      )}
       <Button variant="accent" type="submit" disabled={busy || !valid}>
         {side === 'buy' ? 'Buy from wallet' : 'Sell to wallet'}
       </Button>

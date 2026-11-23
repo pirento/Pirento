@@ -1,6 +1,7 @@
 // Admin → Pirento Green → Carbon market (finance and superadmins): price, open or closed, each drive's growth rate,
 // and what is held and traded.
 import {useState} from 'react';
+import {GREEN_DONATION} from '@pirento/shared';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
@@ -148,12 +149,33 @@ export function GreenMarketAdmin({drives}) {
           )}
         </div>
       </div>
+      {m.prices.length > 0 && (
+        <div>
+          <p className="eyebrow">Price changes</p>
+          <ul className="mt-4 border-t border-rule">
+            {m.prices.map((p) => (
+              <li
+                key={String(p.at)}
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-rule py-3 text-sm"
+              >
+                <span className="font-medium tabular-nums">{rupees(p.price)}</span>
+                <span className="break-all text-muted">
+                  {p.by ?? '—'} · {formatDate(p.at)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div>
         <p className="eyebrow">Growth rate by drive</p>
         <div className="mt-4 border-t border-rule">
-          {drives.map((d) => (
-            <RateRow key={d.slug} drive={d} rate={m.rates[d.slug]} onSaved={reload} />
-          ))}
+          {/* Donated trees grow no credits, so the donation has no rate. */}
+          {drives
+            .filter((d) => d.slug !== GREEN_DONATION.slug)
+            .map((d) => (
+              <RateRow key={d.slug} drive={d} rate={m.rates[d.slug]} onSaved={reload} />
+            ))}
         </div>
       </div>
       <div>

@@ -29,7 +29,7 @@ export function GreenAdmin() {
       <StatsRow
         compact
         stats={[
-          {value: v(t?.trees), label: 'trees sponsored'},
+          {value: v(t?.trees), label: 'trees'},
           {value: v(t?.planted), label: 'planted'},
           {value: v(t ? t.trees - t.planted : 0), label: 'waiting'},
           {value: v(t?.sponsors), label: 'sponsors'},

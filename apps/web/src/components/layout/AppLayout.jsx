@@ -273,7 +273,8 @@ function Sidebar({onNavigate}) {
             </Link>
           ))}
         <div className="flex items-center justify-between gap-2 px-3 pt-3">
-          <span className="min-w-0 truncate text-xs text-muted">{user?.email}</span>
+          {/* A long email wraps before its @ (a zero-width space), never mid-word. */}
+          <span className="min-w-0 text-xs break-words text-muted">{user?.email?.replace('@', '\u200b@')}</span>
           <ThemeToggle />
         </div>
         <button

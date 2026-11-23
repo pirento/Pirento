@@ -29,6 +29,7 @@ import {Heading} from '../../components/ui/Heading';
 import {green, orderDashboard as copy, productDashboards} from '../../data/site';
 import {GreenTrees} from './GreenTrees';
 import {Market} from '../green/Market';
+import {Snapshot} from '../green/Snapshot';
 import {AI_TOOLS_FOR} from '../../data/aiTools';
 import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
@@ -378,6 +379,11 @@ export function OrdersDashboard({product, section = 'overview'}) {
               ]}
             />
           </DashSection>
+          {product.slug === 'green' && (
+            <DashSection n={++n} id="carbon" label={green.snapshot.label} title={green.snapshot.title}>
+              <Snapshot />
+            </DashSection>
+          )}
           <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
             <Waiting toPay={toPay} details={details} replies={replies} base={base} />
           </DashSection>

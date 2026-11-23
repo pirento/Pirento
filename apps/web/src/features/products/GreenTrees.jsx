@@ -47,18 +47,45 @@ export function GreenTrees({mine, loading}) {
   const paid = mine.filter((o) => PAID.includes(o.status));
   const planted = paid.filter((o) => o.fulfilment?.site);
   const count = (list) => list.reduce((n, o) => n + o.quantity, 0);
+  const ready = growth.data?.trees.filter((t) => t.rate && t.growingUnits > 0) ?? [];
+  const [claimNote, setClaimNote] = useState('');
+  // One claim per sponsorship, as the server takes them; each is checked there on its own.
+  const claimAll = async () => {
+    setClaimNote('');
+    const results = await Promise.allSettled(ready.map((t) => api(`/green/claims/${t.orderId}`, {method: 'POST'})));
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    setClaimNote(failed ? `⚠ ${failed} could not be claimed just now. Try again.` : 'Claimed into your credits.');
+    growth.reload();
+  };
   return (
     <div className="space-y-10">
       <StatsRow
         compact
         stats={[
-          {value: loading ? '—' : String(count(paid)), label: 'trees sponsored'},
+          {value: loading ? '—' : String(count(paid)), label: 'trees'},
           {value: loading ? '—' : String(count(planted)), label: 'planted'},
           {value: loading ? '—' : String(count(paid) - count(planted)), label: 'waiting'},
           {value: loading ? '—' : String(new Set(paid.map((o) => o.serviceSlug)).size), label: 'drives'},
           {value: growth.data ? credits(growth.data.units) : '—', label: 'credits held'},
         ]}
       />
+      {(ready.length > 0 || claimNote) && (
+        <div className="flex flex-wrap items-center gap-4">
+          {ready.length > 0 && (
+            <button
+              onClick={claimAll}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-medium text-on-accent"
+            >
+              Claim all · {credits(ready.reduce((n, t) => n + t.growingUnits, 0))} credits
+            </button>
+          )}
+          {claimNote && (
+            <p role="status" className="text-sm">
+              {claimNote}
+            </p>
+          )}
+        </div>
+      )}
       {!loading && paid.length === 0 ? (
         <p className="text-muted">
           {copy.trees.empty}{' '}

@@ -296,6 +296,25 @@ check(
 );
 await mkt({open: false});
 check('closing the market stops sells', (await trade('sell', 10)).status === 409);
+
+// Donating trees: ₹500 a tree, planted like any sponsorship, but they grow no credits for the giver.
+const donation = await call('/orders', {
+  method: 'POST',
+  token: user,
+  body: {
+    serviceSlug: 'green-donate',
+    quantity: 2,
+    intake: {phone: '9876500000', scale: 'A few trees (personal)', whoFor: 'Just me', timeline: 'As soon as possible'},
+  },
+});
+check('a donation is ₹500 a tree', donation.data?.amount === 100000, donation);
+await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 1000}});
+await call(`/orders/${donation.data?._id}/pay/wallet`, {method: 'POST', token: user});
+await plant(donation.data?._id, planted);
+check(
+  'donated trees grow no credits',
+  !(await call('/green/me', {token: user})).data?.trees.some((t) => t.orderId === donation.data?._id),
+);
 check(
   'quantity capped',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', quantity: 2, intake}}))

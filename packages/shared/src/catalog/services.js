@@ -3,7 +3,7 @@
 import {LEGAL_SERVICES} from '../data/legalCatalogue.js';
 import {LEGAL_PRICING} from '../data/legalPricing.js';
 import {STATIC_SERVICE_PRICES} from '../data/servicePricing.js';
-import {GREEN_DRIVES} from '../data/greenDrives.js';
+import {GREEN_DONATION, GREEN_DRIVES} from '../data/greenDrives.js';
 import {GIFT_BOXES} from '../data/giftBoxes.js';
 import {LEGAL_PAGES} from '../data/legalPages.js';
 
@@ -43,6 +43,18 @@ const green = GREEN_DRIVES.map((d) => ({
   unit: 'tree',
   maxQty: 500,
 }));
+green.push({
+  slug: GREEN_DONATION.slug,
+  product: 'green',
+  name: GREEN_DONATION.name,
+  category: 'Donation',
+  price: GREEN_DONATION.pricePerTree,
+  deliveryTime: null,
+  model: 'fixed',
+  unit: 'tree',
+  maxQty: 500,
+  description: 'Trees planted on a Pirento Green drive as a gift to the planet. They grow no carbon credits for you.',
+});
 
 const giftox = GIFT_BOXES.map((b) => ({
   slug: `giftox-${b.boxId}`,

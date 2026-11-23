@@ -70,8 +70,8 @@ const SITE = {
         body: 'Trade carbon credits to 0.01 at the price shown on the chart; money moves in your wallet at once.',
       },
       {
-        title: 'Or sponsor trees',
-        body: 'Once your trees are planted, they grow credits every day. Claim them into your account and sell when you like.',
+        title: 'Or buy or donate trees',
+        body: 'Bought trees grow credits every day once planted: claim them and sell when you like. Donated trees are a gift.',
       },
     ],
     faq: [
@@ -86,6 +86,10 @@ const SITE = {
       {
         q: 'Can I lose money?',
         a: 'Yes. The price can go down as well as up, so a sale can bring back less than you paid.',
+      },
+      {
+        q: 'What is the difference between buying and donating trees?',
+        a: 'Bought trees grow carbon credits for you once planted. Donated trees are planted the same way and you see the same planting record, but they grow no credits. A donation is paid to Pirento Green, not to a registered charity, so it carries no 80G tax receipt.',
       },
       {q: 'Can I sponsor for my company?', a: 'Yes. Choose the scale that fits at checkout and tell us in the notes.'},
       {
@@ -335,8 +339,14 @@ export const PRODUCTS = [
     overview: 'A carbon credit market on your Pirento wallet, and plantation drives whose trees grow credits for you.',
     highlights: [
       {title: 'Carbon trading', body: 'Buy and sell carbon credits from your wallet, with the price on a live chart.'},
-      {title: 'Sponsor trees', body: 'Pick a plantation drive, pay per tree, and follow where they are planted.'},
-      {title: 'Credits from trees', body: 'Planted trees grow credits every day; claim them and hold or sell.'},
+      {
+        title: 'Buy trees',
+        body: 'Sponsor trees on a plantation drive; once planted they grow credits every day for you to claim, hold or sell.',
+      },
+      {
+        title: 'Donate trees',
+        body: '₹500 a tree, planted on a drive as a gift to the planet. No credits, nothing to sell.',
+      },
     ],
     caveat:
       'The credit price is set by the Pirento Green team and can go down as well as up. Credits are held on Pirento; they are not a deposit or a guaranteed return.',

@@ -2,6 +2,7 @@
 // but without the person: their email, their checkout answers, their messages and their documents go.
 import {Router} from 'express';
 import {z} from 'zod';
+import {GREEN_DONATION} from '@pirento/shared';
 import {isId, notFound, requireInternal, validate} from '@pirento/shared/server';
 import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
@@ -138,6 +139,7 @@ internalRoutes.post(
       {
         userId: req.body.userId,
         product: 'green',
+        serviceSlug: {$ne: GREEN_DONATION.slug}, // donated trees grow no credits for the giver
         status: {$in: ['paid', 'in_progress', 'completed']},
         'fulfilment.site': {$exists: true},
       },

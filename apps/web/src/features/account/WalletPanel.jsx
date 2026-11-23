@@ -110,7 +110,7 @@ export function WalletPanel({n, full = false}) {
                 <ArrowUpRight aria-hidden className="size-4 shrink-0" />
               )}
               <span className="min-w-0">
-                <span className="block truncate text-sm font-medium">{t.note || t.type}</span>
+                <span className="block text-sm font-medium break-words">{t.note || t.type}</span>
                 <span className="text-xs text-muted">{formatDate(t.createdAt)}</span>
               </span>
             </span>
