@@ -1,7 +1,7 @@
 // Called by the auth service when an account is deleted: remove everything this service keeps about it.
 import {Router} from 'express';
 import {z} from 'zod';
-import {requireInternal, validate} from '@pirento/shared/server';
+import {dropFiles, requireInternal, validate} from '@pirento/shared/server';
 import {Credential} from '../models/Credential.js';
 import {VaultFile} from '../models/VaultFile.js';
 import {VaultUsage} from '../models/VaultUsage.js';
@@ -11,6 +11,8 @@ internalRoutes.use('/internal', requireInternal);
 
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
+  const stored = await VaultFile.find({userId, blobKey: {$exists: true}}, {blobKey: 1}).lean();
   await Promise.all([Credential.deleteMany({userId}), VaultFile.deleteMany({userId}), VaultUsage.deleteMany({userId})]);
+  await dropFiles(stored);
   res.json({data: {forgotten: true}});
 });

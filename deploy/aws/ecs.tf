@@ -67,6 +67,19 @@ resource "aws_iam_role_policy" "videos" {
   })
 }
 
+resource "aws_iam_role_policy" "files" {
+  for_each = toset(["vault", "orders", "learning"])
+  role     = aws_iam_role.task[each.key].id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"]
+      Resource = "${aws_s3_bucket.files.arn}/*"
+    }]
+  })
+}
+
 locals {
   service_urls = { for name, s in var.services : "${upper(name)}_URL" => "http://${name}:${s.port}" }
   shared_env = merge(local.service_urls, var.plain_env, {
@@ -75,6 +88,7 @@ locals {
     REDIS_URL       = "rediss://${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379"
     OPENSEARCH_URL  = "https://${aws_opensearch_domain.search.endpoint}"
     VIDEO_S3_BUCKET = aws_s3_bucket.videos.bucket
+    FILES_S3_BUCKET = aws_s3_bucket.files.bucket
     DATABASE_SSL    = "true"
     TRUST_PROXY     = "2" # CloudFront, then the load balancer
     MONGO_POOL      = "20"

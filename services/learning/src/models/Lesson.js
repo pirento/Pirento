@@ -17,6 +17,7 @@ const schema = new mongoose.Schema(
     published: {type: Boolean, default: false},
     // A recorded video in S3-compatible storage (lib/video.js); only enrolled interns and staff can play it.
     video: {_id: false, key: String, name: String, size: Number, type: String},
+    pendingVideo: {_id: false, key: String, name: String, size: Number, type: String}, // an upload handed out but not yet confirmed in the bucket
   },
   {timestamps: true},
 );
