@@ -9,7 +9,7 @@ import {VerifiedCard, verifyPath} from './VerifiedCard';
 import {useApi} from '../../lib/api/useApi';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
-import {Illustration} from '../../components/Illustration';
+import {ArtFigure} from '../../components/ArtFigure';
 import {processArt} from '../../data/site';
 
 export function Verify() {
@@ -60,10 +60,7 @@ export function Verify() {
       </PageHero>
       {!code && (
         <Section className="pt-0! md:pt-0!">
-          <figure className="max-w-3xl" data-reveal>
-            <Illustration name={processArt.verify.scene} />
-            <figcaption className="mt-4 text-center text-sm text-muted">{processArt.verify.caption}</figcaption>
-          </figure>
+          <ArtFigure {...processArt.verify} className="max-w-3xl" />
         </Section>
       )}
       {code && (

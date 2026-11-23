@@ -160,6 +160,8 @@ h3,
   --muted: var(--inverse-muted);
   --rule: var(--inverse-rule);
   --paper: var(--inverse);
+  /* Panels and pictures inside a dark band sit a step lighter than it, as they do in dark mode. */
+  --stone: color-mix(in srgb, var(--inverse) 88%, white);
   color: var(--ink);
 }
 

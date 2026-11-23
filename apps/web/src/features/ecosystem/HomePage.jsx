@@ -7,7 +7,8 @@ import {ContactCta} from '../../components/layout/ContactCta';
 import {Faq, StatsRow, Steps} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Heading, Section, SectionHeader} from '../../components/ui/Heading';
-import {home, stats} from '../../data/site';
+import {home, processArt, stats} from '../../data/site';
+import {ArtFigure} from '../../components/ArtFigure';
 import {AboutTeaser, FamilySection} from '../about/GroupSections';
 import {EcosystemPicker} from './EcosystemPicker';
 import {Pillars} from './Pillars';
@@ -65,6 +66,7 @@ export function Home() {
 
       <Section inverse>
         <SectionHeader n={5} label={home.how.label} title={home.how.title} />
+        <ArtFigure {...processArt.how} className="mt-12 max-w-3xl" />
         <div className="mt-20">
           <Steps steps={home.how.steps} />
         </div>
@@ -116,6 +118,7 @@ export function Home() {
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
             <SectionHeader n={8} label={home.faq.label} title={home.faq.title} />
+            <ArtFigure {...processArt.faq} className="mt-12" />
           </div>
           <div className="md:col-span-8">
             <Faq items={home.faq.items} />

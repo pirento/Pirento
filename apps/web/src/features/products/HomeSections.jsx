@@ -3,7 +3,8 @@ import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {Illustration} from '../../components/Illustration';
-import {processArt, productIllustration} from '../../data/site';
+import {productArt, productIllustration} from '../../data/site';
+import {ArtFigure} from '../../components/ArtFigure';
 import {Heading, Label, Section, SectionHeader} from '../../components/ui/Heading';
 import {Steps} from '../../components/ui/Blocks';
 import {ProductIcon} from '../../components/ui/ProductIcon';
@@ -24,6 +25,7 @@ function FeatureRows({product, n}) {
         <div className="lg:col-span-4">
           <div className="lg:sticky lg:top-28">
             <SectionHeader n={n} label="What you get" title="Six things / it does." />
+            <Illustration name={productIllustration[product.slug]} className="mt-12 hidden lg:block" />
           </div>
         </div>
         <ol className="border-t border-rule lg:col-span-8">
@@ -47,6 +49,7 @@ function FeatureCards({product, n}) {
   return (
     <Section id="features" className="pt-0! md:pt-0!">
       <SectionHeader n={n} label="What you get" title="Everything / in one place." intro={product.overview} />
+      <Illustration name={productIllustration[product.slug]} className="mt-12 max-w-3xl" />
       <div className="mt-16 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-3">
         {featuresOf(product).map((h, i) => (
           <div
@@ -109,6 +112,7 @@ export function Audience({product, n}) {
   return (
     <Section id="who">
       <SectionHeader n={n} label="Who it is for" title="Made for / people like you." />
+      <ProductArt product={product} part="who" className="mt-12 max-w-3xl" />
       <ul className="mt-16 grid border-t border-rule lg:grid-cols-3">
         {product.audience.map((a, i) => (
           <li
@@ -159,13 +163,9 @@ export function Related({product, n}) {
 }
 
 /** How it works: a dark band with steps across, or a paper timeline down the page. */
-/** The picture that explains the steps, with its caption. */
-const HowArt = ({className}) => (
-  <figure className={className} data-reveal>
-    <Illustration name={processArt.how.scene} />
-    <figcaption className="mt-4 text-center text-sm text-muted">{processArt.how.caption}</figcaption>
-  </figure>
-);
+/** One of the product's pictures (productArt in data/site.js): how, who or faq. */
+export const ProductArt = ({product, part, className}) =>
+  productArt[product.slug]?.[part] ? <ArtFigure {...productArt[product.slug][part]} className={className} /> : null;
 
 export function How({product, variant = 'steps', n}) {
   if (variant === 'timeline') {
@@ -174,7 +174,7 @@ export function How({product, variant = 'steps', n}) {
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <SectionHeader n={n} label="How it works" title="Step by / step." />
-            <HowArt className="mt-12" />
+            <ProductArt product={product} part="how" className="mt-12" />
           </div>
           <ol className="relative border-l border-rule lg:col-span-7">
             {product.steps.map((s, i) => (
@@ -200,7 +200,7 @@ export function How({product, variant = 'steps', n}) {
       <div className="container-x">
         <Label n={n}>How it works</Label>
         <Heading text="From first click / to done." className="h-section mt-6 mb-12" data-lines />
-        <HowArt className="mb-20 max-w-3xl" />
+        <ProductArt product={product} part="how" className="mb-20 max-w-3xl" />
         <Steps steps={product.steps} />
       </div>
     </section>

@@ -158,7 +158,7 @@ export const ART_SECTIONS = {
   faq: 'questions',
 };
 
-/** Every scene the web app can draw (components/Illustration.jsx and illustrations/process.jsx). */
+/** Every scene the web app can draw (components/Illustration.jsx and illustrations/). */
 export const ART_SCENES = [
   'office',
   'meeting',
@@ -169,6 +169,15 @@ export const ART_SCENES = [
   'handover',
   'questions',
   'growth',
+  'ledger',
+  'planting',
+  'classroom',
+  'assistant',
+  'vault',
+  'partners',
+  'loan',
+  'idcheck',
+  'delivery',
   'document',
   'certificate',
   'chat',
