@@ -17,7 +17,7 @@ export function RateCard() {
             >
               <span className="text-xs tabular-nums text-muted">{String(i + 1).padStart(2, '0')}</span>
               <span className="min-w-0">
-                <span className="block truncate">{s.name}</span>
+                <span className="block break-words">{s.name}</span>
                 {s.deliveryTime && <span className="text-xs text-muted">{s.deliveryTime}</span>}
               </span>
               <span className="tabular-nums">{inr(s.price)}</span>

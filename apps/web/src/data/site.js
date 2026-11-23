@@ -844,6 +844,45 @@ export const servicePageCopy = {
   benefits: {label: 'Why do it', title: 'What it / gives you.'},
   faq: {label: 'Questions', title: 'Before you / buy.'},
   related: {label: 'Related', title: 'Often bought / alongside.'},
+  // The jump links under the hero, one per section the page shows.
+  guide: {
+    label: 'Step by step',
+    title: 'Explore the complete guide',
+    chips: {
+      packages: 'Packages',
+      overview: 'Overview',
+      ready: 'Scope & documents',
+      how: 'Process',
+      plan: 'Timeline',
+      costs: 'Costs',
+      deliverables: 'What you get',
+      benefits: 'Benefits',
+      faq: 'FAQs',
+    },
+  },
+  // The caption under each section's picture, unless admin writes its own.
+  art: {
+    overview: 'One clear start, with every paper in its place.',
+    ready: 'Agree the scope before the work begins.',
+    how: 'Every stage has an input and a review point.',
+    plan: 'Know what can move the dates.',
+    costs: 'Every part of the fee, before you pay.',
+    deliverables: 'What you keep at the end.',
+    benefits: 'What it gives you as you grow.',
+    faq: 'Ask before you buy.',
+  },
+};
+
+// Pictures that explain a process outside the product and service pages: the Pirento home and Verify.
+export const processArt = {
+  how: {scene: 'filing', caption: 'One account for every Pirento product, one step at a time.'},
+  faq: {scene: 'questions', caption: 'Ask before you begin; the answers are below.'},
+  catalogue: {scene: 'meeting', caption: 'A lawyer, CA or CS picks up your work and keeps you updated.'},
+  business: {scene: 'idcheck', caption: 'A business checks a holder only with the holder’s consent.'},
+  support: {scene: 'helpdesk', caption: 'One desk for every product; replies come back here and by email.'},
+  company: {scene: 'office', caption: 'The roles this company has open on Pirento Intern.'},
+  notFound: {scene: 'search', caption: 'We looked, but this address leads nowhere.'},
+  verify: {scene: 'search', caption: 'Check any Pirento code against our records in a second.'},
 };
 
 // Checkout for someone not signed in (features/orders/GuestDetails.jsx).
@@ -1096,14 +1135,70 @@ export const dashboard = {
 };
 
 export const productIllustration = {
-  legal: 'document',
-  black: 'document',
-  green: 'leaf',
-  intern: 'certificate',
-  ai: 'chat',
-  vault: 'lock',
-  one: 'network',
-  capital: 'chart',
-  'bharat-id': 'id',
-  giftox: 'gift',
+  legal: 'meeting',
+  black: 'ledger',
+  green: 'planting',
+  intern: 'classroom',
+  ai: 'assistant',
+  vault: 'vault',
+  one: 'partners',
+  capital: 'loan',
+  'bharat-id': 'idcheck',
+  giftox: 'delivery',
+};
+
+// Each product home's pictures, by section: what the steps look like, who it is for, and the questions. Every caption
+// says only what the product does today.
+const ask = {scene: 'questions', caption: 'Ask before you begin; the answers are below.'};
+export const productArt = {
+  legal: {
+    how: {scene: 'filing', caption: 'Every stage has an input and a review point.'},
+    who: {scene: 'office', caption: 'For founders, businesses and families alike.'},
+    faq: ask,
+  },
+  black: {
+    how: {scene: 'ledger', caption: 'Your books, returns and filings in one place.'},
+    who: {scene: 'costs', caption: 'A fixed price for every filing, shown first.'},
+    faq: ask,
+  },
+  green: {
+    how: {scene: 'planting', caption: 'Trees planted on a drive, with the site and date recorded.'},
+    who: {scene: 'growth', caption: 'Planted trees grow credits you can hold or sell.'},
+    faq: ask,
+  },
+  intern: {
+    how: {scene: 'classroom', caption: 'Learn a track, pass the exam, then do real work.'},
+    who: {scene: 'certificate', caption: 'A certificate anyone can check on Verify.'},
+    faq: ask,
+  },
+  ai: {
+    how: {scene: 'assistant', caption: 'Ask in your own words; it reads only your own account.'},
+    who: {scene: 'chat', caption: 'Help with Pirento, any time of day.'},
+    faq: ask,
+  },
+  vault: {
+    how: {scene: 'vault', caption: 'Files and passwords encrypted before they are stored.'},
+    who: {scene: 'lock', caption: 'Opens once your Bharat ID is issued.'},
+    faq: ask,
+  },
+  one: {
+    how: {scene: 'partners', caption: 'Refer a client, follow the order, receive your share.'},
+    who: {scene: 'network', caption: 'Refer clients to Pirento services from one partner account.'},
+    faq: ask,
+  },
+  capital: {
+    how: {scene: 'loan', caption: 'Work out the EMI before you apply.'},
+    who: {scene: 'chart', caption: 'Join the waitlist while Capital is being built.'},
+    faq: ask,
+  },
+  'bharat-id': {
+    how: {scene: 'idcheck', caption: 'Seven steps, a video KYC and an Aadhaar eSign.'},
+    who: {scene: 'id', caption: 'One ID to sign in and share details with consent.'},
+    faq: ask,
+  },
+  giftox: {
+    how: {scene: 'delivery', caption: 'Packed and sent with a courier and tracking number.'},
+    who: {scene: 'gift', caption: 'For teams, clients and the people you care about.'},
+    faq: ask,
+  },
 };

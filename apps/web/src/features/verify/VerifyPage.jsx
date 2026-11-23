@@ -9,6 +9,8 @@ import {VerifiedCard, verifyPath} from './VerifiedCard';
 import {useApi} from '../../lib/api/useApi';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {ArtFigure} from '../../components/ArtFigure';
+import {processArt} from '../../data/site';
 
 export function Verify() {
   const {code: raw} = useParams();
@@ -56,6 +58,11 @@ export function Verify() {
           </Button>
         </form>
       </PageHero>
+      {!code && (
+        <Section className="pt-0! md:pt-0!">
+          <ArtFigure {...processArt.verify} className="max-w-3xl" />
+        </Section>
+      )}
       {code && (
         <Section className="pt-0! md:pt-0!">
           <div aria-live="polite">

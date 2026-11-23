@@ -2,7 +2,8 @@
 import {Link} from 'react-router-dom';
 import {ArrowLeft} from 'lucide-react';
 import {PirentoLogo, PirentoMark, SiteLogo, SiteMark, hasMark} from '../../components/layout/PirentoLogo';
-import {brand} from '../../data/site';
+import {brand, productIllustration} from '../../data/site';
+import {Illustration} from '../../components/Illustration';
 
 /**
  * `side` = {eyebrow, quote, line, Icon} for a product, or {pirento, label, quote, line} for Pirento's own doors
@@ -49,6 +50,11 @@ export function AuthShell({side, home, homeLabel, children, innerRef}) {
           )}
           <p className="mt-10 max-w-md font-display text-[clamp(2rem,3vw,2.75rem)] leading-[1.1]">{side.quote}</p>
           <p className="mt-6 max-w-sm text-muted">{side.line}</p>
+          {/* Only where the panel is tall enough beside the form: the door's product, or signing in with a code. */}
+          <Illustration
+            name={productIllustration[side.brand] ?? 'signin'}
+            className="mt-10 hidden max-w-sm [@media(min-height:860px)]:block"
+          />
         </div>
 
         <div className="relative">

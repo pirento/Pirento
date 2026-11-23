@@ -6,7 +6,7 @@ import {useSearchParams} from 'react-router-dom';
 import {getProduct} from '@pirento/shared';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
-import {brand, support as copy} from '../../data/site';
+import {brand, support as copy, processArt} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
 import {useApi} from '../../lib/api/useApi';
 import {usePageMotion} from '../../lib/motion';
@@ -15,6 +15,7 @@ import {Callback} from './Callback';
 import {LiveChat} from './LiveChat';
 import {NewTicket} from './NewTicket';
 import {TicketList} from './TicketList';
+import {ArtFigure} from '../../components/ArtFigure';
 
 export function Support() {
   const {redirect, user} = useSignedIn();
@@ -84,6 +85,7 @@ export function Support() {
             <DashSection n={2} id="mine" label="Your requests" title="Every product, / one place.">
               <TicketList tickets={tickets.data} />
             </DashSection>
+            <ArtFigure {...processArt.support} className="mt-12" />
           </div>
         </div>
       )}

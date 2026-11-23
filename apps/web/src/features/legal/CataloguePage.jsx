@@ -9,6 +9,8 @@ import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {useLegalAreas, useServicesFor} from '../../lib/prices';
+import {ArtFigure} from '../../components/ArtFigure';
+import {processArt} from '../../data/site';
 
 export function Legal() {
   const ref = useRef(null);
@@ -54,6 +56,7 @@ export function Legal() {
       </PageHero>
 
       <div className="container-x pb-28">
+        <ArtFigure {...processArt.catalogue} className="mb-16 max-w-3xl" />
         {groups.length === 0 && <p className="body py-16">No service matches “{q}”. Try a shorter word.</p>}
         {groups.map((g, i) => (
           <section

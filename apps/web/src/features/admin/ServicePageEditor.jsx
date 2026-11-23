@@ -1,7 +1,7 @@
 // Admin → Services & prices → one service: its packages and every section of its page. Superadmins only.
 import {useEffect, useState} from 'react';
 import {Plus, Trash2} from 'lucide-react';
-import {packagesOf, slugify} from '@pirento/shared';
+import {ART_SCENES, ART_SECTIONS, packagesOf, slugify} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {Label} from '../../components/ui/Heading';
@@ -9,6 +9,9 @@ import {TextArea} from '../../components/ui/TextArea';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {useCatalogEdits} from '../../lib/prices';
+import {servicePageCopy} from '../../data/site';
+import {selectCls} from '../learning/Pipeline';
+import {ServiceArt} from '../legal/ServiceArt';
 
 const lines = (text) =>
   text
@@ -240,6 +243,66 @@ const LISTS = [
 ];
 
 /** Every section of the service page. An empty section is hidden on the website. */
+/** One picture per section: a scene the site draws, or the team's own https image, and a caption. */
+function ArtRows({art, onChange}) {
+  const set = (section, key, value) => {
+    const row = {...art[section], [key]: value || undefined};
+    const next = {...art, [section]: row};
+    if (!row.scene && !row.caption && !row.image) delete next[section];
+    onChange(next);
+  };
+  return (
+    <fieldset className="space-y-6">
+      <legend className="text-sm font-medium">Pictures on the page</legend>
+      <p className="max-w-2xl text-sm text-muted">
+        Each section shows a drawing that explains the step. Pick another drawing, write your own caption, or use your
+        own image (an https:// link). Leave a row empty to keep the standard one.
+      </p>
+      {Object.keys(ART_SECTIONS).map((section) => {
+        const row = art[section] ?? {};
+        return (
+          <div key={section} className="grid gap-4 rounded-[18px] border border-rule p-4 md:grid-cols-[12rem_1fr]">
+            <ServiceArt page={{art}} section={section} />
+            <div className="space-y-3">
+              <p className="font-medium">{servicePageCopy.guide.chips[section]}</p>
+              <label className="block text-sm">
+                <span className="sr-only">Drawing for {section}</span>
+                <select
+                  value={row.scene ?? ''}
+                  onChange={(e) => set(section, 'scene', e.target.value)}
+                  className={selectCls}
+                >
+                  <option value="">Standard drawing ({ART_SECTIONS[section]})</option>
+                  {ART_SCENES.map((scene) => (
+                    <option key={scene} value={scene}>
+                      {scene}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <Field
+                label="Caption"
+                maxLength={160}
+                placeholder={servicePageCopy.art[section]}
+                value={row.caption ?? ''}
+                onChange={(e) => set(section, 'caption', e.target.value)}
+              />
+              <Field
+                label="Your own image (https:// link, optional)"
+                type="url"
+                maxLength={500}
+                placeholder="https://"
+                value={row.image ?? ''}
+                onChange={(e) => set(section, 'image', e.target.value.trim())}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 export function PageForm({service, n}) {
   const res = useApi(`/catalog/staff/services/${service.slug}/page`);
   const [form, setForm] = useState(null);
@@ -272,6 +335,8 @@ export function PageForm({service, n}) {
         costs: clean(form.costs, ['title']),
         benefits: clean(form.benefits, ['title']),
         faqs: clean(form.faqs, ['q', 'a']),
+        // Sent with every save, so editing the words never drops the pictures.
+        art: form.art ?? {},
       },
       'Saved. The service page shows it at once.',
     );
@@ -332,6 +397,7 @@ export function PageForm({service, n}) {
         keys={['q', 'a']}
         labels={['Question', 'Answer']}
       />
+      <ArtRows art={form.art ?? {}} onChange={set('art')} />
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" icon={null}>
           Save the page

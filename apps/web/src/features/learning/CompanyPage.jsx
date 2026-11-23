@@ -9,6 +9,8 @@ import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {OpeningCard} from './Openings';
+import {ArtFigure} from '../../components/ArtFigure';
+import {processArt} from '../../data/site';
 
 export function CompanyPage() {
   const {id} = useParams();
@@ -22,6 +24,7 @@ export function CompanyPage() {
     <div ref={ref}>
       <PageHero label="Pirento Intern · Company" title={c.data.company} intro={c.data.about} />
       <Section className="pt-0! md:pt-0!">
+        <ArtFigure {...processArt.company} className="mb-16 max-w-3xl" />
         {safeHref(c.data.website) && (
           <a
             href={safeHref(c.data.website)}

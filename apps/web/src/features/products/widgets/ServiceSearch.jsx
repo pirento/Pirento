@@ -40,7 +40,7 @@ export function ServiceSearch({flat = false}) {
               to={`/services/${s.slug}`}
               className="flex items-center justify-between gap-4 border-b border-rule py-3 hover:text-ink"
             >
-              <span className="min-w-0 truncate">{s.name}</span>
+              <span className="min-w-0 break-words">{s.name}</span>
               <span className="shrink-0 text-sm tabular-nums text-muted">{s.price ? inr(s.price) : 'Consult'}</span>
             </Link>
           </li>

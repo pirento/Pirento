@@ -41,7 +41,7 @@ export function GroupChart() {
               <li key={p.slug} className="min-w-0">
                 <Link to={`/${p.slug}`} className="flex items-center gap-2 hover:underline">
                   <ProductIcon product={p} className="size-4" />
-                  <span className="truncate">{p.short}</span>
+                  <span className="min-w-0 break-words">{p.short}</span>
                 </Link>
               </li>
             ))}

@@ -14,7 +14,7 @@ import {Faq} from '../../components/ui/Blocks';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {NotFound} from '../ecosystem/NotFoundPage';
 import {Hero} from './Hero';
-import {Audience, Features, How, Related} from './HomeSections';
+import {Audience, Features, How, ProductArt, Related} from './HomeSections';
 import {Extra} from './ProductExtra';
 import {GreenImpact} from './GreenImpact';
 import {designFor} from './designs';
@@ -28,6 +28,7 @@ function Questions({product, n}) {
       <div className="grid gap-12 md:grid-cols-12">
         <div className="md:col-span-4">
           <SectionHeader n={n} label="Questions" title="Before you / begin." />
+          <ProductArt product={product} part="faq" className="mt-12" />
         </div>
         <div className="md:col-span-8">
           <Faq items={product.faq} />

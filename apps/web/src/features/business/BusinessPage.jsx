@@ -5,13 +5,14 @@ import {PageHero} from '../../components/PageHero';
 import {Steps} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
-import {bharatIdBusiness as copy} from '../../data/site';
+import {bharatIdBusiness as copy, processArt} from '../../data/site';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 import {AUTH_METHODS} from '@pirento/shared';
 import {Tag} from '../../components/ui/Tag';
 import {CALLS, apiBase} from './apiSample';
 import {RequestForm} from './RequestForm';
+import {ArtFigure} from '../../components/ArtFigure';
 
 const USE_ICONS = [Landmark, HandCoins, School, GraduationCap, BookOpen, Globe];
 
@@ -31,6 +32,10 @@ export function BharatIdBusiness() {
           </Button>
         </div>
       </PageHero>
+
+      <div className="container-x">
+        <ArtFigure {...processArt.business} className="max-w-3xl" />
+      </div>
 
       <Section>
         <SectionHeader n={1} label={copy.uses.label} title={copy.uses.title} />
