@@ -1,3 +1,4 @@
+// Tests for bharatId.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {bharatIdFromSeq, isBharatId} from './bharatId.js';

@@ -1,3 +1,4 @@
+// Tests for emi.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {emi} from './emi.js';

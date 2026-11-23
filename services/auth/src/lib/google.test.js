@@ -1,3 +1,4 @@
+// Tests for google.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {verifyGoogleIdToken} from './google.js';

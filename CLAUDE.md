@@ -68,4 +68,4 @@ Production is AWS (Mumbai) from `deploy/aws` (Terraform: CloudFront + WAF, ALB, 
 
 ## Check before pushing
 
-`npm test`, `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`, and a look at 360px and 1440px in light and dark.
+`npm test`, `npm run lint`, `npm run build`, `npm run e2e` (with the stack running), `npx prettier --check .`, and a look at 360px and 1440px in light and dark.

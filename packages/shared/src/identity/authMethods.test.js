@@ -1,3 +1,4 @@
+// Tests for authMethods.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {AUTH_METHODS, pinProblem} from './authMethods.js';

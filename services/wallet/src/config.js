@@ -1,3 +1,4 @@
+// The wallet service's settings, read from the environment with safe defaults for local work.
 import {env, isProduction} from '@pirento/shared/server';
 
 export const config = {

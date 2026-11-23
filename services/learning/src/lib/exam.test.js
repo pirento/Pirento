@@ -1,3 +1,4 @@
+// Tests for exam.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {bankForSlug} from '@pirento/shared/exam';

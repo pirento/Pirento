@@ -71,7 +71,6 @@ const SECTION_ICONS = {
   referrals: Share2,
   plans: Gem,
   sharing: Handshake,
-  company: Building2,
   consents: ListChecks,
   docs: BookOpen,
   checks: ShieldCheck,

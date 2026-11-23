@@ -1,3 +1,4 @@
+// Tests for prompt.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {MAX_HISTORY, SYSTEM, buildRequest} from './prompt.js';

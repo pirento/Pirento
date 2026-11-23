@@ -1,3 +1,4 @@
+// Tests for reminders.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ID_SECTIONS} from '@pirento/shared';

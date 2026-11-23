@@ -1,3 +1,4 @@
+// Tests for ics.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {icsFile} from './ics.js';

@@ -1,3 +1,4 @@
+// Tests for lessonText.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {blocks, inline} from './lessonText.js';

@@ -1,3 +1,4 @@
+// Tests for jobs.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {JOBS, buildJob} from './jobs.js';

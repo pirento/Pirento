@@ -41,7 +41,6 @@ export function finish(app) {
   app.use((_req, _res, next) => next(new ApiError(404, 'NOT_FOUND', 'Route not found')));
 
   // Express recognises an error handler by its four arguments, so `_next` stays.
-  // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     const status = err.status ?? 500;
     const meantForUser = err instanceof ApiError || status < 500;

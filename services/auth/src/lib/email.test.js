@@ -1,3 +1,4 @@
+// Tests for email.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import nodemailer from 'nodemailer';

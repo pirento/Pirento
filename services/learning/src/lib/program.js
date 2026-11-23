@@ -1,6 +1,6 @@
 // The programme's rules in code: periods for daily/weekly/monthly tasks, who may get paid work, writing a task,
 // buying a place and working out the final mark.
-import {ApiError, callService, conflict, env, notFound} from '@pirento/shared/server';
+import {callService, conflict, env, notFound} from '@pirento/shared/server';
 import {PROGRAM_PASS, finalMark, gradeFor} from '@pirento/shared';
 import {Assignment} from '../models/Assignment.js';
 import {Attendance} from '../models/Attendance.js';

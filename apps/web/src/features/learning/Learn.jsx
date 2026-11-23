@@ -9,7 +9,6 @@ import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {VideoPlayer} from './Video';
 import {LessonText} from './LessonText';
-import {MockInterview} from './MockInterview';
 import {AiTool} from '../ai/AiTool';
 
 function Lesson({id, done, onDone, onBack}) {

@@ -3,7 +3,9 @@
   var mode;
   try {
     mode = localStorage.getItem('mode');
-  } catch (e) {}
+  } catch (e) {
+    // storage blocked: fall back to the OS setting below
+  }
   if (mode !== 'light' && mode !== 'dark') {
     mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   }

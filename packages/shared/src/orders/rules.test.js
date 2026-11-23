@@ -1,3 +1,4 @@
+// Tests for rules.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {checkoutQuestions, needsDetails, validateFulfilment, validateIntake} from './rules.js';

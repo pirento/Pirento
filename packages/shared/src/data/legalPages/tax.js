@@ -1,5 +1,5 @@
 // GST & Taxation and Accounting & Financial: the pages of the services not in featured.js.
-import {NOT_INCLUDED, costs, pair, qa, step} from './common.js';
+import {costs, pair, qa, step} from './common.js';
 
 const noticeDocs = [
   'The notice or order, in full',

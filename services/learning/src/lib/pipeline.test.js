@@ -1,3 +1,4 @@
+// Tests for pipeline.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {APPLICANT_MOVES, TEAM_MOVES, canMove, tasksDone} from './pipeline.js';

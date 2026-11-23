@@ -16,7 +16,9 @@ export async function streamReply(history, onText, {who, product, knowledge, web
   const extra = [];
   const tools = webSearch ? [...TOOLS, WEB_SEARCH] : TOOLS;
   for (let round = 0; ; round++) {
-    const stream = client.beta.messages.stream(buildRequest(history, {knowledge, product, tools: TOOLS, extra}));
+    const stream = client.beta.messages.stream(
+      buildRequest(history, {knowledge, product, tools, extra, attachment, memory}),
+    );
     stream.on('text', onText);
     const msg = await stream.finalMessage();
     if (msg.stop_reason === 'pause_turn') {

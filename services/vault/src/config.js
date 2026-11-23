@@ -1,3 +1,4 @@
+// The vault service's settings, read from the environment with safe defaults for local work.
 import {VAULT_LIMITS} from '@pirento/shared';
 import {env, keyFrom} from '@pirento/shared/server';
 

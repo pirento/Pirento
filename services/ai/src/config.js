@@ -1,3 +1,4 @@
+// The ai service's settings, read from the environment with safe defaults for local work.
 import {env} from '@pirento/shared/server';
 
 const url = (name, port) => env(`${name}_URL`, `http://127.0.0.1:${port}`);

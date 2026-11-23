@@ -1,3 +1,4 @@
+// Tests for triage.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {higher} from './triage.js';

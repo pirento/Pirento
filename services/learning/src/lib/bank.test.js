@@ -1,3 +1,4 @@
+// Tests for bank.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {TRACKS} from '@pirento/shared/exam';

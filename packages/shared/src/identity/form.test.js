@@ -1,3 +1,4 @@
+// Tests for form.js.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {validateSection} from './form.js';
