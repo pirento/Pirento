@@ -11,3 +11,4 @@ output "app_secret" {
 output "site" { value = "https://${var.domain}" }
 output "cloudfront_domain" { value = aws_cloudfront_distribution.site.domain_name }
 output "video_bucket" { value = aws_s3_bucket.videos.bucket }
+output "files_bucket" { value = aws_s3_bucket.files.bucket }

@@ -8,7 +8,7 @@ import {
   ApiError,
   audit,
   callService,
-  decrypt,
+  openFile,
   isId,
   notFound,
   requireAuth,
@@ -30,7 +30,7 @@ async function fileFor(order, fileId) {
   if (!f) throw notFound('Document not found');
   if (!READABLE.test(f.type ?? '')) throw new ApiError(400, 'NOT_READABLE', 'The AI reads PDFs, photos and text files');
   if (f.size > MAX_BYTES) throw new ApiError(400, 'TOO_LARGE', 'This document is too large for the AI to read');
-  const bytes = decrypt(config.fileKey, f);
+  const bytes = await openFile(config.fileKey, f);
   return f.type === 'text/plain'
     ? {type: 'document', source: {type: 'text', media_type: 'text/plain', data: bytes.toString('utf8')}}
     : {

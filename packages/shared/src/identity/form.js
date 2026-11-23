@@ -7,6 +7,11 @@ import {verhoeffValid} from './bharatId.js';
 
 export const MOBILE = '^[6-9]\\d{9}$';
 export const NAME = "^[\\p{L} .'-]{2,80}$";
+// Names on the ID and its signed declaration are in English letters, as on PAN, so every certificate and PDF
+// shows them the same way.
+const LATIN_NAME = /^[A-Za-z .'-]{2,80}$/;
+const english = (what) => (v) =>
+  LATIN_NAME.test(v) ? null : `Write the ${what} in English letters, as on your PAN card`;
 
 const adult = (v) => {
   const d = new Date(v);
@@ -29,8 +34,8 @@ export const ID_SECTIONS = [
     title: 'Personal details',
     intro: 'Exactly as on your PAN card.',
     fields: [
-      {id: 'fullName', label: 'Full name', pattern: NAME, autoComplete: 'name'},
-      {id: 'fatherName', label: "Father's name", pattern: NAME},
+      {id: 'fullName', label: 'Full name', check: english('full name'), autoComplete: 'name'},
+      {id: 'fatherName', label: "Father's name", check: english("father's name")},
       {id: 'dob', label: 'Date of birth', type: 'date', check: adult, autoComplete: 'bday'},
       {id: 'gender', label: 'Gender', options: ['Female', 'Male', 'Other', 'Prefer not to say']},
     ],
@@ -114,10 +119,10 @@ export const ID_SECTIONS = [
     id: 'nominee',
     title: 'Nominee and emergency contact',
     fields: [
-      {id: 'nomineeName', label: 'Nominee name', pattern: NAME},
+      {id: 'nomineeName', label: 'Nominee name', check: english("nominee's name")},
       {id: 'nomineeRelation', label: 'Relation to you', options: RELATIONS},
       {id: 'nomineeMobile', label: 'Nominee mobile', pattern: MOBILE, inputMode: 'numeric'},
-      {id: 'emergencyName', label: 'Emergency contact name', pattern: NAME},
+      {id: 'emergencyName', label: 'Emergency contact name', check: english("emergency contact's name")},
       {id: 'emergencyMobile', label: 'Emergency contact mobile', pattern: MOBILE, inputMode: 'numeric'},
     ],
   },

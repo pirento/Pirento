@@ -1,6 +1,6 @@
 # The data stores. Each service still owns its own database: one Atlas cluster with a database (and a database
 # user that can reach only that database) per service; the wallet's money in Aurora PostgreSQL; Redis for the
-# shared cache and rate limits; OpenSearch for search; S3 for videos. All in Mumbai, all with backups.
+# shared cache and rate limits; OpenSearch for search; S3 for videos and uploaded files. All in Mumbai, all with backups.
 
 # ---- MongoDB Atlas (on AWS, Mumbai) ----------------------------------------------------------------------------
 resource "mongodbatlas_project" "main" {
@@ -286,6 +286,45 @@ resource "aws_s3_bucket_cors_configuration" "videos" {
 
 resource "aws_s3_bucket_lifecycle_configuration" "videos" {
   bucket = aws_s3_bucket.videos.id
+  rule {
+    id     = "old-versions"
+    status = "Enabled"
+    filter {}
+    noncurrent_version_expiration { noncurrent_days = 30 }
+  }
+}
+
+# ---- S3: uploaded files (Vault, order documents, resumes) ----------------------------------------------------
+# Only sealed bytes arrive here (AES-256-GCM in the service, packages/shared/src/server/files.js); the browser never
+# talks to this bucket, so it needs no CORS. Deleted versions go after 30 days, which bounds how long a deleted
+# account's files can be recovered.
+resource "aws_s3_bucket" "files" {
+  bucket = "${var.project}-files-${data.aws_caller_identity.me.account_id}"
+  lifecycle { prevent_destroy = true }
+}
+
+resource "aws_s3_bucket_public_access_block" "files" {
+  bucket                  = aws_s3_bucket.files.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "files" {
+  bucket = aws_s3_bucket.files.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "files" {
+  bucket = aws_s3_bucket.files.id
+  rule {
+    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "files" {
+  bucket = aws_s3_bucket.files.id
   rule {
     id     = "old-versions"
     status = "Enabled"

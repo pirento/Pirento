@@ -17,6 +17,7 @@ export const OrderFile = mongoose.model(
       iv: Buffer,
       tag: Buffer,
       data: Buffer,
+      blobKey: String, // where the sealed bytes live in the file bucket, when FILES_S3_BUCKET is set
     },
     {timestamps: true},
   ),
