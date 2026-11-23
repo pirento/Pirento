@@ -315,6 +315,27 @@ check(
   'donated trees grow no credits',
   !(await call('/green/me', {token: user})).data?.trees.some((t) => t.orderId === donation.data?._id),
 );
+
+// Certificates: anyone checks one by its number or its order number; they show the trees, never the person.
+const cert = (ref) => call(`/orders/green/certificates/${ref}`);
+const pf = await cert(`PF-${donation.data?.orderNo}`);
+check(
+  'a donation certificate verifies',
+  pf.data?.donation === true &&
+    pf.data.valid &&
+    pf.data.trees === 2 &&
+    pf.data.number === `PF-${donation.data?.orderNo}`,
+  pf,
+);
+check('a certificate shows no person or money', !JSON.stringify(pf.data).match(/email|userId|amount/));
+check('a PG- number never finds a donation', (await cert(`PG-${donation.data?.orderNo}`)).status === 404);
+const byOrder = await cert(String(g.data?.orderNo));
+check(
+  'an investment certificate verifies by order number',
+  byOrder.data?.donation === false && byOrder.data.number === `PG-${g.data?.orderNo}` && byOrder.data.trees === 10,
+  byOrder,
+);
+check('an unknown certificate is not found', (await cert('PG-999999')).status === 404);
 check(
   'quantity capped',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', quantity: 2, intake}}))

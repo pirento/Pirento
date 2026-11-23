@@ -91,6 +91,10 @@ const SITE = {
         q: 'What is the difference between buying and donating trees?',
         a: 'Bought trees grow carbon credits for you once planted. Donated trees are planted the same way and you see the same planting record, but they grow no credits. A donation is paid to Pirento Green, not to a registered charity, so it carries no 80G tax receipt.',
       },
+      {
+        q: 'How do I check a certificate?',
+        a: 'Every planted investment (PG-…) and donation (PF-…) gets a certificate you download from Green → Certificates. Anyone can check it on Verify with its number or its order number.',
+      },
       {q: 'Can I sponsor for my company?', a: 'Yes. Choose the scale that fits at checkout and tell us in the notes.'},
       {
         q: 'How do I know my trees were planted?',
@@ -340,12 +344,12 @@ export const PRODUCTS = [
     highlights: [
       {title: 'Carbon trading', body: 'Buy and sell carbon credits from your wallet, with the price on a live chart.'},
       {
-        title: 'Buy trees',
-        body: 'Sponsor trees on a plantation drive; once planted they grow credits every day for you to claim, hold or sell.',
+        title: 'Invest in trees',
+        body: 'Pay for trees on a drive and we plant them for you. They grow carbon credits to hold or sell, with a certificate.',
       },
       {
         title: 'Donate trees',
-        body: '₹500 a tree, planted on a drive as a gift to the planet. No credits, nothing to sell.',
+        body: '₹500 a tree, planted as a gift to the planet, with a Pirento Foundation certificate. No credits.',
       },
     ],
     caveat:

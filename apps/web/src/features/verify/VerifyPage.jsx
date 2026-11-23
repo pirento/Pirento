@@ -18,7 +18,10 @@ export function Verify() {
   const result = useApi(code ? verifyPath(code) : null);
   const ref = useRef(null);
   usePageMotion(ref, [code]);
-  usePageMeta({title: 'Verify a Pirento code', description: 'Check a Bharat ID, certificate or completion code.'});
+  usePageMeta({
+    title: 'Verify a Pirento code',
+    description: 'Check a Bharat ID, a certificate, an order number or a completion code.',
+  });
 
   return (
     <div ref={ref}>
@@ -26,7 +29,7 @@ export function Verify() {
         label="Verify"
         title="Check a / Pirento code."
         hl="Pirento code."
-        intro="Enter a Bharat ID, an Intern certificate code (PC-…) or a completion code (LGL-, BLK-, GRN-…) to see if it is on our records."
+        intro="Enter a Bharat ID, a Pirento Green certificate (PG-…, PF-…) or its order number, an Intern certificate code (PC-…) or a completion code (LGL-, BLK-, GRN-…) to see if it is genuine."
       >
         <form
           onSubmit={(e) => {
@@ -45,7 +48,7 @@ export function Verify() {
             id="code"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="PC-1A2B3C4D or 10-digit ID"
+            placeholder="Bharat ID, PG-100021 or order number"
             className="w-full bg-transparent uppercase outline-none placeholder:text-muted placeholder:normal-case"
           />
           <Button type="submit" className="px-5! py-2.5!">

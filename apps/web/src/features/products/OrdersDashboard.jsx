@@ -30,6 +30,8 @@ import {green, orderDashboard as copy, productDashboards} from '../../data/site'
 import {GreenTrees} from './GreenTrees';
 import {Market} from '../green/Market';
 import {Snapshot} from '../green/Snapshot';
+import {Portfolio} from '../green/Portfolio';
+import {Certificates} from '../green/Certificates';
 import {AI_TOOLS_FOR} from '../../data/aiTools';
 import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
@@ -463,6 +465,18 @@ export function OrdersDashboard({product, section = 'overview'}) {
         <DashSection n={1} id="consultations" label={copy.consultations.label} title={copy.consultations.title}>
           <p className="body -mt-2 mb-8">{copy.consultations.intro}</p>
           <Consultations mine={mine} orders={orders} browse={browse} product={product} />
+        </DashSection>
+      )}
+
+      {section === 'portfolio' && (
+        <DashSection n={1} id="portfolio" label={green.portfolio.label} title={green.portfolio.title}>
+          <Portfolio mine={mine} loading={!orders.data} />
+        </DashSection>
+      )}
+
+      {section === 'certificates' && (
+        <DashSection n={1} id="certificates" label={green.certificate.label} title={green.certificate.title}>
+          <Certificates mine={mine} loading={!orders.data} />
         </DashSection>
       )}
 

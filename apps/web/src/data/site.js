@@ -339,8 +339,10 @@ export const productDashboards = {
   ]),
   black: ORDER_SECTIONS('My filings', 'Services', [DOCUMENTS]),
   green: ORDER_SECTIONS('My sponsorships', 'Plantation drives', [
+    {id: 'portfolio', label: 'Portfolio', icon: 'portfolio'},
     {id: 'market', label: 'Carbon market', icon: 'market'},
     {id: 'trees', label: 'My trees', icon: 'trees'},
+    {id: 'certificates', label: 'Certificates', icon: 'certificates'},
   ]),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
@@ -899,6 +901,37 @@ export const green = {
     trades: 'Your trades',
     noTrades: 'No trades yet.',
   },
+  portfolio: {
+    label: 'Portfolio',
+    title: 'Everything you / hold with us.',
+    intro:
+      'Trees you invested in are held at what you paid; your carbon credits at today’s price. Donations are shown apart: they are a gift, not a holding.',
+    trees: 'Tree investments',
+    credits: 'Carbon credits',
+    donations: 'Donations',
+    byDrive: 'By drive',
+  },
+  certificate: {
+    label: 'Certificates',
+    title: 'Download / your certificates.',
+    intro:
+      'Every planted sponsorship gets a certificate you can download and anyone can check on Verify, by its number or its order number.',
+    empty: 'No certificates yet. A certificate is issued once your trees are planted.',
+    waiting: 'Certificate once planted',
+    invest: {
+      title: 'Certificate of tree investment',
+      issuer: 'Pirento Green',
+      line: 'has invested in the planting of',
+      note: 'Planted trees grow carbon credits at the drive’s rate, shown in your Pirento Green portfolio. The credit price can go down as well as up.',
+    },
+    donate: {
+      title: 'Certificate of tree donation',
+      issuer: 'Pirento Foundation',
+      line: 'has donated the planting of',
+      note: 'Thank you for your gift to the planet. Pirento Foundation’s registration is pending, so this certificate is not a tax (80G) receipt.',
+    },
+    verify: 'Check this certificate at',
+  },
   snapshot: {
     label: 'Carbon account',
     title: 'Your credits / at a glance.',
@@ -907,7 +940,8 @@ export const green = {
     links: [
       ['Trade credits', '/green/dashboard/market'],
       ['Claim from your trees', '/green/dashboard/trees'],
-      ['Buy trees', '/green#services'],
+      ['Invest in trees', '/green#services'],
+      ['Certificates', '/green/dashboard/certificates'],
       ['Donate trees', '/services/green-donate'],
     ],
   },

@@ -1,6 +1,7 @@
 // Pirento Green's record, counted from its paid orders: trees sponsored and planted, per drive, for the home page and the team.
 import {Router} from 'express';
-import {ACCESS, cached, productScope, requireAuth, requireRole} from '@pirento/shared/server';
+import {greenCertNo, isDonation, parseGreenRef} from '@pirento/shared';
+import {ACCESS, cached, notFound, productScope, requireAuth, requireRole} from '@pirento/shared/server';
 import {PAID_STATUSES} from '../config.js';
 import {Order} from '../models/Order.js';
 
@@ -87,4 +88,39 @@ greenRoutes.get('/staff/green', requireAuth, requireRole(...ACCESS.orders), asyn
     for (const d of summary.drives) delete d.raised;
   }
   res.json({data: {...summary, waiting}});
+});
+
+/**
+ * Public check of a Green certificate, by its number (PG-/PF-) or its order number. Shows what proves the trees were
+ * planted, never the person or the amount. A cancelled order's certificate answers as no longer valid.
+ */
+greenRoutes.get('/green/certificates/:ref', async (req, res) => {
+  const ref = parseGreenRef(req.params.ref);
+  const order =
+    ref &&
+    (await Order.findOne(
+      {
+        orderNo: ref.orderNo,
+        product: 'green',
+        status: {$in: [...PAID_STATUSES, 'cancelled']},
+        ...PLANTED,
+      },
+      {orderNo: 1, serviceSlug: 1, serviceName: 1, quantity: 1, status: 1, fulfilment: 1},
+    ).lean());
+  // A PG- number never finds a donation, nor a PF- number an investment.
+  if (!order || (ref.donation !== null && ref.donation !== isDonation(order)))
+    throw notFound('No Pirento Green certificate has this number');
+  res.json({
+    data: {
+      number: greenCertNo(order),
+      orderNo: order.orderNo,
+      donation: isDonation(order),
+      drive: order.serviceName,
+      trees: order.quantity,
+      site: order.fulfilment.site,
+      plantedOn: order.fulfilment.plantedOn ?? null,
+      issuedAt: order.fulfilment.at,
+      valid: order.status !== 'cancelled',
+    },
+  });
 });
