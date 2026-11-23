@@ -12,6 +12,7 @@ export const LiveClass = mongoose.model(
       minutes: {type: Number, default: 60},
       link: {type: String, required: true, maxlength: 300},
       recording: {_id: false, key: String, name: String, size: Number, type: String},
+      pendingRecording: {_id: false, key: String, name: String, size: Number, type: String}, // an upload handed out but not yet confirmed in the bucket
       createdBy: String,
     },
     {timestamps: true},

@@ -2,7 +2,7 @@
 // uploads straight to the bucket with a short-lived signed URL, and plays with another: the bytes never pass
 // through our servers. The bucket needs CORS allowing PUT and GET from the site's origin.
 import crypto from 'node:crypto';
-import {GetObjectCommand, PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
+import {GetObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client} from '@aws-sdk/client-s3';
 import {getSignedUrl} from '@aws-sdk/s3-request-presigner';
 import {ApiError, env} from '@pirento/shared/server';
 
@@ -44,4 +44,16 @@ export async function uploadUrl(folder, type) {
 export async function playUrl(key) {
   const [c, Bucket] = s3();
   return getSignedUrl(c, new GetObjectCommand({Bucket, Key: key}), {expiresIn: 7200});
+}
+
+/** Whether an upload has landed in the bucket (a failed or abandoned one has not). */
+export async function videoUploaded(key) {
+  const [c, Bucket] = s3();
+  try {
+    await c.send(new HeadObjectCommand({Bucket, Key: key}));
+    return true;
+  } catch (err) {
+    if (err.$metadata?.httpStatusCode === 404 || err.name === 'NotFound') return false;
+    throw err;
+  }
 }

@@ -46,6 +46,8 @@ export function VideoUpload({path, current, onDone}) {
       const {url, type} = await api(path, {method: 'POST', body: {name: file.name, type: file.type, size: file.size}});
       const res = await fetch(url, {method: 'PUT', headers: {'content-type': type}, body: file});
       if (!res.ok) throw new Error(`Storage refused the upload (${res.status})`);
+      // Only now does the server attach it, after checking the bucket has it.
+      await api(`${path}/confirm`, {method: 'POST'});
       setNote('Uploaded.');
       onDone?.();
     } catch (err) {

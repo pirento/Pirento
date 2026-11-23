@@ -25,6 +25,7 @@ export const config = {
   trustProxy: Number(env('TRUST_PROXY', 1)),
   otpRequestsPer15Min: Number(env('RATE_LIMIT_OTP', 20)),
   enquiriesPer15Min: Number(env('RATE_LIMIT_ENQUIRY', 10)),
+  apiKeyRequestsPerMinute: Number(env('RATE_LIMIT_API_KEY', 600)),
 };
 
 /**

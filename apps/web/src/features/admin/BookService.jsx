@@ -2,7 +2,7 @@
 // their dashboard; they pay it there. The server prices it and checks the answers like a normal checkout.
 import {useState} from 'react';
 import {Link} from 'react-router-dom';
-import {PRODUCTS, serviceQuestions, servicesFor} from '@pirento/shared';
+import {PRODUCTS, packageOf, packagesOf, serviceQuestions, servicesFor} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Label} from '../../components/ui/Heading';
 import {TextArea} from '../../components/ui/TextArea';
@@ -31,6 +31,8 @@ export function BookService() {
   const services = useServicesFor(product).filter((s) => s.price);
   const [slug, setSlug] = useState('');
   const service = services.find((s) => s.slug === slug);
+  const [packageId, setPackageId] = useState('');
+  const pack = packageOf(service, packageId) ?? packageOf(service);
   const [answers, setAnswers] = useState({});
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
@@ -45,7 +47,7 @@ export function BookService() {
       setBooked(
         await api('/orders/staff/book', {
           method: 'POST',
-          body: {userId: customer._id, serviceSlug: slug, intake: answers, note},
+          body: {userId: customer._id, serviceSlug: slug, packageId: pack?.id, intake: answers, note},
         }),
       );
     } catch (err) {
@@ -159,6 +161,7 @@ export function BookService() {
               value={slug}
               onChange={(e) => {
                 setSlug(e.target.value);
+                setPackageId('');
                 setAnswers({});
               }}
               className={field}
@@ -171,6 +174,18 @@ export function BookService() {
               ))}
             </select>
           </label>
+          {service && packagesOf(service).length > 1 && (
+            <label className="block">
+              <span className="text-sm font-medium">Package</span>
+              <select value={pack.id} onChange={(e) => setPackageId(e.target.value)} className={field}>
+                {packagesOf(service).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} · {inr(p.price)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
       </div>
 
@@ -203,7 +218,7 @@ export function BookService() {
         </p>
       )}
       <Button type="submit" variant="accent" disabled={busy || !customer || !service}>
-        {busy ? 'Booking' : service ? `Book for ${inr(service.price)}` : 'Book'}
+        {busy ? 'Booking' : pack ? `Book for ${inr(pack.price)}` : 'Book'}
       </Button>
     </form>
   );
