@@ -1,7 +1,16 @@
 // Services made in admin (a new service or a package), and the questions any service asks before and after payment.
 import {Router} from 'express';
 import {z} from 'zod';
-import {FIXED_QUESTION_IDS, PRODUCTS, editedService, getService, servicePage, slugify} from '@pirento/shared';
+import {
+  ART_SCENES,
+  ART_SECTIONS,
+  FIXED_QUESTION_IDS,
+  PRODUCTS,
+  editedService,
+  getService,
+  servicePage,
+  slugify,
+} from '@pirento/shared';
 import {
   ACCESS,
   audit,
@@ -169,6 +178,22 @@ const page = z
     mistakes: z.array(text(200).min(1)).max(10),
     benefits: z.array(z.object({title: text(80).min(1), body: text(300)})).max(10),
     faqs: z.array(z.object({q: text(200).min(3), a: text(1000).min(1)})).max(20),
+    // A picture per section: one of the scenes the site draws, a caption, or an https image of the team's own.
+    art: z.partialRecord(
+      z.enum(Object.keys(ART_SECTIONS)),
+      z
+        .object({
+          scene: z.enum(ART_SCENES).optional(),
+          caption: text(160).optional(),
+          image: z
+            .string()
+            .trim()
+            .max(500)
+            .regex(/^https:\/\/[^\s"'<>]+$/, 'Use an https:// image link')
+            .optional(),
+        })
+        .strict(),
+    ),
   })
   .partial()
   .strict();

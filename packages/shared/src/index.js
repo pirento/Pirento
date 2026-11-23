@@ -20,6 +20,8 @@ export {
   packageOf,
   servicePage,
   PAGE_SECTIONS,
+  ART_SECTIONS,
+  ART_SCENES,
 } from './catalog/services.js';
 export {LEGAL_PAGES} from './data/legalPages.js';
 

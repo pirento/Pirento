@@ -1,5 +1,6 @@
 // Original line illustrations, drawn only with theme variables.
 // viewBox 800×500 on a stone card with a faint grid. Hover lifts the focus group.
+import {PROCESS_SCENES} from './illustrations/process';
 
 const S = {fill: 'none', stroke: 'var(--ink)', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round'};
 const card = {fill: 'var(--paper)', stroke: 'var(--ink)', strokeWidth: 2};
@@ -142,7 +143,7 @@ export function Illustration({name, className = ''}) {
     <div className={`group relative overflow-hidden rounded-[22px] border border-rule bg-stone ${className}`}>
       <div aria-hidden className="grid-bg absolute inset-0 opacity-60" />
       <svg viewBox="0 0 800 500" className="relative block h-auto w-full" aria-hidden>
-        {scenes[name] ?? scenes.ecosystem}
+        {scenes[name] ?? PROCESS_SCENES[name] ?? scenes.ecosystem}
       </svg>
     </div>
   );

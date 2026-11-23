@@ -844,6 +844,39 @@ export const servicePageCopy = {
   benefits: {label: 'Why do it', title: 'What it / gives you.'},
   faq: {label: 'Questions', title: 'Before you / buy.'},
   related: {label: 'Related', title: 'Often bought / alongside.'},
+  // The jump links under the hero, one per section the page shows.
+  guide: {
+    label: 'Step by step',
+    title: 'Explore the complete guide',
+    chips: {
+      packages: 'Packages',
+      overview: 'Overview',
+      ready: 'Scope & documents',
+      how: 'Process',
+      plan: 'Timeline',
+      costs: 'Costs',
+      deliverables: 'What you get',
+      benefits: 'Benefits',
+      faq: 'FAQs',
+    },
+  },
+  // The caption under each section's picture, unless admin writes its own.
+  art: {
+    overview: 'One clear start, with every paper in its place.',
+    ready: 'Agree the scope before the work begins.',
+    how: 'Every stage has an input and a review point.',
+    plan: 'Know what can move the dates.',
+    costs: 'Every part of the fee, before you pay.',
+    deliverables: 'What you keep at the end.',
+    benefits: 'What it gives you as you grow.',
+    faq: 'Ask before you buy.',
+  },
+};
+
+// Pictures that explain a process outside the service pages: each product home's "How it works", and Verify.
+export const processArt = {
+  how: {scene: 'filing', caption: 'Every step has an input and a review point.'},
+  verify: {scene: 'search', caption: 'Check any Pirento code against our records in a second.'},
 };
 
 // Checkout for someone not signed in (features/orders/GuestDetails.jsx).

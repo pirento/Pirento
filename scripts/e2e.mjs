@@ -3437,6 +3437,24 @@ check(
     editedPage.costs[0]?.title === 'Fee',
   editedPage,
 );
+// Pictures: a drawing the site has, a caption, or the team's own https image; nothing else gets through.
+check(
+  'a picture must be an https link',
+  (await putPage({art: {how: {image: 'http://x.example/a.png'}}})).status === 400,
+);
+check('a script link is refused', (await putPage({art: {how: {image: 'javascript:alert(1)'}}})).status === 400);
+check('an unknown drawing is refused', (await putPage({art: {how: {scene: 'nope'}}})).status === 400);
+await putPage({
+  art: {how: {scene: 'meeting', caption: 'Our team at work'}, faq: {image: 'https://cdn.example.com/a.png'}},
+});
+const artPage = (await call('/catalog/services/gst-registration')).data?.page;
+check(
+  'admin sets a section’s drawing, caption and image',
+  artPage?.art?.how?.scene === 'meeting' &&
+    artPage.art.how.caption === 'Our team at work' &&
+    artPage.art.faq.image === 'https://cdn.example.com/a.png',
+  artPage?.art,
+);
 await putPage(null);
 check(
   'the standard page comes back on reset',

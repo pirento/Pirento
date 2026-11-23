@@ -139,8 +139,47 @@ export const PAGE_SECTIONS = [
 ];
 export function servicePage(slug, pageEdit) {
   const base = LEGAL_PAGES[slug]?.page ?? {};
-  return Object.fromEntries(PAGE_SECTIONS.map((k) => [k, pageEdit?.[k] ?? base[k] ?? (k === 'intro' ? '' : [])]));
+  return {
+    ...Object.fromEntries(PAGE_SECTIONS.map((k) => [k, pageEdit?.[k] ?? base[k] ?? (k === 'intro' ? '' : [])])),
+    // Admin's picture choices by section ({scene, caption, image}); a section not listed shows its default.
+    art: pageEdit?.art ?? {},
+  };
 }
+
+/** The sections of a service page that carry a picture, and the scene each shows unless admin picks another. */
+export const ART_SECTIONS = {
+  overview: 'office',
+  ready: 'meeting',
+  how: 'filing',
+  plan: 'calendar',
+  costs: 'costs',
+  deliverables: 'handover',
+  benefits: 'growth',
+  faq: 'questions',
+};
+
+/** Every scene the web app can draw (components/Illustration.jsx and illustrations/process.jsx). */
+export const ART_SCENES = [
+  'office',
+  'meeting',
+  'search',
+  'filing',
+  'calendar',
+  'costs',
+  'handover',
+  'questions',
+  'growth',
+  'document',
+  'certificate',
+  'chat',
+  'lock',
+  'network',
+  'chart',
+  'id',
+  'gift',
+  'leaf',
+  'ecosystem',
+];
 
 // A service made in admin: its slug starts with its product's (legal-startup-pack), so any page can tell whose it is.
 const madeInAdmin = (slug, edit) =>

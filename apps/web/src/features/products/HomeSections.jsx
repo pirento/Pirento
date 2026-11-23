@@ -3,7 +3,7 @@ import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {Illustration} from '../../components/Illustration';
-import {productIllustration} from '../../data/site';
+import {processArt, productIllustration} from '../../data/site';
 import {Heading, Label, Section, SectionHeader} from '../../components/ui/Heading';
 import {Steps} from '../../components/ui/Blocks';
 import {ProductIcon} from '../../components/ui/ProductIcon';
@@ -159,6 +159,14 @@ export function Related({product, n}) {
 }
 
 /** How it works: a dark band with steps across, or a paper timeline down the page. */
+/** The picture that explains the steps, with its caption. */
+const HowArt = ({className}) => (
+  <figure className={className} data-reveal>
+    <Illustration name={processArt.how.scene} />
+    <figcaption className="mt-4 text-center text-sm text-muted">{processArt.how.caption}</figcaption>
+  </figure>
+);
+
 export function How({product, variant = 'steps', n}) {
   if (variant === 'timeline') {
     return (
@@ -166,6 +174,7 @@ export function How({product, variant = 'steps', n}) {
         <div className="grid gap-12 lg:grid-cols-12">
           <div className="lg:col-span-5">
             <SectionHeader n={n} label="How it works" title="Step by / step." />
+            <HowArt className="mt-12" />
           </div>
           <ol className="relative border-l border-rule lg:col-span-7">
             {product.steps.map((s, i) => (
@@ -190,7 +199,8 @@ export function How({product, variant = 'steps', n}) {
     <section id="how" className="inverse py-28 md:py-40">
       <div className="container-x">
         <Label n={n}>How it works</Label>
-        <Heading text="From first click / to done." className="h-section mt-6 mb-20" data-lines />
+        <Heading text="From first click / to done." className="h-section mt-6 mb-12" data-lines />
+        <HowArt className="mb-20 max-w-3xl" />
         <Steps steps={product.steps} />
       </div>
     </section>

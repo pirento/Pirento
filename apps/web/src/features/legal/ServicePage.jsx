@@ -19,6 +19,7 @@ import {useService, useServicesFor} from '../../lib/prices';
 import {useSession} from '../../lib/api/session';
 import {AiTool} from '../ai/AiTool';
 import {servicePageCopy as copy} from '../../data/site';
+import {ServiceArt} from './ServiceArt';
 
 function PackageCards({service}) {
   const packages = packagesOf(service);
@@ -124,6 +125,19 @@ export function Service() {
   // Numbers follow the sections actually shown.
   let n = 0;
   const next = () => ++n;
+  // Which sections the page shows, in order: they make the guide's jump links.
+  const shown = {
+    packages: Boolean(service.price),
+    overview: Boolean(page && (more.length > 0 || page.whoFor.length > 0)),
+    ready: Boolean(page && any(page.included, page.notIncluded, page.documents)),
+    how: page?.steps.length > 0,
+    plan: Boolean(page && any(page.timeline, page.mistakes)),
+    costs: page?.costs.length > 0,
+    deliverables: page?.deliverables.length > 0,
+    benefits: page?.benefits.length > 0,
+    faq: page?.faqs.length > 0,
+  };
+  const guide = Object.keys(copy.guide.chips).filter((id) => shown[id]);
 
   return (
     <div ref={ref} key={slug}>
@@ -145,6 +159,25 @@ export function Service() {
         </div>
       </PageHero>
 
+      {page && guide.length > 2 && (
+        <nav aria-label={copy.guide.title} className="container-x pb-16" data-reveal>
+          <p className="eyebrow">{copy.guide.label}</p>
+          <h2 className="mt-3 text-2xl">{copy.guide.title}</h2>
+          <ul className="mt-6 flex flex-wrap gap-2">
+            {guide.map((id) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  className="inline-block rounded-full border border-rule px-4 py-2 text-sm hover:border-ink"
+                >
+                  {copy.guide.chips[id]}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      )}
+
       {service.price ? (
         <Section id="packages" className="pt-0! md:pt-0!">
           <SectionHeader
@@ -159,8 +192,8 @@ export function Service() {
         </Section>
       ) : null}
 
-      {page && (more.length > 0 || page.whoFor.length > 0) && (
-        <Section>
+      {shown.overview && (
+        <Section id="overview">
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <SectionHeader n={next()} label={copy.overview.label} title={copy.overview.title} />
@@ -172,21 +205,25 @@ export function Service() {
                 ))}
               </div>
             </div>
-            {page.whoFor.length > 0 && (
-              <div className="lg:col-span-5 lg:pt-24" data-reveal>
-                <p className="eyebrow">{copy.whoFor}</p>
-                <div className="mt-6">
-                  <CheckList items={page.whoFor} />
+            <div className="lg:col-span-5 lg:pt-24">
+              <ServiceArt page={page} section="overview" />
+              {page.whoFor.length > 0 && (
+                <div className="mt-12" data-reveal>
+                  <p className="eyebrow">{copy.whoFor}</p>
+                  <div className="mt-6">
+                    <CheckList items={page.whoFor} />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </Section>
       )}
 
-      {page && any(page.included, page.notIncluded, page.documents) && (
-        <Section>
+      {shown.ready && (
+        <Section id="ready">
           <SectionHeader n={next()} label={copy.ready.label} title={copy.ready.title} />
+          <ServiceArt page={page} section="ready" className="mt-12 max-w-3xl" />
           <ListCards
             groups={[
               [copy.ready.included, page.included],
@@ -205,18 +242,20 @@ export function Service() {
         </Section>
       )}
 
-      {page?.steps.length > 0 && (
+      {shown.how && (
         <Section id="how">
           <SectionHeader n={next()} label={copy.how.label} title={copy.how.title} />
+          <ServiceArt page={page} section="how" className="mt-12 max-w-3xl" />
           <div className="mt-16">
             <Steps steps={page.steps} />
           </div>
         </Section>
       )}
 
-      {page && any(page.timeline, page.mistakes) && (
-        <Section>
+      {shown.plan && (
+        <Section id="plan">
           <SectionHeader n={next()} label={copy.plan.label} title={copy.plan.title} />
+          <ServiceArt page={page} section="plan" className="mt-12 max-w-3xl" />
           <ListCards
             groups={[
               [copy.plan.timeline, page.timeline],
@@ -226,11 +265,12 @@ export function Service() {
         </Section>
       )}
 
-      {page?.costs.length > 0 && (
-        <Section>
+      {shown.costs && (
+        <Section id="costs">
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-4">
               <SectionHeader n={next()} label={copy.costs.label} title={copy.costs.title} />
+              <ServiceArt page={page} section="costs" className="mt-12" />
             </div>
             <dl className="border-t border-rule lg:col-span-8">
               {page.costs.map((c) => (
@@ -248,11 +288,12 @@ export function Service() {
         </Section>
       )}
 
-      {page?.deliverables.length > 0 && (
-        <Section>
+      {shown.deliverables && (
+        <Section id="deliverables">
           <div className="grid gap-12 lg:grid-cols-12">
             <div className="lg:col-span-5">
               <SectionHeader n={next()} label={copy.deliverables.label} title={copy.deliverables.title} />
+              <ServiceArt page={page} section="deliverables" className="mt-12" />
             </div>
             <div className="lg:col-span-7 lg:pt-24" data-reveal>
               <CheckList items={page.deliverables} />
@@ -261,20 +302,22 @@ export function Service() {
         </Section>
       )}
 
-      {page?.benefits.length > 0 && (
-        <Section>
+      {shown.benefits && (
+        <Section id="benefits">
           <SectionHeader n={next()} label={copy.benefits.label} title={copy.benefits.title} />
+          <ServiceArt page={page} section="benefits" className="mt-12 max-w-3xl" />
           <div className="mt-16">
             <Pairs items={page.benefits} />
           </div>
         </Section>
       )}
 
-      {page?.faqs.length > 0 && (
+      {shown.faq && (
         <Section id="faq">
           <div className="grid gap-12 md:grid-cols-12">
             <div className="md:col-span-4">
               <SectionHeader n={next()} label={copy.faq.label} title={copy.faq.title} />
+              <ServiceArt page={page} section="faq" className="mt-12" />
             </div>
             <div className="md:col-span-8">
               <Faq items={page.faqs} />
