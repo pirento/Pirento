@@ -1,5 +1,5 @@
-// The Pirento Ecosystem home page: hero, the ten products, the rest of the Pirento family as cards, about us,
-// one-account pillars, how it works, Legal, numbers.
+// The Pirento Ecosystem home page: hero, the ten products, Legal, the one-account pillars, how it works, the rest
+// of the family as a directory, numbers on a stone band, about us, questions. Each section has its own shape.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {PRODUCTS} from '@pirento/shared';
@@ -58,23 +58,9 @@ export function Home() {
 
       <ProductGroups copy={home.ecosystem} n={1} />
 
-      <FamilySection n={2} />
-
-      <AboutTeaser n={3} />
-
-      <Pillars copy={home.pillars} n={4} />
-
-      <Section inverse>
-        <SectionHeader n={5} label={home.how.label} title={home.how.title} />
-        <ArtFigure {...processArt.how} className="mt-12 max-w-3xl" />
-        <div className="mt-20">
-          <Steps steps={home.how.steps} />
-        </div>
-      </Section>
-
       <Section>
         <SectionHeader
-          n={6}
+          n={2}
           label={home.legal.label}
           title={home.legal.title}
           hl="priced up front."
@@ -107,12 +93,28 @@ export function Home() {
         </div>
       </Section>
 
-      <Section className="pt-0! md:pt-0!">
-        <SectionHeader n={7} label={home.numbers.label} title={home.numbers.title} />
-        <div className="mt-16">
-          <StatsRow stats={stats} />
+      <Pillars copy={home.pillars} n={3} />
+
+      <Section inverse>
+        <SectionHeader n={4} label={home.how.label} title={home.how.title} />
+        <ArtFigure {...processArt.how} className="mt-12 max-w-3xl" />
+        <div className="mt-20">
+          <Steps steps={home.how.steps} />
         </div>
       </Section>
+
+      <FamilySection n={5} />
+
+      {/* The people and the numbers together, on a stone band, so the page changes pace before the questions. */}
+      <section className="bg-stone py-24 md:py-32">
+        <div className="container-x">
+          <SectionHeader n={6} label={home.numbers.label} title={home.numbers.title} />
+          <div className="mt-16">
+            <StatsRow stats={stats} />
+          </div>
+        </div>
+      </section>
+      <AboutTeaser n={7} />
 
       <Section className="pt-0! md:pt-0!">
         <div className="grid gap-12 md:grid-cols-12">
