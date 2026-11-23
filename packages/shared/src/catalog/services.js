@@ -111,7 +111,20 @@ export function packageOf(service, id) {
 }
 
 /** The sections of a service's page. Admin's text wins section by section; an empty list hides a section. */
-export const PAGE_SECTIONS = ['intro', 'whoFor', 'included', 'documents', 'steps', 'benefits', 'faqs'];
+export const PAGE_SECTIONS = [
+  'intro',
+  'whoFor',
+  'included',
+  'notIncluded',
+  'documents',
+  'steps',
+  'timeline',
+  'costs',
+  'deliverables',
+  'mistakes',
+  'benefits',
+  'faqs',
+];
 export function servicePage(slug, pageEdit) {
   const base = LEGAL_PAGES[slug]?.page ?? {};
   return Object.fromEntries(PAGE_SECTIONS.map((k) => [k, pageEdit?.[k] ?? base[k] ?? (k === 'intro' ? '' : [])]));

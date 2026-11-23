@@ -10,6 +10,8 @@ import {
   packageOf,
   packagesOf,
   servicePage,
+  servicesFor,
+  LEGAL_PAGES,
 } from '../index.js';
 
 test('every service has a unique slug and a known product', () => {
@@ -63,5 +65,16 @@ test('packages: cheapest first, picked by id, a price change moves the cheapest,
   );
   assert.equal(servicePage('private-limited-company').documents.length > 0, true);
   assert.deepEqual(servicePage('private-limited-company', {documents: []}).documents, []);
-  assert.equal(servicePage('dsc').intro, '');
+});
+
+test('every Legal service has a full page', () => {
+  for (const s of servicesFor('legal')) {
+    const p = servicePage(s.slug);
+    for (const k of ['intro', 'documents', 'steps', 'faqs', 'costs', 'deliverables'])
+      assert.ok(p[k].length, `${s.slug} ${k}`);
+  }
+  assert.ok(
+    Object.keys(LEGAL_PAGES).every((slug) => getService(slug)),
+    'a page for an unknown slug',
+  );
 });

@@ -3238,7 +3238,10 @@ check('its order stays', (await call(`/orders/${pkgOrder?._id}`, {token: user}))
 const pvt = (await call('/catalog/services/private-limited-company')).data;
 check(
   'a service page carries its packages and sections',
-  pvt?.packages?.length === 3 && pvt.page?.documents?.length > 0 && pvt.page?.faqs?.length > 0,
+  pvt?.packages?.length === 3 &&
+    pvt.page?.documents?.length > 0 &&
+    pvt.page?.faqs?.length > 0 &&
+    pvt.page?.deliverables?.length > 0,
 );
 const buyPack = (packageId, body = {}) =>
   call('/orders', {
@@ -3282,11 +3285,20 @@ const putPage = (page, token = boss) =>
   call('/catalog/staff/services/gst-registration/page', {method: 'PUT', token, body: {page}});
 check('only a superadmin edits a page', (await putPage({intro: 'x'}, staffToken)).status === 403);
 check('an unknown section is refused', (await putPage({colour: 'red'})).status === 400);
-await putPage({documents: [], faqs: [{q: 'Is this a test?', a: 'Yes, it is.'}]});
+await putPage({
+  documents: [],
+  faqs: [{q: 'Is this a test?', a: 'Yes, it is.'}],
+  mistakes: ['Testing on live'],
+  costs: [{title: 'Fee', body: 'The price.'}],
+});
 const editedPage = (await call('/catalog/services/gst-registration')).data?.page;
 check(
   'admin can hide a section and rewrite another',
-  editedPage?.documents?.length === 0 && editedPage.faqs[0]?.q === 'Is this a test?' && editedPage.steps.length > 0,
+  editedPage?.documents?.length === 0 &&
+    editedPage.faqs[0]?.q === 'Is this a test?' &&
+    editedPage.steps.length > 0 &&
+    editedPage.mistakes[0] === 'Testing on live' &&
+    editedPage.costs[0]?.title === 'Fee',
   editedPage,
 );
 await putPage(null);

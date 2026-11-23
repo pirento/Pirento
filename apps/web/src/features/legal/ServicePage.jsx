@@ -72,6 +72,26 @@ function PackageCards({service}) {
   );
 }
 
+/** Titled lists side by side (included / not included / documents, and so on); empty ones are left out. */
+function ListCards({groups}) {
+  const shown = groups.filter(([, items]) => items?.length);
+  if (!shown.length) return null;
+  return (
+    <div className={`mt-16 grid gap-4 md:grid-cols-2 ${shown.length > 2 ? 'lg:grid-cols-3' : ''}`}>
+      {shown.map(([title, items]) => (
+        <div key={title} className="rounded-[22px] border border-rule p-8" data-reveal>
+          <h3 className="text-2xl">{title}</h3>
+          <div className="mt-6">
+            <CheckList items={items} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const any = (...lists) => lists.some((l) => l?.length);
+
 function Pairs({items}) {
   return (
     <ul className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -164,24 +184,16 @@ export function Service() {
         </Section>
       )}
 
-      {page && (page.included.length > 0 || page.documents.length > 0) && (
+      {page && any(page.included, page.notIncluded, page.documents) && (
         <Section>
           <SectionHeader n={next()} label={copy.ready.label} title={copy.ready.title} />
-          <div className="mt-16 grid gap-4 md:grid-cols-2">
-            {[
+          <ListCards
+            groups={[
               [copy.ready.included, page.included],
+              [copy.ready.notIncluded, page.notIncluded],
               [copy.ready.documents, page.documents],
-            ]
-              .filter(([, items]) => items.length)
-              .map(([title, items]) => (
-                <div key={title} className="rounded-[22px] border border-rule p-8" data-reveal>
-                  <h3 className="text-2xl">{title}</h3>
-                  <div className="mt-6">
-                    <CheckList items={items} />
-                  </div>
-                </div>
-              ))}
-          </div>
+            ]}
+          />
           {user && service.price && (
             <details className="mt-8 max-w-3xl rounded-[18px] border border-rule px-5 py-4" data-reveal>
               <summary className="cursor-pointer font-medium">{copy.ready.ai}</summary>
@@ -198,6 +210,53 @@ export function Service() {
           <SectionHeader n={next()} label={copy.how.label} title={copy.how.title} />
           <div className="mt-16">
             <Steps steps={page.steps} />
+          </div>
+        </Section>
+      )}
+
+      {page && any(page.timeline, page.mistakes) && (
+        <Section>
+          <SectionHeader n={next()} label={copy.plan.label} title={copy.plan.title} />
+          <ListCards
+            groups={[
+              [copy.plan.timeline, page.timeline],
+              [copy.plan.mistakes, page.mistakes],
+            ]}
+          />
+        </Section>
+      )}
+
+      {page?.costs.length > 0 && (
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <SectionHeader n={next()} label={copy.costs.label} title={copy.costs.title} />
+            </div>
+            <dl className="border-t border-rule lg:col-span-8">
+              {page.costs.map((c) => (
+                <div
+                  key={c.title}
+                  className="grid gap-2 border-b border-rule py-6 sm:grid-cols-[14rem_1fr]"
+                  data-reveal
+                >
+                  <dt className="font-medium">{c.title}</dt>
+                  <dd className="body text-base">{c.body}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </Section>
+      )}
+
+      {page?.deliverables.length > 0 && (
+        <Section>
+          <div className="grid gap-12 lg:grid-cols-12">
+            <div className="lg:col-span-5">
+              <SectionHeader n={next()} label={copy.deliverables.label} title={copy.deliverables.title} />
+            </div>
+            <div className="lg:col-span-7 lg:pt-24" data-reveal>
+              <CheckList items={page.deliverables} />
+            </div>
           </div>
         </Section>
       )}

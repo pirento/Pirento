@@ -232,7 +232,11 @@ function Pairs({label, rows, onChange, keys, labels}) {
 const LISTS = [
   ['whoFor', 'Who it is for, one per line'],
   ['included', 'What every package includes, one per line'],
+  ['notIncluded', 'Not included, confirmed separately, one per line'],
   ['documents', 'Documents needed, one per line'],
+  ['timeline', 'What affects the timeline, one per line'],
+  ['deliverables', 'What the customer receives at the end, one per line'],
+  ['mistakes', 'Common mistakes to avoid, one per line'],
 ];
 
 /** Every section of the service page. An empty section is hidden on the website. */
@@ -265,6 +269,7 @@ export function PageForm({service, n}) {
         intro: form.intro.trim(),
         ...Object.fromEntries(LISTS.map(([k]) => [k, lines(form[k])])),
         steps: clean(form.steps, ['title']),
+        costs: clean(form.costs, ['title']),
         benefits: clean(form.benefits, ['title']),
         faqs: clean(form.faqs, ['q', 'a']),
       },
@@ -305,6 +310,13 @@ export function PageForm({service, n}) {
         onChange={set('steps')}
         keys={['title', 'body']}
         labels={['Step', 'What happens']}
+      />
+      <Pairs
+        label="What the cost is made of"
+        rows={form.costs}
+        onChange={set('costs')}
+        keys={['title', 'body']}
+        labels={['Cost part', 'What to know']}
       />
       <Pairs
         label="Benefits"

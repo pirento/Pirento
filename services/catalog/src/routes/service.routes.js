@@ -160,8 +160,13 @@ const page = z
     intro: text(2000),
     whoFor: z.array(text(160).min(1)).max(10),
     included: z.array(text(200).min(1)).max(20),
+    notIncluded: z.array(text(200).min(1)).max(20),
     documents: z.array(text(200).min(1)).max(20),
     steps: z.array(z.object({title: text(80).min(1), body: text(300)})).max(10),
+    timeline: z.array(text(200).min(1)).max(10),
+    costs: z.array(z.object({title: text(80).min(1), body: text(300)})).max(10),
+    deliverables: z.array(text(200).min(1)).max(15),
+    mistakes: z.array(text(200).min(1)).max(10),
     benefits: z.array(z.object({title: text(80).min(1), body: text(300)})).max(10),
     faqs: z.array(z.object({q: text(200).min(3), a: text(1000).min(1)})).max(20),
   })
