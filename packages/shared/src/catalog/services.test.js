@@ -1,6 +1,16 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {SERVICES, getService, PRODUCTS, editedService, editedServicesFor, basePrice} from '../index.js';
+import {
+  SERVICES,
+  getService,
+  PRODUCTS,
+  editedService,
+  editedServicesFor,
+  basePrice,
+  packageOf,
+  packagesOf,
+  servicePage,
+} from '../index.js';
 
 test('every service has a unique slug and a known product', () => {
   const slugs = SERVICES.map((s) => s.slug);
@@ -32,4 +42,26 @@ test("admin edits: a new price, off sale, and a service made in admin with its p
     basePrice('legal-startup-pack', {...edits, 'legal-startup-pack': {...edits['legal-startup-pack'], price: 10}}),
     4999,
   );
+});
+
+test('packages: cheapest first, picked by id, a price change moves the cheapest, admin packages win', () => {
+  const pvt = getService('private-limited-company');
+  assert.deepEqual(
+    packagesOf(pvt).map((p) => p.id),
+    ['basic', 'standard', 'premium'],
+  );
+  assert.equal(packageOf(pvt).id, 'basic');
+  assert.equal(packageOf(pvt, 'premium').price, 9999);
+  assert.equal(packageOf(pvt, 'nope'), null);
+  assert.equal(packagesOf(getService('dsc'))[0].price, getService('dsc').price);
+  assert.equal(editedService('private-limited-company', {'private-limited-company': {price: 2499}}).price, 2499);
+  const own = {'private-limited-company': {packages: [{id: 'one', name: 'One', price: 3000, includes: []}]}};
+  assert.equal(editedService('private-limited-company', own).price, 3000);
+  assert.deepEqual(
+    packagesOf(editedService('private-limited-company', {'private-limited-company': {offSale: true}})),
+    [],
+  );
+  assert.equal(servicePage('private-limited-company').documents.length > 0, true);
+  assert.deepEqual(servicePage('private-limited-company', {documents: []}).documents, []);
+  assert.equal(servicePage('dsc').intro, '');
 });

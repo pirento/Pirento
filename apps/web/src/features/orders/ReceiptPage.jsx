@@ -10,6 +10,7 @@ import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
 import {hasReceipt, paidAt} from './receipts';
+import {orderTitle} from './helpers';
 
 const METHOD = {wallet: 'Pirento wallet', razorpay: 'Card / UPI (Razorpay)'};
 
@@ -99,7 +100,7 @@ export function Receipt() {
         <div className="py-8">
           <p className="text-xs tracking-[0.12em] text-muted uppercase">{product?.name}</p>
           <p className="mt-2 font-medium">
-            {order.serviceName}
+            {orderTitle(order)}
             {order.quantity > 1 && ` × ${order.quantity}`}
           </p>
           <dl className="mt-6 divide-y divide-rule border-y border-rule">

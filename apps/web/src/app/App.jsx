@@ -12,6 +12,7 @@ import {AppLayout} from '../components/layout/AppLayout';
 import {RouteEffects} from './RouteEffects';
 import {ROUTES} from './routes';
 import {RouteLoader} from '../components/layout/RouteLoader';
+import {RouteProgress} from '../components/layout/RouteProgress';
 
 /** Marketing pages: navbar on top, footer below. */
 function SiteLayout({children}) {
@@ -32,7 +33,7 @@ const LAYOUTS = {
   auth: ({children}) => <main id="main">{children}</main>,
 };
 
-/** What every page shares: preloader, cursor, page-change effects, and its layout. */
+/** What every page shares: preloader, cursor, page-change effects and loading bar, and its layout. */
 export function App() {
   useEffect(() => {
     startSmoothScroll();
@@ -44,6 +45,7 @@ export function App() {
       <Preloader />
       <Cursor />
       <RouteEffects />
+      <RouteProgress />
       <Suspense fallback={<RouteLoader />}>
         <Routes>
           {ROUTES.map(({path, element, Page, layout = 'site'}) => {

@@ -3234,6 +3234,121 @@ await call(`/catalog/staff/services/${pkg?.slug}`, {method: 'DELETE', token: bos
 check('a deleted package takes no orders', (await packOrder({phone: '9876500000'})).error?.code === 'NOT_FOR_SALE');
 check('its order stays', (await call(`/orders/${pkgOrder?._id}`, {token: user})).data?.serviceName === pack);
 
+// ── Service pages and packages ───────────────────────────────────────────
+const pvt = (await call('/catalog/services/private-limited-company')).data;
+check(
+  'a service page carries its packages and sections',
+  pvt?.packages?.length === 3 && pvt.page?.documents?.length > 0 && pvt.page?.faqs?.length > 0,
+);
+const buyPack = (packageId, body = {}) =>
+  call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'private-limited-company', packageId, intake: {...intake, directors: '2 directors'}, ...body},
+  });
+const stdOrder = (await buyPack('standard')).data;
+check(
+  'a package is charged at its own price and named on the order',
+  stdOrder?.amount === 499900 && stdOrder.package?.name === 'Standard',
+  stdOrder,
+);
+check('an unknown package is refused', (await buyPack('gold')).status === 400);
+check('no package means the cheapest', (await buyPack(undefined)).data?.amount === 199900);
+
+const putPacks = (packages, token = boss) =>
+  call('/catalog/staff/services/gst-registration/packages', {method: 'PUT', token, body: {packages}});
+const twoPacks = [
+  {id: 'lite', name: 'Lite', price: 1099, includes: ['Filing'], deliveryTime: '5 days'},
+  {id: 'plus', name: 'Plus', price: 2999, strike: 3499, includes: ['Filing', '3 returns'], recommended: true},
+];
+check('only a superadmin sets packages', (await putPacks(twoPacks, staffToken)).status === 403);
+check(
+  'two packages with one id are refused',
+  (await putPacks([twoPacks[0], {...twoPacks[1], id: 'lite'}])).status === 400,
+);
+check('a struck price must be higher', (await putPacks([{...twoPacks[1], strike: 100}])).status === 400);
+check('admin sets the packages', (await putPacks(twoPacks)).data?.price === 1099);
+const gstPlus = (
+  await call('/orders', {
+    method: 'POST',
+    token: user,
+    body: {serviceSlug: 'gst-registration', packageId: 'plus', intake},
+  })
+).data;
+check('checkout charges the admin package', gstPlus?.amount === 299900, gstPlus);
+check('the catalogue packages come back on reset', (await putPacks(null)).data?.packages?.[0]?.id === 'basic');
+
+const putPage = (page, token = boss) =>
+  call('/catalog/staff/services/gst-registration/page', {method: 'PUT', token, body: {page}});
+check('only a superadmin edits a page', (await putPage({intro: 'x'}, staffToken)).status === 403);
+check('an unknown section is refused', (await putPage({colour: 'red'})).status === 400);
+await putPage({documents: [], faqs: [{q: 'Is this a test?', a: 'Yes, it is.'}]});
+const editedPage = (await call('/catalog/services/gst-registration')).data?.page;
+check(
+  'admin can hide a section and rewrite another',
+  editedPage?.documents?.length === 0 && editedPage.faqs[0]?.q === 'Is this a test?' && editedPage.steps.length > 0,
+  editedPage,
+);
+await putPage(null);
+check(
+  'the standard page comes back on reset',
+  (await call('/catalog/services/gst-registration')).data?.page?.documents?.length > 0,
+);
+
+// ── Buying without an account ────────────────────────────────────────────
+const gMobile = `7${String(Date.now()).slice(-9)}`;
+const gEmail = `guest${Date.now()}@example.com`;
+const guestBody = {name: 'Kiran Rao', email: gEmail, phone: gMobile, product: 'legal'};
+const gReq = (await call('/auth/otp/checkout/request', {method: 'POST', body: guestBody})).data;
+check('checkout sends a code to the mobile', gReq?.channel === 'phone' && /•••/.test(gReq.sentTo ?? ''), gReq);
+check(
+  'the terms must be accepted',
+  (await call('/auth/otp/checkout/verify', {method: 'POST', body: {...guestBody, code: gReq.devCode}})).status === 400,
+);
+const gIn = (
+  await call('/auth/otp/checkout/verify', {
+    method: 'POST',
+    body: {...guestBody, code: gReq.devCode, acceptTerms: true},
+  })
+).data;
+check('verifying makes the account and signs in', Boolean(gIn?.token) && gIn.user?.name === 'Kiran Rao', gIn);
+const gOrder = (
+  await call('/orders', {
+    method: 'POST',
+    token: gIn.token,
+    body: {
+      serviceSlug: 'private-limited-company',
+      packageId: 'basic',
+      intake: {...intake, directors: '2 directors', phone: gMobile},
+    },
+  })
+).data;
+check('the new customer can order', gOrder?.amount === 199900);
+const gPhone = (await call('/auth/otp/phone/request', {method: 'POST', body: {phone: gMobile}})).data;
+const gBack = (await call('/auth/otp/phone/verify', {method: 'POST', body: {phone: gMobile, code: gPhone?.devCode}}))
+  .data;
+check(
+  'they sign in later with a mobile code',
+  gBack?.user?.id === gIn.user.id || gBack?.user?._id === gIn.user._id,
+  gBack,
+);
+const gReq2 = (await call('/auth/otp/checkout/request', {method: 'POST', body: guestBody})).data;
+const gAgain = (
+  await call('/auth/otp/checkout/verify', {
+    method: 'POST',
+    body: {...guestBody, code: gReq2.devCode, acceptTerms: true},
+  })
+).data;
+check('the same mobile opens the same account', gAgain?.user?.email === gEmail, gAgain);
+const otherMobile = `6${String(Date.now()).slice(-9)}`;
+const taken = {...guestBody, phone: otherMobile};
+const tReq = (await call('/auth/otp/checkout/request', {method: 'POST', body: taken})).data;
+check(
+  'an email that has an account is not opened by another mobile',
+  (await call('/auth/otp/checkout/verify', {method: 'POST', body: {...taken, code: tReq.devCode, acceptTerms: true}}))
+    .error?.code === 'EMAIL_TAKEN',
+);
+
 // ── Contact form ────────────────────────────────────────────────────────
 const enquiry = {
   name: 'Meera Iyer',

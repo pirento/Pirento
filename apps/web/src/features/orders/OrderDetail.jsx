@@ -23,6 +23,7 @@ import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {orderTitle} from './helpers';
 
 export function OrderDetail() {
   const {slug, id} = useParams();
@@ -33,7 +34,7 @@ export function OrderDetail() {
   const ref = useRef(null);
   const order = fresh?._id === id ? fresh : fetched.data;
   usePageMotion(ref, [Boolean(order)]);
-  usePageMeta({title: order ? `${order.serviceName} · #${order.orderNo}` : 'Order'});
+  usePageMeta({title: order ? `${orderTitle(order)} · #${order.orderNo}` : 'Order'});
   if (redirect) return redirect;
   // An order opens only under its own product, and only for its customer (staff use the admin).
   if (fetched.error || (order && (order.product !== slug || order.userId !== user._id))) return <NotFound />;
@@ -63,7 +64,7 @@ export function OrderDetail() {
         </p>
         <Heading
           as="h1"
-          text={order.serviceName}
+          text={orderTitle(order)}
           className="mt-5 text-[clamp(2rem,4vw,3.25rem)] leading-[1.04] break-words"
         />
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">

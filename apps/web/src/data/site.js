@@ -801,6 +801,55 @@ export const appDashboards = {
   },
 };
 
+// A service's own page (features/legal/ServicePage.jsx): headings around the catalogue's sections.
+export const servicePageCopy = {
+  from: 'From',
+  choose: 'See the packages',
+  ask: 'Ask a question first',
+  quote: 'Request a quote',
+  recommended: 'Recommended',
+  buy: (name) => `Buy ${name}`,
+  buyOne: 'Buy now',
+  book: 'Book a consultation',
+  packages: {
+    label: 'Packages',
+    title: 'Pick what / you need.',
+    intro: 'The price is fixed before you pay. You can buy without an account; we make one with your mobile.',
+  },
+  overview: {label: 'Overview', title: 'What it is.'},
+  whoFor: 'Who it is for',
+  ready: {
+    label: 'What you get',
+    title: 'Included, and / what to keep ready.',
+    included: 'Included',
+    documents: 'Documents needed',
+    ai: 'What should I have ready for my case? (Pirento AI)',
+  },
+  how: {label: 'How it works', title: 'Step by / step.'},
+  benefits: {label: 'Why do it', title: 'What it / gives you.'},
+  faq: {label: 'Questions', title: 'Before you / buy.'},
+  related: {label: 'Related', title: 'Often bought / alongside.'},
+};
+
+// Checkout for someone not signed in (features/orders/GuestDetails.jsx).
+export const checkoutGuest = {
+  label: 'Your details',
+  title: 'Buy without an account.',
+  intro:
+    'We send a code to your mobile to check it is yours, then make your Pirento account, so you can follow your order and sign in later with your mobile.',
+  name: 'Full name',
+  email: 'Email',
+  terms: 'I have read and accept the',
+  termsLink: 'Terms and Conditions',
+  send: 'Send code',
+  verify: 'Verify and continue',
+  wait: 'Please wait',
+  change: 'Change details',
+  sentTo: (to) => `We sent a 6-digit code to ${to}.`,
+  dev: (code) => `Test mode: your code is ${code}.`,
+  haveAccount: 'I already have an account',
+};
+
 // The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
 export const receipt = {
   title: 'Payment receipt',

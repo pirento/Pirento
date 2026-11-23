@@ -254,7 +254,7 @@ export const ADMIN_SECTIONS = [
     icon: Briefcase,
     roles: ALL_STAFF,
     intro:
-      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services and packages and set the questions asked before and after payment.',
+      'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services, set each one’s packages and page, and the questions asked before and after payment.',
   },
   {
     id: 'settings',

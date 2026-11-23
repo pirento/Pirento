@@ -1,7 +1,7 @@
 // Discount codes: a customer checks one at checkout; finance creates and switches them off.
 import {Router} from 'express';
 import {z} from 'zod';
-import {PRODUCTS} from '@pirento/shared';
+import {PRODUCTS, packageOf} from '@pirento/shared';
 import {liveService} from '../lib/catalog.js';
 import {ACCESS, audit, conflict, isId, notFound, requireAuth, requireRole, validate} from '@pirento/shared/server';
 import {Coupon} from '../models/Coupon.js';
@@ -14,7 +14,9 @@ couponRoutes.get('/coupons/:code', requireAuth, async (req, res) => {
   const service = await liveService(String(req.query.service ?? '').slice(0, 80));
   if (!service?.price) throw notFound('Service not found');
   const quantity = Math.max(1, Math.min(Number(req.query.quantity) || 1, service.maxQty ?? 1));
-  const amount = service.price * 100 * quantity;
+  const pack = packageOf(service, req.query.package ? String(req.query.package).slice(0, 40) : undefined);
+  if (!pack) throw notFound('Package not found');
+  const amount = pack.price * 100 * quantity;
   const coupon = await Coupon.findOne({code: req.params.code.toUpperCase()});
   const discount = discountFor(coupon, service.product, amount);
   res.json({data: {code: coupon.code, discount, total: amount - discount}});

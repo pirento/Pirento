@@ -29,6 +29,20 @@ const custom = new mongoose.Schema(
   {_id: false},
 );
 
+// One package a service sells; price in rupees.
+const pack = new mongoose.Schema(
+  {
+    id: String,
+    name: String,
+    price: Number,
+    strike: Number, // an earlier price shown struck through, if any
+    deliveryTime: String,
+    includes: {type: [String], default: []},
+    recommended: Boolean,
+  },
+  {_id: false},
+);
+
 /**
  * The base catalogue stays in packages/shared; this row wins over it (applyEdit there). `custom` holds a service
  * made in admin. Questions left unset mean the defaults. Kept in the collection the price changes always used.
@@ -41,6 +55,9 @@ const schema = new mongoose.Schema(
     questions: {type: [question], default: undefined}, // before payment
     afterQuestions: {type: [question], default: undefined}, // after payment
     custom: {type: custom, default: undefined},
+    packages: {type: [pack], default: undefined}, // replaces the catalogue's packages
+    // The service page's sections (servicePage in packages/shared); not in the price map, read per page.
+    page: {type: Object, default: undefined},
     updatedBy: String,
   },
   {timestamps: true},
@@ -52,6 +69,10 @@ export const ServiceEdit = mongoose.model('ServiceEdit', schema, 'priceoverrides
 // Read on every page load (prices) and every order, so it is cached; any edit forgets it.
 export const editMap = () => cached('catalog:edits', 60, loadEdits);
 async function loadEdits() {
-  const rows = await ServiceEdit.find({}, {_id: 0, createdAt: 0, updatedAt: 0, updatedBy: 0, __v: 0}).lean();
+  const rows = await ServiceEdit.find({}, {_id: 0, createdAt: 0, updatedAt: 0, updatedBy: 0, __v: 0, page: 0}).lean();
   return Object.fromEntries(rows.map(({slug, ...edit}) => [slug, edit]));
 }
+
+/** A service's page sections as admin wrote them, or null. Cached per slug; any edit forgets every page. */
+export const pageEdit = (slug) =>
+  cached(`catalog:page:${slug}`, 60, async () => (await ServiceEdit.findOne({slug}, {page: 1}).lean())?.page ?? null);

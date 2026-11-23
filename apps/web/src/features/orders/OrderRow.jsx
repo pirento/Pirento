@@ -6,6 +6,7 @@ import {ORDER_STEPS, getProduct, statusLabel} from '@pirento/shared';
 import {Tag} from '../../components/ui/Tag';
 import {formatDate, inr} from '../../lib/format';
 import {ProductIcon} from '../../components/ui/ProductIcon';
+import {orderTitle} from './helpers';
 
 /** Where an order is, as four joined dots: awaiting payment → paid → in progress → completed. */
 export function Progress({status}) {
@@ -34,7 +35,7 @@ export function OrderRow({order, showProduct = false}) {
       >
         <span className="min-w-0">
           <span className="block font-medium group-hover:underline">
-            {order.serviceName}
+            {orderTitle(order)}
             {order.quantity > 1 && ` × ${order.quantity}`}
           </span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">

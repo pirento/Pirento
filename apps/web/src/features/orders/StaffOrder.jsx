@@ -4,7 +4,7 @@ import {STAFF_TRANSITIONS, askedQuestions, needsDetails, statusLabel} from '@pir
 import {Button} from '../../components/ui/Button';
 import {Field} from '../../components/ui/Field';
 import {Tag} from '../../components/ui/Tag';
-import {qty} from './helpers';
+import {qty, orderTitle} from './helpers';
 import {OrderConversation} from './OrderConversation';
 import {OrderDocuments} from './OrderDocuments';
 import {StaffOrderAi} from './StaffOrderAi';
@@ -73,7 +73,7 @@ export function StaffOrder({order, onChange}) {
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
         <span>
           <span className="block font-medium">
-            #{order.orderNo} · {order.serviceName}
+            #{order.orderNo} · {orderTitle(order)}
             {qty(order)}
           </span>
           <span className="text-sm text-muted">

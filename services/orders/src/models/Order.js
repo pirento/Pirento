@@ -16,6 +16,7 @@ export const Order = mongoose.model(
       product: {type: String, required: true},
       serviceSlug: {type: String, required: true},
       serviceName: {type: String, required: true},
+      package: {_id: false, id: String, name: String}, // the package bought, as named when ordered
       quantity: {type: Number, default: 1, min: 1},
       amount: {type: Number, required: true, min: 1}, // paise: catalog price × quantity
       intake: {type: Object, default: {}}, // answers to the checkout questions

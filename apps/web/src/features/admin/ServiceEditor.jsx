@@ -19,6 +19,7 @@ import {api} from '../../lib/api/client';
 import {inr} from '../../lib/format';
 import {useCatalogEdits, useService, useServicesFor} from '../../lib/prices';
 import {QuestionsEditor, toQuestions, toRows} from './QuestionsEditor';
+import {PackagesForm, PageForm} from './ServicePageEditor';
 
 const EMPTY = {name: '', category: '', description: '', deliveryTime: '', model: 'fixed', price: '', includes: ''};
 
@@ -288,9 +289,15 @@ export function ServiceEditor({slug}) {
         </section>
       )}
       {creating ? (
-        <p className="text-sm text-muted">Once it is added, set the questions it asks before and after payment here.</p>
+        <p className="text-sm text-muted">
+          Once it is added, set its packages, its page and the questions it asks before and after payment here.
+        </p>
       ) : (
-        <QuestionsForm service={service} onSaved={reload} n={service.custom ? 2 : 1} />
+        <>
+          <PackagesForm service={service} onSaved={reload} n={service.custom ? 2 : 1} />
+          <PageForm service={service} n={service.custom ? 3 : 2} />
+          <QuestionsForm service={service} onSaved={reload} n={service.custom ? 4 : 3} />
+        </>
       )}
     </div>
   );

@@ -16,6 +16,7 @@ export async function orderFacts(order) {
     orderNo: order.orderNo,
     product: order.product,
     service: order.serviceName,
+    package: order.package?.name,
     consultation: getService(order.serviceSlug)?.model === 'consult',
     status: statusLabel(order.status),
     placed: order.createdAt,

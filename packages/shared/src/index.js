@@ -16,7 +16,12 @@ export {
   basePrice,
   categoriesOf,
   slugify,
+  packagesOf,
+  packageOf,
+  servicePage,
+  PAGE_SECTIONS,
 } from './catalog/services.js';
+export {LEGAL_PAGES} from './data/legalPages.js';
 
 // Orders: life cycle and checkout questions
 export {

@@ -4,6 +4,7 @@ import {FileText} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {formatDate, inr} from '../../lib/format';
 import {hasReceipt, paidAt} from './receipts';
+import {orderTitle} from './helpers';
 
 export function ReceiptList({orders, showProduct = false}) {
   const paid = (orders ?? []).filter(hasReceipt).sort((a, b) => new Date(paidAt(b)) - new Date(paidAt(a)));
@@ -22,7 +23,7 @@ export function ReceiptList({orders, showProduct = false}) {
                 <FileText aria-hidden className="size-4" />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block font-medium group-hover:underline sm:truncate">{o.serviceName}</span>
+                <span className="block font-medium group-hover:underline sm:truncate">{orderTitle(o)}</span>
                 <span className="block text-sm text-muted">
                   {product && `${product.name} · `}Receipt #{o.orderNo} · {formatDate(paidAt(o))}
                   {o.payment?.refunded && ' · refunded'}

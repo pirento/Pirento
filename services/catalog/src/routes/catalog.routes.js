@@ -1,8 +1,8 @@
 // Products and prices from packages/shared, with the admin's edits and the services made in admin.
 import {Router} from 'express';
-import {LEGAL_CATALOGUE, PRODUCTS, editedService, editedServicesFor, getProduct} from '@pirento/shared';
+import {LEGAL_CATALOGUE, PRODUCTS, editedService, editedServicesFor, getProduct, servicePage} from '@pirento/shared';
 import {notFound} from '@pirento/shared/server';
-import {editMap} from '../models/ServiceEdit.js';
+import {editMap, pageEdit} from '../models/ServiceEdit.js';
 
 export const catalogRoutes = Router();
 
@@ -19,5 +19,5 @@ catalogRoutes.get('/legal/catalogue', (_req, res) => res.json({data: LEGAL_CATAL
 catalogRoutes.get('/services/:slug', async (req, res) => {
   const service = editedService(req.params.slug, await editMap());
   if (!service) throw notFound('No such service');
-  res.json({data: service});
+  res.json({data: {...service, page: servicePage(service.slug, await pageEdit(service.slug))}});
 });
