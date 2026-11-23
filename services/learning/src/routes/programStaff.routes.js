@@ -27,7 +27,7 @@ import {Program} from '../models/Program.js';
 import {Work} from '../models/Work.js';
 import {ask} from '../lib/ai.js';
 import {eligibility, finish, scoreOf} from '../lib/program.js';
-import {MAX_VIDEO_BYTES, uploadUrl, videoReady} from '../lib/video.js';
+import {MAX_VIDEO_BYTES, uploadUrl, videoReady, videoUploaded} from '../lib/video.js';
 
 export const programStaffRoutes = Router();
 const staff = Router();
@@ -156,30 +156,49 @@ const videoBody = z.object({
 
 staff.get('/video-ready', (_req, res) => res.json({data: {ready: videoReady()}}));
 
-// shortcut: the video is recorded on the lesson or class when the upload URL is handed out, before the browser
-// finishes; a failed upload leaves a key that plays nothing until it is uploaded again. Add a confirm step (HEAD
-// the object) if that bites.
-async function attachVideo(req, Model, folder) {
+// The upload URL comes first and the video is only attached once the browser says it finished and the bucket
+// has it, so a failed or abandoned upload never replaces a working video.
+const FIELD = (Model) => (Model === LiveClass ? 'recording' : 'video');
+const PENDING = (Model) => (Model === LiveClass ? 'pendingRecording' : 'pendingVideo');
+
+async function startVideo(req, Model, folder) {
   const doc = isId(req.params.id) && (await Model.findById(req.params.id));
   if (!doc) throw notFound('Not found');
   const {key, url} = await uploadUrl(folder, req.body.type);
-  const field = Model === LiveClass ? 'recording' : 'video';
-  await Model.updateOne({_id: doc._id}, {$set: {[field]: {key, ...req.body}}});
-  audit(req, `program.${field}`, doc.title, req.body.name);
+  await Model.updateOne({_id: doc._id}, {$set: {[PENDING(Model)]: {key, ...req.body}}});
   return {url, type: req.body.type};
 }
 
+async function confirmVideo(req, Model) {
+  const doc = isId(req.params.id) && (await Model.findById(req.params.id));
+  const pending = doc?.[PENDING(Model)];
+  if (!pending?.key) throw notFound('No upload to confirm');
+  if (!(await videoUploaded(pending.key))) throw conflict('NOT_UPLOADED', 'The upload has not reached storage');
+  // Conditional on the same pending key, so a newer upload started meanwhile is not overwritten.
+  const done = await Model.findOneAndUpdate(
+    {_id: doc._id, [`${PENDING(Model)}.key`]: pending.key},
+    {$set: {[FIELD(Model)]: pending}, $unset: {[PENDING(Model)]: 1}},
+    {new: true},
+  );
+  if (!done) throw conflict('CHANGED', 'A newer upload replaced this one');
+  audit(req, `program.${FIELD(Model)}`, doc.title, pending.name);
+  return {[FIELD(Model)]: done[FIELD(Model)]};
+}
+
 staff.post('/classes/:id/recording', validate(videoBody), async (req, res) => {
-  res.json({data: await attachVideo(req, LiveClass, 'classes')});
+  res.json({data: await startVideo(req, LiveClass, 'classes')});
+});
+staff.post('/classes/:id/recording/confirm', async (req, res) => {
+  res.json({data: await confirmVideo(req, LiveClass)});
 });
 
-programStaffRoutes.post(
-  '/staff/courses/lessons/:id/video',
-  requireAuth,
-  requireRole(...ACCESS.learning),
-  validate(videoBody),
-  async (req, res) => res.json({data: await attachVideo(req, Lesson, 'lessons')}),
+const lessonVideo = Router({mergeParams: true}); // keeps :id from the mount path
+lessonVideo.use(requireAuth, requireRole(...ACCESS.learning));
+lessonVideo.post('/', validate(videoBody), async (req, res) =>
+  res.json({data: await startVideo(req, Lesson, 'lessons')}),
 );
+lessonVideo.post('/confirm', async (req, res) => res.json({data: await confirmVideo(req, Lesson)}));
+programStaffRoutes.use('/staff/courses/lessons/:id/video', lessonVideo);
 
 // ---- Paid work ------------------------------------------------------------------------------------------------------
 

@@ -52,5 +52,5 @@ resource "aws_backup_selection" "main" {
   name         = var.project
   plan_id      = aws_backup_plan.main.id
   iam_role_arn = aws_iam_role.backup.arn
-  resources    = [aws_rds_cluster.wallet.arn, aws_s3_bucket.videos.arn]
+  resources    = [aws_rds_cluster.wallet.arn, aws_s3_bucket.videos.arn, aws_s3_bucket.files.arn]
 }

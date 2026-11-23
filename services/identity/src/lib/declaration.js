@@ -2,7 +2,8 @@
 const W = 595; // A4 in points
 const H = 842;
 
-// shortcut: built-in Helvetica only covers Latin-1, so other letters print as "?"; embed a Unicode font if names in other scripts appear.
+// Built-in Helvetica covers Latin-1 only. Names are entered in English letters (form.js), so this is a safety net for
+// older applications: any other letter prints as "?".
 const latin1 = (s) => String(s ?? '').replace(/[^\x20-\x7e\xa0-\xff]/g, '?');
 const esc = (s) => latin1(s).replace(/[\\()]/g, (c) => `\\${c}`);
 

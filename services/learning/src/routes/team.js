@@ -76,7 +76,7 @@ export function teamRoutes(scope) {
     const file = await Resume.findOne({userId: app.userId});
     if (!file) throw notFound('This applicant has no resume on file');
     log(req, 'application.resume', app);
-    sendFile(res, file);
+    await sendFile(res, file);
   });
 
   r.post('/:id/move', validate(moveBody), async (req, res) => {

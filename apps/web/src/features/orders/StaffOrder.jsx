@@ -109,6 +109,26 @@ export function StaffOrder({order, onChange}) {
                 </dd>
               </div>
             )}
+            {order.payment?.extra?.map((id) => (
+              <div key={id}>
+                <dt className="text-muted">Extra payment</dt>
+                <dd className="flex flex-wrap items-center gap-2">
+                  {id}
+                  {order.payment.extraRefunded?.includes(id) ? (
+                    ' · refunded'
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => send(`refund-extra/${id}`)}
+                      className="underline underline-offset-4"
+                    >
+                      Refund again
+                    </button>
+                  )}
+                </dd>
+              </div>
+            ))}
           </dl>
           <DetailsRecord order={order} />
         </div>

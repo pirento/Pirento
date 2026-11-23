@@ -2,7 +2,7 @@
 import express, {Router} from 'express';
 import {z} from 'zod';
 import {httpUrl} from '../lib/urls.js';
-import {badInput, cached, conflict, encrypt, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {badInput, cached, conflict, isId, notFound, requireAuth, sealFile, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Application} from '../models/Application.js';
 import {Opening} from '../models/Opening.js';
@@ -33,7 +33,7 @@ applicantRoutes.get('/resume', requireAuth, async (req, res) => {
 applicantRoutes.get('/resume/file', requireAuth, async (req, res) => {
   const file = await Resume.findOne({userId: req.user.sub});
   if (!file) throw notFound('No resume yet');
-  sendFile(res, file);
+  await sendFile(res, file);
 });
 
 // Like order documents: the body is the raw file, its name in x-file-name. A new upload replaces the old one.
@@ -52,7 +52,7 @@ applicantRoutes.post(
           name,
           type: String(req.headers['x-file-type'] ?? '').slice(0, 100) || undefined,
           size: req.body.length,
-          ...encrypt(config.fileKey, req.body),
+          ...(await sealFile(config.fileKey, req.body, `resumes/${req.user.sub}`)),
         },
       },
       {upsert: true, new: true, projection: {name: 1, size: 1, type: 1, updatedAt: 1}},

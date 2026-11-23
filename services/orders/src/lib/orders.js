@@ -96,20 +96,22 @@ export async function noteExtraPayment(order, paymentId) {
   );
   if (noted.modifiedCount) console.warn(`Extra Razorpay payment ${paymentId} on order ${order.orderNo}`);
   if (order.payment?.extraRefunded?.includes(paymentId)) return;
-  // shortcut: a refund that fails here is tried again only when Razorpay reports this payment again (the browser's
-  // callback and the webhook both do); add a staff "refund" button if failures show up in the logs.
-  try {
-    await refundPayment(razorpayConfig(), paymentId, `refund-${paymentId}-extra`);
-    await Order.updateOne(
-      {_id: order._id, 'payment.extraRefunded': {$ne: paymentId}},
-      {
-        $push: {
-          'payment.extraRefunded': paymentId,
-          timeline: {status: order.status, note: 'That extra payment was refunded to your card or UPI.'},
-        },
+  // A failure here is retried when Razorpay reports the payment again, or by staff from the order (refundExtra).
+  await refundExtra(order, paymentId, `refund-${paymentId}-extra`).catch((err) =>
+    console.warn(`Refund of extra payment ${paymentId} on order ${order.orderNo} failed: ${err.message}`),
+  );
+}
+
+/** Refunds one extra payment in full and notes it on the order once. Throws when Razorpay refuses. */
+export async function refundExtra(order, paymentId, idempotencyKey) {
+  await refundPayment(razorpayConfig(), paymentId, idempotencyKey);
+  await Order.updateOne(
+    {_id: order._id, 'payment.extraRefunded': {$ne: paymentId}},
+    {
+      $push: {
+        'payment.extraRefunded': paymentId,
+        timeline: {status: order.status, note: 'That extra payment was refunded to your card or UPI.'},
       },
-    );
-  } catch (err) {
-    console.warn(`Refund of extra payment ${paymentId} on order ${order.orderNo} failed: ${err.message}`);
-  }
+    },
+  );
 }

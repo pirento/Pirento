@@ -1,7 +1,7 @@
 // Upload, list, download and delete files.
 import express, {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, badInput, decrypt, encrypt, validate} from '@pirento/shared/server';
+import {ApiError, badInput, dropFiles, openFile, sealFile, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
@@ -41,7 +41,7 @@ fileRoutes.post(
         name,
         type: String(req.headers['x-file-type'] ?? '').slice(0, 100) || undefined,
         size: req.body.length,
-        ...encrypt(config.key, req.body),
+        ...(await sealFile(config.key, req.body, `vault/${req.user.sub}`)),
       });
     } catch (err) {
       await giveRoom(req.user.sub, req.body.length);
@@ -60,14 +60,14 @@ fileRoutes.get('/files/:id', async (req, res) => {
     'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
     'cache-control': 'no-store',
   });
-  res.send(decrypt(config.key, file));
+  res.send(await openFile(config.key, file));
 });
 
 fileRoutes.delete('/files/:id', async (req, res) => {
   const file = await findOwned(VaultFile, req, WITHOUT_BYTES);
   // Room comes back only for the request that actually removed it, so a double delete gives it back once.
   const {deletedCount} = await VaultFile.deleteOne({_id: file._id});
-  if (deletedCount) await giveRoom(req.user.sub, file.size);
+  if (deletedCount) await Promise.all([giveRoom(req.user.sub, file.size), dropFiles([file])]);
   res.json({data: {deleted: true}});
 });
 

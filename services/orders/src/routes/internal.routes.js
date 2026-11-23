@@ -3,7 +3,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {GREEN_DONATION} from '@pirento/shared';
-import {isId, notFound, requireInternal, validate} from '@pirento/shared/server';
+import {dropFiles, isId, notFound, requireInternal, validate} from '@pirento/shared/server';
 import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
 import {OrderFile} from '../models/OrderFile.js';
@@ -14,6 +14,7 @@ internalRoutes.use('/internal', requireInternal);
 
 internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
   const {userId} = req.body;
+  const stored = await OrderFile.find({userId, blobKey: {$exists: true}}, {blobKey: 1}).lean();
   await Promise.all([
     // A courier tracking number leads to their address, so it goes with the answers.
     Order.updateMany(
@@ -34,6 +35,7 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     // Commission not yet in their wallet is dropped: the account is going, and a credit would reopen its wallet.
     Order.updateMany({'commission.userId': userId, 'commission.paid': {$ne: true}}, {$unset: {commission: 1}}),
   ]);
+  await dropFiles(stored);
   res.json({data: {forgotten: true}});
 });
 

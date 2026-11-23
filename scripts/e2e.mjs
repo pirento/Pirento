@@ -1301,6 +1301,18 @@ check(
   (await book(staffToken, {userId: bossId, serviceSlug: 'gst-registration', intake})).status === 400,
 );
 check('customers cannot book', (await book(user, {})).status === 403);
+const bookedPack = (
+  await book(staffToken, {userId: customerMe._id, serviceSlug: 'gst-registration', packageId: 'premium', intake})
+).data;
+check('staff book a chosen package', bookedPack?.amount === 699900 && bookedPack.package?.id === 'premium', bookedPack);
+check(
+  'an unknown extra payment cannot be refunded',
+  (await call(`/orders/staff/${booked._id}/refund-extra/pay_nope`, {method: 'POST', token: boss})).status === 404,
+);
+check(
+  'only finance and superadmins refund',
+  (await call(`/orders/staff/${booked._id}/refund-extra/pay_nope`, {method: 'POST', token: staffToken})).status === 403,
+);
 
 // ── Admin: staff roles, panels, suspension, audit trail ─────────────────
 const sup = await loginWithCookie(`support${Date.now()}@example.com`);

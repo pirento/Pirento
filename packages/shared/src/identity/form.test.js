@@ -32,6 +32,7 @@ test('adult check, names, options, unknown step', () => {
   assert.equal(validateSection('personal', p).error, undefined);
   assert.match(validateSection('personal', {...p, dob: '2015-01-01'}).error, /18/);
   assert.match(validateSection('personal', {...p, fullName: 'A1'}).error, /full name/);
+  assert.match(validateSection('personal', {...p, fullName: 'आशा वर्मा'}).error, /English letters/);
   assert.match(validateSection('personal', {...p, gender: 'X'}).error, /gender/);
   assert.match(validateSection('nope', {}).error, /Unknown/);
 });

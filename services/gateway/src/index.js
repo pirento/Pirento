@@ -1,10 +1,11 @@
 // Gateway: the only public entry point. It rate-limits, blocks internal
 // routes, forwards /api/<service>/… to that service, and in production also
 // serves the built website.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import rateLimit, {ipKeyGenerator} from 'express-rate-limit';
 import {RedisStore} from 'rate-limit-redis';
 import {createProxyMiddleware} from 'http-proxy-middleware';
 import {createApp, finish, redis, start} from '@pirento/shared/server';
@@ -20,16 +21,29 @@ app.set('trust proxy', config.trustProxy);
 // otherwise each counts alone (fine for one server). If Redis is down the limit lets requests through rather
 // than taking the site down.
 const r = redis();
-const limit = (name, windowMs, max) =>
+const limit = (name, windowMs, max, extra = {}) =>
   rateLimit({
     windowMs,
     limit: max,
     passOnStoreError: true,
     ...(r && {store: new RedisStore({prefix: `rl:${name}:`, sendCommand: (...args) => r.sendCommand(args)})}),
+    ...extra,
   });
 
-// shortcut: Bharat ID for Business API calls share this per-IP limit; give /api/identity/v1 a per-key limit when a business needs more.
-app.use('/api', limit('api', 60_000, config.rateLimitPerMinute));
+// A Bharat ID for Business call is counted per API key, not per IP: one business's servers share an IP pool, and
+// many businesses may share a cloud provider's. Only a hash of the key reaches the counter store.
+const apiKeyOf = (req) => /^Bearer (bid_(?:test|live)_\S+)$/.exec(req.get('authorization') ?? '')?.[1];
+app.use(
+  '/api/identity/v1',
+  limit('bizkey', 60_000, config.apiKeyRequestsPerMinute, {
+    keyGenerator: (req) =>
+      crypto
+        .createHash('sha256')
+        .update(apiKeyOf(req) ?? `ip:${ipKeyGenerator(req.ip)}`)
+        .digest('hex'),
+  }),
+);
+app.use('/api', limit('api', 60_000, config.rateLimitPerMinute, {skip: (req) => Boolean(apiKeyOf(req))}));
 app.use('/api/auth/otp', limit('otp', 15 * 60_000, config.otpRequestsPer15Min));
 // The contact form needs no account, so it gets its own, tighter limit.
 app.use('/api/support/enquiries', limit('enquiry', 15 * 60_000, config.enquiriesPer15Min));

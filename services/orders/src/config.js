@@ -10,7 +10,8 @@ export const config = {
   aiUrl: env('AI_URL', 'http://127.0.0.1:4009'), // checks a customer's documents before the team does
   /** Encrypts the documents attached to orders. Changing it makes stored documents unreadable. */
   fileKey: keyFrom(env('ORDERS_FILE_KEY', 'dev-only-orders-file-key')),
-  // shortcut: documents live inside MongoDB documents (16 MB cap each); move them to S3 before raising these.
+  // Inside MongoDB a document holds at most 16 MB; with FILES_S3_BUCKET set the bytes live in the bucket, and
+  // these can be raised past that.
   maxFileBytes: 5 * 1024 * 1024,
   maxFilesPerOrder: 20,
 };

@@ -8,11 +8,11 @@ import {
   cached,
   callService,
   canUse,
-  decrypt,
-  encrypt,
   isId,
   notFound,
   requireAuth,
+  openFile,
+  sealFile,
 } from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
@@ -72,7 +72,7 @@ fileRoutes.post(
       name,
       type: String(req.headers['x-file-type'] ?? '').slice(0, 100) || undefined,
       size: req.body.length,
-      ...encrypt(config.fileKey, req.body),
+      ...(await sealFile(config.fileKey, req.body, `orders/${order._id}`)),
     });
     if (side === 'team') audit(req, 'order.file', `#${order.orderNo}`, name);
     const {_id, from, size, type, createdAt} = file;
@@ -96,7 +96,7 @@ fileRoutes.get('/:id/files/:fileId', async (req, res) => {
     'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
     'cache-control': 'no-store',
   });
-  res.send(decrypt(config.fileKey, file));
+  res.send(await openFile(config.fileKey, file));
 });
 
 /** Each side removes only what it sent, and nothing once the order is completed. */
@@ -133,16 +133,18 @@ fileRoutes.post('/:id/files/check', async (req, res) => {
   }
   if (!picked.length) throw badInput('Upload a PDF or photo of your documents first');
   const key = `orders:doccheck:${order._id}:${picked.map((f) => f._id).join(',')}`;
-  const result = await cached(key, 3600, () =>
+  const result = await cached(key, 3600, async () =>
     callService(
       config.aiUrl,
       '/internal/jobs/docCheck',
       {
         input: {service: order.serviceName, product: order.product, files: picked.map((f) => f.name)},
-        attachments: picked.map((f) => ({
-          type: f.type === 'application/pdf' ? 'document' : 'image',
-          source: {type: 'base64', media_type: f.type, data: decrypt(config.fileKey, f).toString('base64')},
-        })),
+        attachments: await Promise.all(
+          picked.map(async (f) => ({
+            type: f.type === 'application/pdf' ? 'document' : 'image',
+            source: {type: 'base64', media_type: f.type, data: (await openFile(config.fileKey, f)).toString('base64')},
+          })),
+        ),
       },
       {timeoutMs: 120_000},
     ),

@@ -33,7 +33,15 @@ import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
 import {PartnerPlan} from '../models/PartnerPlan.js';
 import {paidPlanOf} from '../lib/plans.js';
-import {completionCode, findAccessible, nextOrderNo, questionsOf, refundCard, seesAllWork} from '../lib/orders.js';
+import {
+  completionCode,
+  findAccessible,
+  nextOrderNo,
+  questionsOf,
+  refundCard,
+  refundExtra,
+  seesAllWork,
+} from '../lib/orders.js';
 import {refundOrder} from '../lib/wallet.js';
 
 export const staffRoutes = Router();
@@ -319,6 +327,24 @@ staffRoutes.patch(
     res.json({data: updated});
   },
 );
+
+/**
+ * Sends again the refund of a card/UPI payment that landed on an already settled order, when the automatic one
+ * failed. Razorpay refuses to refund a payment beyond its amount, so a fresh key per try cannot pay out twice.
+ */
+staffRoutes.post('/staff/:id/refund-extra/:paymentId', money, async (req, res) => {
+  const order = await findAccessible(req);
+  const {paymentId} = req.params;
+  if (!order.payment?.extra?.includes(paymentId)) throw notFound('No such extra payment on this order');
+  if (order.payment.extraRefunded?.includes(paymentId)) throw conflict('REFUNDED', 'It is already refunded');
+  try {
+    await refundExtra(order, paymentId, `refund-${paymentId}-extra-${Date.now()}`);
+  } catch (err) {
+    throw new ApiError(502, 'REFUND_FAILED', `Razorpay did not take the refund: ${err.message}`);
+  }
+  audit(req, 'order.refund-extra', `#${order.orderNo}`, paymentId);
+  res.json({data: await Order.findById(order._id)});
+});
 
 /** A message to the customer in the order's conversation, without changing its status. */
 staffRoutes.post(
