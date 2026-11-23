@@ -81,12 +81,22 @@ const SITE = {
     tracks: ['General', 'Web development', 'Data science', 'Marketing', 'Design'],
     steps: [
       signIn,
-      {title: 'Pick a track', body: 'From general skills to design, each with lessons to read first.'},
       {
-        title: 'Take the exam',
-        body: 'Questions drawn at random, on the clock; the track shows its time and pass mark before you start. A retake is open after 24 hours.',
+        title: 'Learn and pass an exam',
+        body: 'Read a track’s lessons, with an AI tutor and a mock interview, then take its timed exam for a free certificate anyone can verify.',
       },
-      {title: 'Share your certificate', body: 'A PC- code and QR open its public verify page.'},
+      {
+        title: 'Join a programme',
+        body: '3, 6, 9 or 12 months from your wallet: live classes, recorded videos and daily, weekly and monthly tasks set for you.',
+      },
+      {
+        title: 'Do real work',
+        body: 'Once eligible, paid work from across Pirento is matched to you, and you can apply to internships companies post here.',
+      },
+      {
+        title: 'Finish with a grade',
+        body: 'Tasks, work, attendance and lessons make your final mark; passing gives a programme certificate.',
+      },
     ],
     faq: [
       {
@@ -100,6 +110,14 @@ const SITE = {
       {
         q: 'Does a certificate get me a job?',
         a: 'It proves you passed our exam. It does not guarantee placement, accreditation or income.',
+      },
+      {
+        q: 'How do live classes work?',
+        a: 'Each class has a time and a Meet or Zoom link in your dashboard; pressing Join while it runs counts your attendance. Recordings stay for interns on a programme.',
+      },
+      {
+        q: 'Can my company hire interns here?',
+        a: 'Yes. Ask from Intern → Company; once the team approves you, post openings and take applicants from interview to offer, tasks and certificate.',
       },
     ],
   },

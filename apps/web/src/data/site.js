@@ -51,6 +51,7 @@ export const productNav = {
   intern: {
     links: [
       ['Tracks', '/intern#more'],
+      ['Programmes', '/intern#programmes'],
       ['How it works', '/intern#how'],
       ['Questions', '/intern#faq'],
     ],
@@ -655,7 +656,7 @@ export const appDashboards = {
   intern: {
     hello: 'Learn, prove it, / get the internship.',
     intro:
-      'Read the lessons, take a final exam for a certificate anyone can check, apply to openings, and do the internship here: interview, offer, tasks and a completion certificate.',
+      'Read the lessons, take a final exam for a certificate anyone can check, join a programme with live classes, tasks and paid work, and apply to internships companies post here.',
     glance: {label: 'At a glance', title: 'Where you / stand.'},
     next: {label: 'Next', title: 'What to / do next.'},
     exams: {
@@ -679,6 +680,9 @@ export const appDashboards = {
     programme: {
       label: 'Programmes',
       title: 'Three months / to a year.',
+      homeIntro: 'Prices are set by Pirento and paid from your wallet. Exams and their certificates stay free.',
+      months: 'months',
+      see: 'See the programme',
       packageLabel: 'Internship programme',
       soon: 'Price coming soon',
       buy: 'Join from my wallet',
