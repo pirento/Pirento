@@ -81,8 +81,11 @@ const SITE = {
     tracks: ['General', 'Web development', 'Data science', 'Marketing', 'Design'],
     steps: [
       signIn,
-      {title: 'Pick a track', body: 'Five tracks, from general skills to design.'},
-      {title: 'Take the exam', body: '10 questions in 30 minutes. 60% passes; a retake is open after 24 hours.'},
+      {title: 'Pick a track', body: 'From general skills to design, each with lessons to read first.'},
+      {
+        title: 'Take the exam',
+        body: 'Questions drawn at random, on the clock; the track shows its time and pass mark before you start. A retake is open after 24 hours.',
+      },
       {title: 'Share your certificate', body: 'A PC- code and QR open its public verify page.'},
     ],
     faq: [

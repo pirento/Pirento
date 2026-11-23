@@ -1531,7 +1531,22 @@ check(
   (await call(`/orders/${disc._id}/files`, {token: otherUser})).status === 404 &&
     (await uploadDoc(otherUser, 'x.txt', 'x')).status === 404,
 );
-check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 2);
+const docCheck = (token) => call(`/orders/${disc._id}/files/check`, {method: 'POST', token});
+check('the AI check needs a PDF or photo', (await docCheck(user)).status === 400);
+const photoUp = await fetch(`${B}/orders/${disc._id}/files`, {
+  method: 'POST',
+  headers: {
+    authorization: `Bearer ${user}`,
+    'content-type': 'application/octet-stream',
+    'x-file-name': 'pan.png',
+    'x-file-type': 'image/png',
+  },
+  body: Buffer.from('not really a png'),
+});
+check('a photo is added', photoUp.status === 201);
+check('the AI document check is for the customer only', (await docCheck(staffToken)).status === 403);
+check('the AI document check waits for the AI key', (await docCheck(user)).status === 503);
+check('my documents across orders', (await call('/orders/files/mine', {token: user})).data?.length >= 3);
 check(
   'team list',
   (await call('/auth/admin/team', {token: staffToken})).data?.some((m) => m._id === me2._id),

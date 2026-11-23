@@ -1,12 +1,19 @@
-// Pirento Intern: the exam in four numbers, straight from the rules the learning service enforces.
-import {EXAM_RULES} from '@pirento/shared';
+// Pirento Intern: the exam in a few numbers, read from the live tracks (admin sets each one's questions, minutes
+// and pass mark), so a range shows when tracks differ.
+import {useApi} from '../../../lib/api/useApi';
 
-export function ExamFacts({product}) {
+const range = (tracks, key, unit = '') => {
+  const v = [...new Set(tracks.map((t) => t[key]))].sort((a, b) => a - b);
+  return !v.length ? '—' : v.length > 1 ? `${v[0]}–${v.at(-1)}${unit}` : `${v[0]}${unit}`;
+};
+
+export function ExamFacts() {
+  const tracks = useApi('/learning/tracks').data ?? [];
   const facts = [
-    {value: String(product.tracks.length), label: 'tracks'},
-    {value: String(EXAM_RULES.questions), label: 'questions per exam'},
-    {value: `${EXAM_RULES.minutes} min`, label: 'to finish'},
-    {value: `${EXAM_RULES.passPercent}%`, label: 'to pass'},
+    {value: tracks.length ? String(tracks.length) : '—', label: 'tracks'},
+    {value: range(tracks, 'questions'), label: 'questions, drawn at random'},
+    {value: range(tracks, 'minutes', ' min'), label: 'to finish'},
+    {value: range(tracks, 'passPercent', '%'), label: 'to pass'},
     {value: '₹0', label: 'exam and certificate'},
   ];
   return (

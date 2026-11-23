@@ -51,7 +51,7 @@ the catalogue given (by slug) could help. Never repeat Aadhaar, PAN or account n
   compliance: job(
     `Job: list the usual statutory due dates for the filings the person picked, for the next 3 months from the date
 given (Indian GST, income tax, TDS, ROC). Use only the standard due dates you are sure of; say a date can be extended
-by the government and must be checked on the official portal.`,
+by the government and must be checked on the official portal. Write each due date as YYYY-MM-DD.`,
     z.object({dates: z.array(z.object({what: z.string(), due: z.string(), note: z.string()})), caution: z.string()}),
   ),
   // 7

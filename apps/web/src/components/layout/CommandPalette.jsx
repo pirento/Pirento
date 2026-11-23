@@ -6,6 +6,7 @@ import {CornerDownLeft, FileText, Search} from 'lucide-react';
 import {PRODUCTS, SERVICES} from '@pirento/shared';
 import {inr} from '../../lib/format';
 import {api} from '../../lib/api/client';
+import {useSession} from '../../lib/api/session';
 import {ProductIcon} from '../ui/ProductIcon';
 
 const OPEN_EVENT = 'pirento:command-palette';
@@ -44,6 +45,10 @@ export function CommandPalette() {
   const [q, setQ] = useState('');
   const [active, setActive] = useState(0);
   const [found, setFound] = useState([]);
+  // Smart search: Pirento AI reads what you typed and picks the services that fit.
+  const [aiPicks, setAiPicks] = useState(null);
+  const [aiNote, setAiNote] = useState('');
+  const {user} = useSession();
   const navigate = useNavigate();
 
   // Server hits arrive a moment after typing stops; the local list shows at once.
@@ -73,6 +78,8 @@ export function CommandPalette() {
   useEffect(() => {
     const open = () => {
       setQ('');
+      setAiPicks(null);
+      setAiNote('');
       setActive(0);
       ref.current?.showModal();
     };
@@ -95,10 +102,44 @@ export function CommandPalette() {
     const hits = words.length
       ? ITEMS.filter((it) => words.every((w) => `${it.label} ${it.hint} ${it.kind}`.toLowerCase().includes(w)))
       : ITEMS.filter((it) => it.kind !== 'Service');
-    return [...hits.slice(0, 8), ...found.filter((f) => !hits.some((h) => h.to === f.to))].slice(0, 12);
-  }, [q, found]);
+    if (aiPicks) return aiPicks;
+    const list = [...hits.slice(0, 8), ...found.filter((f) => !hits.some((h) => h.to === f.to))].slice(0, 12);
+    const ask = q.trim().length >= 3 && user;
+    return ask
+      ? [
+          ...list,
+          {
+            kind: 'AI',
+            label: `Ask Pirento AI: “${q.trim()}”`,
+            hint: 'Finds the services that fit',
+            to: '#ai',
+            ai: true,
+          },
+        ]
+      : list;
+  }, [q, found, aiPicks, user]);
+
+  const askAi = async () => {
+    setAiNote('Pirento AI is looking…');
+    try {
+      const r = await api('/ai/assist/recommend', {method: 'POST', body: {need: q.trim()}});
+      const picks = r.picks.map((p) => ({
+        label: p.name,
+        hint: p.why,
+        to: p.link,
+        kind: 'Service',
+        product: PRODUCTS.find((x) => x.slug === p.product),
+      }));
+      setAiPicks(picks);
+      setActive(0);
+      setAiNote(picks.length ? '' : r.note || 'Nothing fits; ask support.');
+    } catch (err) {
+      setAiNote(`⚠ ${err.message}`);
+    }
+  };
 
   const go = (item) => {
+    if (item?.ai) return askAi();
     ref.current?.close();
     if (item) navigate(item.to);
   };
@@ -129,6 +170,8 @@ export function CommandPalette() {
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
+            setAiPicks(null);
+            setAiNote('');
             setActive(0);
           }}
           onKeyDown={onKeyDown}
@@ -141,7 +184,14 @@ export function CommandPalette() {
         <kbd className="rounded-md border border-rule px-1.5 text-xs text-muted">Esc</kbd>
       </div>
       <ul id="palette-results" role="listbox" className="max-h-[50vh] overflow-y-auto p-2">
-        {results.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Nothing matches “{q}”.</li>}
+        {aiNote && (
+          <li role="status" className="px-3 py-3 text-sm text-muted">
+            {aiNote}
+          </li>
+        )}
+        {results.length === 0 && !aiNote && (
+          <li className="px-3 py-6 text-center text-sm text-muted">Nothing matches “{q}”.</li>
+        )}
         {results.map((it, i) => (
           <li
             key={it.kind + it.to}

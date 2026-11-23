@@ -10,6 +10,7 @@ import {AI_TOOLS, AI_TOOLS_FOR} from '../../data/aiTools';
 import {api} from '../../lib/api/client';
 import {inr} from '../../lib/format';
 import {selectCls} from '../learning/Pipeline';
+import {icsFile} from './ics';
 
 const MAX_FILE = 5 * 1024 * 1024;
 const human = (key) => key.replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase());
@@ -99,6 +100,19 @@ export function AiResult({value, depth = 0}) {
         ),
       )}
     </dl>
+  );
+}
+
+function CalendarButton({dates}) {
+  const save = () => {
+    const url = URL.createObjectURL(new Blob([icsFile(dates)], {type: 'text/calendar'}));
+    Object.assign(document.createElement('a'), {href: url, download: 'pirento-filing-dates.ics'}).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
+  return (
+    <Button type="button" variant="outline" icon={null} onClick={save}>
+      Add to my calendar
+    </Button>
   );
 }
 
@@ -222,6 +236,7 @@ export function AiTool({id, fixed = {}}) {
       {result && (
         <div className="space-y-3 rounded-[18px] border border-rule p-5" aria-live="polite">
           <AiResult value={result} />
+          {Array.isArray(result.dates) && result.dates.length > 0 && <CalendarButton dates={result.dates} />}
           <div className="flex justify-between gap-3 border-t border-rule pt-3">
             <span className="text-xs text-muted">Written by AI. Check before you rely on it.</span>
             <CopyButton text={asText(result)} />
