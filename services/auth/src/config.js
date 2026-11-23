@@ -30,6 +30,7 @@ export const config = {
   /** Services that keep personal data and forget it when an account is deleted. */
   // The wallet goes first: it refuses while a withdrawal is still being paid, before anything else is forgotten.
   forgetUrls: () => [
+    env('GREEN_URL', 'http://127.0.0.1:4010'), // first: it refuses while credits are held
     env('WALLET_URL', 'http://127.0.0.1:4002'),
     env('IDENTITY_URL', 'http://127.0.0.1:4005'),
     env('VAULT_URL', 'http://127.0.0.1:4007'),

@@ -44,7 +44,7 @@ export function ProductWallet({product}) {
                       className="flex items-center justify-between gap-4 border-b border-rule py-3.5 hover:underline"
                     >
                       <span className="min-w-0">
-                        <span className="block truncate">{o.serviceName}</span>
+                        <span className="block break-words">{o.serviceName}</span>
                         <span className="text-xs text-muted">
                           #{o.orderNo} · {formatDate(o.createdAt)}
                           {o.payment.refunded && ' · refunded'}

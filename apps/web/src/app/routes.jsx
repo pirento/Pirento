@@ -102,6 +102,11 @@ export const ROUTES = [
     Page: page(() => import('../features/orders/ReceiptPage'), 'Receipt'),
   },
   {
+    path: '/green/dashboard/certificates/:id',
+    layout: 'app',
+    Page: page(() => import('../features/green/CertificatePage'), 'Certificate'),
+  },
+  {
     path: '/:slug/dashboard/:section',
     layout: 'app',
     Page: page(() => import('../features/products/ProductDashboardPage'), 'ProductDashboard'),

@@ -26,7 +26,12 @@ import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
-import {orderDashboard as copy, productDashboards} from '../../data/site';
+import {green, orderDashboard as copy, productDashboards} from '../../data/site';
+import {GreenTrees} from './GreenTrees';
+import {Market} from '../green/Market';
+import {Snapshot} from '../green/Snapshot';
+import {Portfolio} from '../green/Portfolio';
+import {Certificates} from '../green/Certificates';
 import {AI_TOOLS_FOR} from '../../data/aiTools';
 import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
@@ -376,6 +381,11 @@ export function OrdersDashboard({product, section = 'overview'}) {
               ]}
             />
           </DashSection>
+          {product.slug === 'green' && (
+            <DashSection n={++n} id="carbon" label={green.snapshot.label} title={green.snapshot.title}>
+              <Snapshot />
+            </DashSection>
+          )}
           <DashSection n={++n} id="waiting" label={copy.waiting.label} title={copy.waiting.title}>
             <Waiting toPay={toPay} details={details} replies={replies} base={base} />
           </DashSection>
@@ -455,6 +465,31 @@ export function OrdersDashboard({product, section = 'overview'}) {
         <DashSection n={1} id="consultations" label={copy.consultations.label} title={copy.consultations.title}>
           <p className="body -mt-2 mb-8">{copy.consultations.intro}</p>
           <Consultations mine={mine} orders={orders} browse={browse} product={product} />
+        </DashSection>
+      )}
+
+      {section === 'portfolio' && (
+        <DashSection n={1} id="portfolio" label={green.portfolio.label} title={green.portfolio.title}>
+          <Portfolio mine={mine} loading={!orders.data} />
+        </DashSection>
+      )}
+
+      {section === 'certificates' && (
+        <DashSection n={1} id="certificates" label={green.certificate.label} title={green.certificate.title}>
+          <Certificates mine={mine} loading={!orders.data} />
+        </DashSection>
+      )}
+
+      {section === 'market' && (
+        <DashSection n={1} id="market" label={green.market.label} title={green.market.title}>
+          <Market />
+        </DashSection>
+      )}
+
+      {section === 'trees' && (
+        <DashSection n={1} id="trees" label={green.trees.label} title={green.trees.title}>
+          <p className="body -mt-2 mb-8">{green.trees.intro}</p>
+          <GreenTrees mine={mine} loading={!orders.data} />
         </DashSection>
       )}
 

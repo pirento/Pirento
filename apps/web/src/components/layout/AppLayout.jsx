@@ -18,6 +18,8 @@ import {
   KeyRound,
   LayoutDashboard,
   LifeBuoy,
+  LineChart,
+  PieChart,
   ListChecks,
   LogOut,
   Megaphone,
@@ -30,6 +32,7 @@ import {
   Share2,
   ShieldCheck,
   ShoppingBag,
+  Sprout,
   UserRound,
   Video,
   WalletCards as Wallet2,
@@ -53,6 +56,9 @@ const SECTION_ICONS = {
   help: LifeBuoy,
   documents: FileText,
   consultations: MessagesSquare,
+  trees: Sprout,
+  market: LineChart,
+  portfolio: PieChart,
   wallet: WalletIcon,
   exams: GraduationCap,
   certificates: Award,
@@ -269,7 +275,8 @@ function Sidebar({onNavigate}) {
             </Link>
           ))}
         <div className="flex items-center justify-between gap-2 px-3 pt-3">
-          <span className="min-w-0 truncate text-xs text-muted">{user?.email}</span>
+          {/* A long email wraps before its @ (a zero-width space), never mid-word. */}
+          <span className="min-w-0 text-xs break-words text-muted">{user?.email?.replace('@', '\u200b@')}</span>
           <ThemeToggle />
         </div>
         <button

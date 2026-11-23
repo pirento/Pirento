@@ -55,6 +55,7 @@ services:
       AI_URL: http://ai:4009
       LEARNING_URL: http://learning:4006
       ORDERS_URL: http://orders:4004
+      GREEN_URL: http://green:4010 # account deletion: refused while carbon credits are held
       SUPPORT_URL: http://support:4008
     depends_on: [mongo]
 
@@ -147,6 +148,17 @@ services:
       MONGO_URI: mongodb://mongo:27017/pirento_support
     depends_on: [mongo]
 
+  green:
+    <<: *service
+    environment:
+      <<: *env
+      SERVICE: green
+      MONGO_URI: mongodb://mongo:27017/pirento_green
+      WALLET_URL: http://wallet:4002 # every buy and sell moves wallet money
+      ORDERS_URL: http://orders:4004 # planted trees grow credits
+      GREEN_TRADING: ${GREEN_TRADING:-off} # buying and selling credits; set on once approved
+    depends_on: [mongo]
+
   ai:
     <<: *service
     environment:
@@ -176,8 +188,9 @@ services:
       VAULT_URL: http://vault:4007
       SUPPORT_URL: http://support:4008
       AI_URL: http://ai:4009
+      GREEN_URL: http://green:4010
     ports: ['127.0.0.1:4000:4000'] # public traffic comes through caddy
-    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support, ai]
+    depends_on: [auth, wallet, catalog, orders, identity, learning, vault, support, ai, green]
 
   caddy:
     image: caddy:2

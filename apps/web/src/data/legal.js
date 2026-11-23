@@ -100,7 +100,11 @@ export const PRODUCT_LEGAL = {
   legal: {keeps: ORDER_DATA},
   black: {keeps: ORDER_DATA},
   green: {
-    keeps: ['Your tree sponsorship orders and their payments.', 'The record of each sponsorship in your account.'],
+    keeps: [
+      'Your tree sponsorship orders and their payments.',
+      'The record of each sponsorship in your account.',
+      'Your carbon credits, every buy, sell and claim, and the wallet payments behind them.',
+    ],
   },
   giftox: {
     keeps: [

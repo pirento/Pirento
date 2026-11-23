@@ -22,6 +22,7 @@ import {Courses} from './Courses';
 import {AiAdmin} from './AiAdmin';
 import {Programme} from './Programme';
 import {InternWork} from './InternWork';
+import {GreenAdmin} from './GreenAdmin';
 import {IdentityAdmin} from '../identity/IdentityQueue';
 import {BusinessQueue} from '../business/BusinessQueue';
 import {EnrolQueue} from '../identity/EnrolQueue';
@@ -43,6 +44,7 @@ export const SECTIONS = {
     />
   ),
   // Wrapped so the import cycle (those pages import helpers from here) resolves at render time.
+  green: GreenAdmin,
   'bharat-id': () => <IdentityAdmin />,
   business: () => <BusinessQueue />,
   enrol: () => <EnrolQueue />,

@@ -16,6 +16,7 @@ export const SERVICES = [
   {name: 'vault', port: 4007},
   {name: 'support', port: 4008},
   {name: 'ai', port: 4009},
+  {name: 'green', port: 4010},
 ].map((s) => ({...s, url: env(`${s.name.toUpperCase()}_URL`, `http://127.0.0.1:${s.port}`)}));
 
 export const config = {

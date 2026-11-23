@@ -16,6 +16,7 @@ import {NotFound} from '../ecosystem/NotFoundPage';
 import {Hero} from './Hero';
 import {Audience, Features, How, Related} from './HomeSections';
 import {Extra} from './ProductExtra';
+import {GreenImpact} from './GreenImpact';
 import {designFor} from './designs';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
@@ -60,6 +61,7 @@ export function ProductHome() {
   const sections = [
     (n) => <Features key="f" product={product} variant={design.features} n={n} />,
     design.covers !== 'extra' && ((n) => <Extra key="e" product={product} n={n} />),
+    slug === 'green' && ((n) => <GreenImpact key="gi" n={n} />),
     (n) => <Audience key="a" product={product} n={n} />,
     plans.length > 0 && ((n) => <PlansSection key="p" plans={plans} n={n} />),
     slug === 'intern' && ((n) => <ProgrammesSection key="ip" n={n} />),

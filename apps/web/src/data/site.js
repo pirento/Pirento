@@ -34,11 +34,12 @@ export const productNav = {
   },
   green: {
     links: [
+      ['Market', '/green/dashboard/market'],
       ['Drives', '/green#services'],
       ['How it works', '/green#how'],
       ['Questions', '/green#faq'],
     ],
-    cta: ['Plant trees', '/green#services', 'Plant'],
+    cta: ['Start trading', '/green/dashboard/market', 'Trade'],
   },
   giftox: {
     links: [
@@ -184,7 +185,7 @@ export const home = {
         body: 'Certificates, referrals and loan planning.',
         products: ['intern', 'one', 'capital'],
       },
-      {title: 'Give', body: 'Trees on a drive, boxes at a door.', products: ['green', 'giftox']},
+      {title: 'Give', body: 'Trees and carbon credits, boxes at a door.', products: ['green', 'giftox']},
       {title: 'Ask', body: 'Not sure where to start? Ask in your words.', products: ['ai']},
     ],
   },
@@ -337,7 +338,12 @@ export const productDashboards = {
     {id: 'consultations', label: 'Consultations', icon: 'consultations'},
   ]),
   black: ORDER_SECTIONS('My filings', 'Services', [DOCUMENTS]),
-  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
+  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives', [
+    {id: 'portfolio', label: 'Portfolio', icon: 'portfolio'},
+    {id: 'market', label: 'Carbon market', icon: 'market'},
+    {id: 'trees', label: 'My trees', icon: 'trees'},
+    {id: 'certificates', label: 'Certificates', icon: 'certificates'},
+  ]),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
     {id: 'programme', label: 'Programme', icon: 'programme'},
@@ -863,6 +869,94 @@ export const checkoutGuest = {
 export const receipt = {
   title: 'Payment receipt',
   note: 'This receipt confirms a payment made on Pirento. It is not a GST tax invoice.',
+};
+
+// Pirento Green's own sections: the public planting record, the customer's trees and the team's view.
+// The record's numbers are counted from paid sponsorships; the market's price is the one the team sets.
+export const green = {
+  impact: {
+    label: 'The record',
+    title: 'Counted from / real sponsorships.',
+    intro:
+      'Trees sponsored and trees our team has recorded as planted, counted live from paid orders. A tree counts as planted only once its site and date are written down.',
+    empty: 'No sponsorships yet. The first one starts this record.',
+    recent: 'Latest planting records',
+  },
+  trees: {
+    label: 'My trees',
+    title: 'Where your / trees went in.',
+    intro:
+      'Every tree you sponsored, and the planting record our team writes once they are in the ground: the site, the date and the spot on the map.',
+    empty: 'No trees sponsored yet.',
+    waiting: 'Paid · waiting for its planting record',
+  },
+  market: {
+    label: 'Carbon market',
+    title: 'Buy and sell / carbon credits.',
+    intro:
+      'Trade Pirento Green carbon credits with your Pirento wallet at the price the Pirento Green team sets. Credits are held to 0.01.',
+    closed: 'The market is closed just now. Your credits stay in your account.',
+    caveat:
+      'The price is set by the Pirento Green team, not by an exchange, and it can go down as well as up. Credits are held on Pirento.',
+    trades: 'Your trades',
+    noTrades: 'No trades yet.',
+  },
+  portfolio: {
+    label: 'Portfolio',
+    title: 'Everything you / hold with us.',
+    intro:
+      'Trees you invested in are held at what you paid; your carbon credits at today’s price. Donations are shown apart: they are a gift, not a holding.',
+    trees: 'Tree investments',
+    credits: 'Carbon credits',
+    donations: 'Donations',
+    byDrive: 'By drive',
+  },
+  certificate: {
+    label: 'Certificates',
+    title: 'Download / your certificates.',
+    intro:
+      'Every planted sponsorship gets a certificate you can download and anyone can check on Verify, by its number or its order number.',
+    empty: 'No certificates yet. A certificate is issued once your trees are planted.',
+    waiting: 'Certificate once planted',
+    invest: {
+      title: 'Certificate of tree investment',
+      issuer: 'Pirento Green',
+      line: 'has invested in the planting of',
+      note: 'Planted trees grow carbon credits at the drive’s rate, shown in your Pirento Green portfolio. The credit price can go down as well as up.',
+    },
+    donate: {
+      title: 'Certificate of tree donation',
+      issuer: 'Pirento Foundation',
+      line: 'has donated the planting of',
+      note: 'Thank you for your gift to the planet. Pirento Foundation’s registration is pending, so this certificate is not a tax (80G) receipt.',
+    },
+    verify: 'Check this certificate at',
+  },
+  snapshot: {
+    label: 'Carbon account',
+    title: 'Your credits / at a glance.',
+    open: 'Market open',
+    closed: 'Market closed',
+    links: [
+      ['Trade credits', '/green/dashboard/market'],
+      ['Claim from your trees', '/green/dashboard/trees'],
+      ['Invest in trees', '/green#services'],
+      ['Certificates', '/green/dashboard/certificates'],
+      ['Donate trees', '/services/green-donate'],
+    ],
+  },
+  widget: {label: 'Carbon credit', cta: 'Open the market', closed: 'Market closed', unpriced: 'Price not set yet'},
+  admin: {
+    drives: 'By drive',
+    waiting: 'Waiting for a planting record',
+    waitingIntro: 'Paid sponsorships with no planting site yet, oldest first. Open one to write its record.',
+    none: 'Every paid sponsorship has its planting record.',
+    prices: 'Open, reprice or retire a drive in Services & prices.',
+    market: 'Carbon market',
+    marketIntro:
+      'Set the price per credit and open or close trading. Every price change is kept and drawn on the chart. Growth rate: credits one planted tree grows in a year on that drive.',
+    switchOff: 'Trading is switched off on this server (GREEN_TRADING). Prices can still be set.',
+  },
 };
 
 // Dashboards of the order-based products (Legal, Black, Green, Giftox): section names and headings.

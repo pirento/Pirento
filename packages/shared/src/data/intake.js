@@ -125,7 +125,7 @@ const PRODUCT_EXTRAS = {
       'A few trees (personal)',
       '50–500 trees (team/CSR)',
       '500+ trees (corporate drive)',
-      'Carbon credits only',
+      'A school, college or community group',
     ],
   },
   intern: {
