@@ -21,17 +21,31 @@ import {MORE_DOCUMENTS} from './legalPages/more/documents.js';
 import {MORE_LABOUR} from './legalPages/more/labour.js';
 import {MORE_CONSULT} from './legalPages/more/consult.js';
 import {GENERAL, MORE_FEATURED} from './legalPages/more/featured.js';
+import {MORE_SECTIONS_BUSINESS} from './legalPages/more/sections-business.js';
+import {MORE_SECTIONS_LEGAL} from './legalPages/more/sections-legal.js';
+import {MORE_SECTIONS_EXTRA} from './legalPages/more/sections-extra.js';
 
-const MORE = {
-  ...MORE_SETUP,
-  ...MORE_TAX,
-  ...MORE_COMPLIANCE,
-  ...MORE_IPR,
-  ...MORE_DOCUMENTS,
-  ...MORE_LABOUR,
-  ...MORE_CONSULT,
-  ...MORE_FEATURED,
-};
+// Each slug's extra lines from every file, joined key by key.
+const MORE = {};
+for (const part of [
+  MORE_SETUP,
+  MORE_TAX,
+  MORE_COMPLIANCE,
+  MORE_IPR,
+  MORE_DOCUMENTS,
+  MORE_LABOUR,
+  MORE_CONSULT,
+  MORE_FEATURED,
+  MORE_SECTIONS_BUSINESS,
+  MORE_SECTIONS_LEGAL,
+  MORE_SECTIONS_EXTRA,
+]) {
+  for (const [slug, more] of Object.entries(part)) {
+    const had = (MORE[slug] ??= {});
+    // Every key is a list, so a slug in two files keeps the lines from both.
+    for (const [key, lines] of Object.entries(more)) had[key] = [...(had[key] ?? []), ...lines];
+  }
+}
 
 // Fill a list up to three from general lines it does not already have.
 const toThree = (list, general, same) => [
@@ -39,19 +53,27 @@ const toThree = (list, general, same) => [
   ...general.filter((g) => !list.some((x) => same(x, g))).slice(0, Math.max(0, 3 - list.length)),
 ];
 
-/** A page with its area's extra lines added after its own (f: questions, m: mistakes, b: benefits). */
+const same = (a, b) => a === b;
+const pairs = (list) => (list ?? []).map(([title, body]) => ({title, body}));
+
+/**
+ * A page with its extra lines added after its own: f questions, m mistakes, b benefits, w who it is for,
+ * i included, doc documents, s steps, out deliverables. Timeline, what is not included, mistakes and benefits
+ * are filled up to three from GENERAL.
+ */
 function deepen(page, more = {}) {
-  const mistakes = [...page.mistakes, ...(more.m ?? [])];
-  const benefits = [...page.benefits, ...(more.b ?? []).map(([title, body]) => ({title, body}))];
   return {
     ...page,
+    whoFor: [...(page.whoFor ?? []), ...(more.w ?? [])],
+    included: [...(page.included ?? []), ...(more.i ?? [])],
+    documents: [...(page.documents ?? []), ...(more.doc ?? [])],
+    steps: [...(page.steps ?? []), ...pairs(more.s)],
+    deliverables: [...(page.deliverables ?? []), ...(more.out ?? [])],
     faqs: [...page.faqs, ...(more.f ?? []).map(([q, a]) => ({q, a}))],
-    mistakes: toThree(mistakes, GENERAL.m, (a, b) => a === b),
-    benefits: toThree(
-      benefits,
-      GENERAL.b.map(([title, body]) => ({title, body})),
-      (a, b) => a.title === b.title,
-    ),
+    timeline: toThree(page.timeline ?? [], GENERAL.t, same),
+    notIncluded: toThree(page.notIncluded ?? [], GENERAL.n, same),
+    mistakes: toThree([...page.mistakes, ...(more.m ?? [])], GENERAL.m, same),
+    benefits: toThree([...page.benefits, ...pairs(more.b)], pairs(GENERAL.b), (a, b) => a.title === b.title),
   };
 }
 

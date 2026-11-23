@@ -11,16 +11,16 @@ export const MORE_FEATURED = {
   opc: {
     f: [
       [
-        'Who can form an OPC?',
-        'An Indian citizen, resident in India, as the only member, with a nominee who takes over if the member cannot continue.',
+        'Can an OPC become a private limited company?',
+        'Yes. Since the 2021 rule change an OPC can convert at any time, by adding members and directors and filing with the Registrar.',
       ],
     ],
   },
   'udyam-msme': {
     f: [
       [
-        'Is there a fee for Udyam registration?',
-        'No. The government portal charges nothing; our fee is for preparing and filing it for you.',
+        'Which category will I fall in?',
+        'Micro, small or medium, decided by your investment in plant and machinery and your turnover, as the government notification sets.',
       ],
       [
         'Does it need renewal?',
@@ -31,8 +31,8 @@ export const MORE_FEATURED = {
   fssai: {
     f: [
       [
-        'Which licence do I need?',
-        'Basic registration for small turnover, a state licence above that, and a central licence for large or import businesses. We check from your turnover and activity.',
+        'Can I sell food online with FSSAI registration?',
+        'Yes. Online sellers and cloud kitchens need FSSAI registration or a licence like any food business, and platforms ask for the number.',
       ],
       [
         'How long is it valid?',
@@ -46,10 +46,7 @@ export const MORE_FEATURED = {
         'Is IEC needed for services exports?',
         'It is needed to claim benefits under the foreign trade policy and is often asked by banks for foreign payments.',
       ],
-      [
-        'Does IEC need renewal?',
-        'No, but its details must be updated online every year between April and June, or it is deactivated.',
-      ],
+      ['Is there a fee for IEC?', 'Yes, a small government fee paid on the DGFT portal when applying.'],
     ],
   },
   'gst-registration': {
@@ -71,8 +68,8 @@ export const MORE_FEATURED = {
   'itr-filing': {
     f: [
       [
-        'What if I miss the due date?',
-        'A belated return can still be filed by 31 December of the assessment year, with a late fee.',
+        'Can I revise a return after filing?',
+        'Yes. A revised return can be filed to correct a mistake, within the time the law allows.',
       ],
     ],
   },
@@ -80,6 +77,18 @@ export const MORE_FEATURED = {
 
 /** Lines true of every Pirento Legal order, used only to bring a short section up to three. */
 export const GENERAL = {
+  // What changes how long it takes, true of every service.
+  t: [
+    'How quickly you share documents and answer our questions',
+    'Questions or objections raised by the authority or the other side',
+    'Holidays and portal downtime at the authority',
+  ],
+  // What is not part of any package unless it says so.
+  n: [
+    'Work outside this service, quoted separately before it starts',
+    'Appearances before a court, tribunal or officer, unless the package lists them',
+    'Filings and compliance for later periods, unless the package lists them',
+  ],
   m: [
     'Sending blurred or partial documents, which holds up the work',
     'Waiting until the last date to start, leaving no time for queries',

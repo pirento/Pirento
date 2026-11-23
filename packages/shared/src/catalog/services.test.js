@@ -87,7 +87,14 @@ test('every Legal service has a full page', () => {
     const p = servicePage(s.slug);
     for (const k of ['intro', 'documents', 'steps', 'faqs', 'costs', 'deliverables'])
       assert.ok(p[k].length, `${s.slug} ${k}`);
-    for (const k of ['faqs', 'mistakes', 'benefits']) assert.ok(p[k].length >= 3, `${s.slug} has fewer than 3 ${k}`);
+    const least = {whoFor: 3, included: 3, notIncluded: 3, documents: 3, timeline: 3, deliverables: 3};
+    Object.assign(least, {steps: 4, faqs: 4, mistakes: 3, benefits: 3});
+    for (const [k, n] of Object.entries(least)) assert.ok(p[k].length >= n, `${s.slug} has fewer than ${n} ${k}`);
+    // No line twice in a section, whichever file it came from.
+    for (const k of Object.keys(least)) {
+      const keys = p[k].map((x) => (typeof x === 'string' ? x : (x.title ?? x.q)));
+      assert.equal(new Set(keys).size, keys.length, `${s.slug} repeats a line in ${k}`);
+    }
     // Every service sells packages, cheapest first, starting at its listed price.
     const packs = packagesOf(s);
     assert.ok(packs.length >= 1 && packs[0].price === s.price, `${s.slug} packages`);
