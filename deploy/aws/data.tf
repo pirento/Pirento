@@ -72,7 +72,7 @@ resource "mongodbatlas_project_ip_access_list" "nat" {
 }
 
 locals {
-  mongo_services = ["auth", "catalog", "orders", "identity", "learning", "vault", "support", "ai"]
+  mongo_services = ["auth", "catalog", "orders", "identity", "learning", "vault", "support", "ai", "green"]
   mongo_host     = trimprefix(mongodbatlas_advanced_cluster.main.connection_strings[0].standard_srv, "mongodb+srv://")
 }
 

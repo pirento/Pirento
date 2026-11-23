@@ -78,7 +78,7 @@ export const ADMIN_SECTIONS = [
     icon: Sprout,
     roles: ['staff', 'finance', 'superadmin'], // ACCESS.orders
     intro:
-      'Trees sponsored and planted, drive by drive, counted from paid orders. Write the planting record for the sponsorships still waiting on one.',
+      'The carbon market (price, open or closed, growth rate per drive, trades) for finance and superadmins; trees sponsored and planted, drive by drive; and the sponsorships still waiting for a planting record.',
   },
   {
     id: 'bharat-id',

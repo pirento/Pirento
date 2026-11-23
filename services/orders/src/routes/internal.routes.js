@@ -125,3 +125,34 @@ internalRoutes.post(
     res.json({data: await orderFacts(order)});
   },
 );
+
+/**
+ * Pirento Green's market: a person's planted sponsorships, the trees its credits grow from. Only paid orders with a
+ * planting record count, and growth starts on the planting date the team wrote (or when they wrote it).
+ */
+internalRoutes.post(
+  '/internal/green-trees',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const orders = await Order.find(
+      {
+        userId: req.body.userId,
+        product: 'green',
+        status: {$in: ['paid', 'in_progress', 'completed']},
+        'fulfilment.site': {$exists: true},
+      },
+      {orderNo: 1, serviceSlug: 1, serviceName: 1, quantity: 1, fulfilment: 1},
+    ).lean();
+    res.json({
+      data: orders.map((o) => ({
+        orderId: String(o._id),
+        orderNo: o.orderNo,
+        slug: o.serviceSlug,
+        name: o.serviceName,
+        trees: o.quantity,
+        site: o.fulfilment.site,
+        plantedAt: o.fulfilment.plantedOn ? new Date(`${o.fulfilment.plantedOn}T00:00:00+05:30`) : o.fulfilment.at,
+      })),
+    });
+  },
+);

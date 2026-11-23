@@ -1,15 +1,49 @@
 // Pirento Green → My trees: the customer's paid sponsorships, with the planting record the team wrote for each.
+import {useState} from 'react';
 import {Link} from 'react-router-dom';
 import {MapPin, Sprout} from 'lucide-react';
 import {StatsRow} from '../../components/ui/Blocks';
 import {green as copy} from '../../data/site';
+import {api} from '../../lib/api/client';
+import {useApi} from '../../lib/api/useApi';
 import {formatDay} from '../../lib/format';
+import {credits} from '../green/money';
 
 const PAID = ['paid', 'in_progress', 'completed'];
 const mapUrl = ({lat, lng}) => `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=15/${lat}/${lng}`;
 const trees = (n) => `${n} tree${n === 1 ? '' : 's'}`;
 
+/** What a planted sponsorship has grown, and a button that moves it into the person's credits. */
+function Grown({tree, onClaimed}) {
+  const [note, setNote] = useState('');
+  if (!tree.rate) return <span className="text-muted">Credits start once the team sets this drive's rate.</span>;
+  const claim = async () => {
+    setNote('');
+    try {
+      await api(`/green/claims/${tree.orderId}`, {method: 'POST'});
+      onClaimed();
+    } catch (err) {
+      setNote(`⚠ ${err.message}`);
+    }
+  };
+  return (
+    <span className="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <span className="tabular-nums">
+        {credits(tree.growingUnits)} credits grown · {credits(tree.claimedUnits)} claimed
+      </span>
+      {tree.growingUnits > 0 && (
+        <button onClick={claim} className="rounded-full border border-rule px-3 py-1 hover:border-ink">
+          Claim
+        </button>
+      )}
+      {note && <span role="alert">{note}</span>}
+    </span>
+  );
+}
+
 export function GreenTrees({mine, loading}) {
+  const growth = useApi('/green/me');
+  const treeOf = (o) => growth.data?.trees.find((t) => t.orderId === o._id);
   const paid = mine.filter((o) => PAID.includes(o.status));
   const planted = paid.filter((o) => o.fulfilment?.site);
   const count = (list) => list.reduce((n, o) => n + o.quantity, 0);
@@ -22,6 +56,7 @@ export function GreenTrees({mine, loading}) {
           {value: loading ? '—' : String(count(planted)), label: 'planted'},
           {value: loading ? '—' : String(count(paid) - count(planted)), label: 'waiting'},
           {value: loading ? '—' : String(new Set(paid.map((o) => o.serviceSlug)).size), label: 'drives'},
+          {value: growth.data ? credits(growth.data.units) : '—', label: 'credits held'},
         ]}
       />
       {!loading && paid.length === 0 ? (
@@ -59,6 +94,7 @@ export function GreenTrees({mine, loading}) {
                         See the spot on the map
                       </a>
                     )}
+                    {treeOf(o) && <Grown tree={treeOf(o)} onClaimed={growth.reload} />}
                     {o.code && (
                       <Link to={`/verify/${o.code}`} className="underline underline-offset-4">
                         Proof code {o.code}

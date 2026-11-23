@@ -61,17 +61,31 @@ const SITE = {
     ],
   },
   green: {
-    pill: 'Drives open',
+    pill: 'Market open',
     steps: [
-      {title: 'Pick a drive', body: 'Three plantation drives, each with its price per tree.'},
-      {title: 'Choose how many trees', body: 'From one tree up to 500 in a single order.'},
       signIn,
-      {title: 'Keep the record', body: 'Your sponsorship stays in your dashboard with a GRN- code once done.'},
+      {title: 'Add money to your wallet', body: 'One Pirento wallet pays for everything, by card or UPI.'},
+      {
+        title: 'Buy or sell credits',
+        body: 'Trade carbon credits to 0.01 at the price shown on the chart; money moves in your wallet at once.',
+      },
+      {
+        title: 'Or sponsor trees',
+        body: 'Once your trees are planted, they grow credits every day. Claim them into your account and sell when you like.',
+      },
     ],
     faq: [
       {
-        q: 'Do I get carbon credits?',
-        a: 'No. Sponsorship is a record of trees you paid for; no certified credit, return or CSR eligibility is promised.',
+        q: 'Who sets the price?',
+        a: 'The Pirento Green team. Every change is kept and drawn on the chart; there is no outside exchange price.',
+      },
+      {
+        q: 'How do trees grow credits?',
+        a: 'Each drive has a rate: the credits one planted tree grows in a year. Growth counts from the planting date the team records on your order, and you claim it from Green → My trees.',
+      },
+      {
+        q: 'Can I lose money?',
+        a: 'Yes. The price can go down as well as up, so a sale can bring back less than you paid.',
       },
       {q: 'Can I sponsor for my company?', a: 'Yes. Choose the scale that fits at checkout and tell us in the notes.'},
       {
@@ -317,15 +331,15 @@ export const PRODUCTS = [
     slug: 'green',
     name: 'Pirento Green',
     short: 'Green',
-    quote: 'The earth is what we all have in common.',
-    overview: 'Sponsor trees on a plantation drive and keep the record in your account.',
+    quote: 'Invest in the planet.',
+    overview: 'A carbon credit market on your Pirento wallet, and plantation drives whose trees grow credits for you.',
     highlights: [
-      {title: 'Drive catalog', body: 'Pick a plantation drive and see its price per tree.'},
-      {title: 'Sponsor trees', body: 'Choose how many trees, pay from your wallet, and track the order.'},
-      {title: 'Proof code', body: 'Each completed sponsorship gets a code anyone can verify.'},
+      {title: 'Carbon trading', body: 'Buy and sell carbon credits from your wallet, with the price on a live chart.'},
+      {title: 'Sponsor trees', body: 'Pick a plantation drive, pay per tree, and follow where they are planted.'},
+      {title: 'Credits from trees', body: 'Planted trees grow credits every day; claim them and hold or sell.'},
     ],
     caveat:
-      'No certified carbon credit, planting outcome, return or CSR eligibility is promised. Credit trading is not available.',
+      'The credit price is set by the Pirento Green team and can go down as well as up. Credits are held on Pirento; they are not a deposit or a guaranteed return.',
     status: 'now',
   },
   {

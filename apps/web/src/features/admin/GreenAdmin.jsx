@@ -1,4 +1,5 @@
-// Admin → Pirento Green: trees sponsored and planted per drive, and paid sponsorships still waiting for a planting record.
+// Admin → Pirento Green: trees sponsored and planted per drive, sponsorships waiting for a planting record, and
+// (finance and superadmins) the carbon market.
 import {Link} from 'react-router-dom';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
@@ -7,6 +8,7 @@ import {green} from '../../data/site';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {useServicesFor} from '../../lib/prices';
+import {GreenMarketAdmin} from './GreenMarketAdmin';
 
 const copy = green.admin;
 const driveName = (name) => name.replace(/^Sponsor trees · /, '');
@@ -35,6 +37,9 @@ export function GreenAdmin() {
           ...(hasMoney ? [{value: inr(t.raised / 100), label: 'paid in'}] : []),
         ]}
       />
+
+      {/* The market is priced by the same roles that see money here (ACCESS.pricing). */}
+      {hasMoney && <GreenMarketAdmin drives={drives} />}
 
       <section aria-labelledby="green-drives">
         <div className="flex flex-wrap items-end justify-between gap-4">

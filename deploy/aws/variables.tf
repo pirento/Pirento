@@ -50,6 +50,7 @@ variable "services" {
     vault    = { port = 4007, cpu = 512, memory = 1024, min = 2, max = 40 }
     support  = { port = 4008, cpu = 512, memory = 1024, min = 2, max = 40 }
     ai       = { port = 4009, cpu = 512, memory = 1024, min = 2, max = 40 }
+    green    = { port = 4010, cpu = 512, memory = 1024, min = 2, max = 40 }
   }
 }
 

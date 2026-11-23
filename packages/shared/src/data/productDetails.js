@@ -39,13 +39,17 @@ export const PRODUCT_DETAILS = {
   },
   green: {
     more: [
+      {
+        title: 'Carbon market',
+        body: 'Buy and sell carbon credits to 0.01 with your wallet, with the price on a chart.',
+      },
       {title: 'From one tree to 500', body: 'Sponsor as many trees as you like in a single order.'},
       {title: 'Pay from your wallet', body: 'Or by card and UPI. The price per tree is set by the drive.'},
       {title: 'Gift a tree', body: 'Sponsor for someone else and tell us their name in the notes.'},
     ],
     audience: [
       {title: 'Individuals', body: 'Mark a birthday, a new job or a memory with trees on a drive.'},
-      {title: 'Companies', body: 'Sponsor trees for your team or clients and keep the record.'},
+      {title: 'Companies', body: 'Sponsor trees for your team or clients, and hold carbon credits in one account.'},
       {title: 'Schools and groups', body: 'Pool together for a drive and keep one shared record.'},
     ],
     related: ['giftox', 'one', 'intern'],

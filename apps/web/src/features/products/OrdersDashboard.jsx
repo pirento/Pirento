@@ -28,6 +28,7 @@ import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
 import {green, orderDashboard as copy, productDashboards} from '../../data/site';
 import {GreenTrees} from './GreenTrees';
+import {Market} from '../green/Market';
 import {AI_TOOLS_FOR} from '../../data/aiTools';
 import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
@@ -456,6 +457,12 @@ export function OrdersDashboard({product, section = 'overview'}) {
         <DashSection n={1} id="consultations" label={copy.consultations.label} title={copy.consultations.title}>
           <p className="body -mt-2 mb-8">{copy.consultations.intro}</p>
           <Consultations mine={mine} orders={orders} browse={browse} product={product} />
+        </DashSection>
+      )}
+
+      {section === 'market' && (
+        <DashSection n={1} id="market" label={green.market.label} title={green.market.title}>
+          <Market />
         </DashSection>
       )}
 

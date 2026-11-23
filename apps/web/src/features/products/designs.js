@@ -12,12 +12,12 @@ import {ReferralFlow} from './widgets/ReferralFlow';
 import {SampleIdCard} from './widgets/SampleIdCard';
 import {ServiceSearch} from './widgets/ServiceSearch';
 import {SpecSheet} from './widgets/SpecSheet';
-import {TreeCalculator} from './widgets/TreeCalculator';
+import {CarbonPrice} from './widgets/CarbonPrice';
 
 export const DESIGNS = {
   legal: {hero: 'split', Widget: ServiceSearch, features: 'bento', how: 'steps'},
   black: {hero: 'editorial', Widget: RateCard, features: 'rows', how: 'timeline', covers: 'extra'},
-  green: {hero: 'split-reverse', Widget: TreeCalculator, features: 'cards', how: 'steps'},
+  green: {hero: 'split-reverse', Widget: CarbonPrice, features: 'cards', how: 'steps'},
   intern: {hero: 'center', Widget: ExamFacts, features: 'rows', how: 'timeline'},
   ai: {hero: 'split', Widget: ChatSample, features: 'cards', how: 'steps', covers: 'extra'},
   vault: {hero: 'editorial', Widget: SpecSheet, features: 'bento', how: 'timeline', covers: 'extra'},

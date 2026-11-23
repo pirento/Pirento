@@ -189,7 +189,7 @@ check('green priced per tree', g.data?.amount === 99000 && g.data.quantity === 1
 
 // The planting record: only on paid work, checked like checkout answers, and the customer sees it.
 const plant = (id, details) => call(`/orders/staff/${id}/fulfilment`, {method: 'PATCH', token: boss, body: {details}});
-const planted = {site: 'Kishangarh, Ajmer', plantedOn: '2026-11-20', lat: '26.5916', lng: '74.8543'};
+const planted = {site: 'Kishangarh, Ajmer', plantedOn: '2025-11-20', lat: '26.5916', lng: '74.8543'};
 check('no planting record before payment', (await plant(g.data?._id, planted)).status === 409);
 await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 990}});
 await call(`/orders/${g.data?._id}/pay/wallet`, {method: 'POST', token: user});
@@ -227,6 +227,75 @@ check(
   greenStaff,
 );
 check('customers cannot read the team green view', (await call('/orders/staff/green', {token: user})).status === 403);
+
+// ── Green: carbon market ────────────────────────────────────────────────
+const trade = (side, units, token = user) => call('/green/trade', {method: 'POST', token, body: {side, units}});
+const mkt = (body, token = boss) => call('/green/staff/market', {method: 'PUT', token, body});
+check('market starts closed and unpriced', (await call('/green/market')).data?.open === false);
+check('closed market refuses a buy', (await trade('buy', 100)).status === 409);
+check('customers cannot set the price', (await mkt({price: 100}, user)).status === 403);
+await mkt({price: 124550, open: true});
+const market0 = (await call('/green/market')).data;
+check(
+  'team opens and prices the market',
+  market0?.open && market0.price === 124550 && market0.history.length >= 1,
+  market0,
+);
+await call('/wallet/topup', {method: 'POST', token: user, body: {amount: 2000}});
+const greenWallet0 = (await call('/wallet', {token: user})).data.balance;
+const greenBought = await trade('buy', 150);
+const afterBuy = (await call('/wallet', {token: user})).data.balance;
+check('buy debits the wallet, rounded up', greenBought.status === 201 && greenWallet0 - afterBuy === 186825, [
+  greenBought,
+  greenWallet0,
+  afterBuy,
+]);
+check('a buy past the balance is refused', (await trade('buy', 1_000_000)).status === 400);
+check('cannot sell more than held', (await trade('sell', 200)).status === 400);
+const greenSold = await trade('sell', 50);
+const afterSell = (await call('/wallet', {token: user})).data.balance;
+check(
+  'sell pays the wallet, rounded down',
+  greenSold.data?.status === 'done' && afterSell - afterBuy === 62275,
+  greenSold,
+);
+let greenMine = (await call('/green/me', {token: user})).data;
+check('holding and cost basis follow the trades', greenMine?.units === 100 && greenMine.cost === 124550, greenMine);
+check(
+  'no credits grow before a rate is set',
+  greenMine?.trees.some((t) => t.orderId === g.data?._id && t.growingUnits === 0),
+  greenMine?.trees,
+);
+check(
+  'customers cannot set growth rates',
+  (await call('/green/staff/rates', {method: 'PUT', token: user, body: {slug: 'green-aravalli-ridge', rate: 1}}))
+    .status === 403,
+);
+await call('/green/staff/rates', {method: 'PUT', token: boss, body: {slug: 'green-aravalli-ridge', rate: 0.025}});
+const claimed = await call(`/green/claims/${g.data?._id}`, {method: 'POST', token: user});
+check('planted trees grow credits that can be claimed', claimed.status === 201 && claimed.data.units >= 25, claimed);
+check(
+  'a claim cannot be taken twice',
+  (await call(`/green/claims/${g.data?._id}`, {method: 'POST', token: user})).status === 400,
+);
+check(
+  "another person's trees cannot be claimed",
+  (await call(`/green/claims/${g.data?._id}`, {method: 'POST', token: boss})).status === 404,
+);
+greenMine = (await call('/green/me', {token: user})).data;
+check(
+  'claimed credits join the holding at no cost',
+  greenMine?.units === 100 + claimed.data?.units && greenMine.cost === 124550,
+  greenMine,
+);
+const staffMarket = (await call('/green/staff/market', {token: boss})).data;
+check(
+  'team sees holders and volumes',
+  staffMarket?.holders >= 1 && staffMarket.volume.buy?.amount >= 186825,
+  staffMarket,
+);
+await mkt({open: false});
+check('closing the market stops sells', (await trade('sell', 10)).status === 409);
 check(
   'quantity capped',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', quantity: 2, intake}}))

@@ -5,7 +5,7 @@ Pirento is one website (`apps/web`) in front of small backend services (`service
 ## The big picture
 
 ```
-browser ──► gateway (:4000) ──► auth · wallet · catalog · orders · identity · learning · vault · support · ai
+browser ──► gateway (:4000) ──► auth · wallet · catalog · orders · identity · learning · vault · support · ai · green
                │                   each with its own MongoDB database
                └── serves the built website in production
 ```
@@ -27,7 +27,7 @@ apps/web/src
     ui/                    Button, Tag, Heading/Section, Field, TextArea, Blocks
     PageHero.jsx, Illustration.jsx
   features/<area>/         one folder per area of the product, pages and their parts
-    ecosystem/  products/  auth/  account/  admin/  orders/  legal/  verify/
+    ecosystem/  products/  auth/  account/  admin/  orders/  legal/  verify/  green/
     identity/   learning/  vault/ ai/      partner/ capital/ support/
   lib/
     api/                   client (token + silent refresh), session, useApi
@@ -53,23 +53,24 @@ services/<name>/src
 
 ## Services
 
-| Service  | Port | Owns                                                                                                  |
-| -------- | ---- | ----------------------------------------------------------------------------------------------------- |
-| gateway  | 4000 | routing, rate limits, serving the website                                                             |
-| auth     | 4001 | accounts, email codes, sessions, roles                                                                |
-| wallet   | 4002 | balances (paise), the ledger, withdrawals, in PostgreSQL (SQL transactions)                           |
-| catalog  | 4003 | products and prices (from `packages/shared`), admin edits and new services, site settings             |
-| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals                                    |
-| identity | 4005 | Bharat ID: applications, Digio verification, verify, and Bharat ID for Business (API, keys, consents) |
-| learning | 4006 | Intern tracks, lessons, exams, certificates, openings, companies and the internship pipeline          |
-| vault    | 4007 | encrypted files and passwords                                                                         |
-| support  | 4008 | tickets, contact-form enquiries                                                                       |
-| ai       | 4009 | the Claude assistant                                                                                  |
+| Service  | Port | Owns                                                                                                   |
+| -------- | ---- | ------------------------------------------------------------------------------------------------------ |
+| gateway  | 4000 | routing, rate limits, serving the website                                                              |
+| auth     | 4001 | accounts, email codes, sessions, roles                                                                 |
+| wallet   | 4002 | balances (paise), the ledger, withdrawals, in PostgreSQL (SQL transactions)                            |
+| catalog  | 4003 | products and prices (from `packages/shared`), admin edits and new services, site settings              |
+| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals                                     |
+| identity | 4005 | Bharat ID: applications, Digio verification, verify, and Bharat ID for Business (API, keys, consents)  |
+| learning | 4006 | Intern tracks, lessons, exams, certificates, openings, companies and the internship pipeline           |
+| vault    | 4007 | encrypted files and passwords                                                                          |
+| support  | 4008 | tickets, contact-form enquiries                                                                        |
+| ai       | 4009 | the Claude assistant                                                                                   |
+| green    | 4010 | Pirento Green's carbon market: the price, credits held, buys, sells and credits grown by planted trees |
 
 ## The website
 
 - `/` is the **Pirento Ecosystem** site; `/dashboard` is the shared dashboard (products, wallet, orders, profile).
-- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. Every home has its own layout and a working widget (service search, rate card, tree calculator, exam facts, chat sample, spec sheet, referral path, EMI calculator, sample ID card, box strip), set in `features/products/designs.js`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
+- Each product is its own site: home at `/<slug>`, dashboard at `/<slug>/dashboard`. Every home has its own layout and a working widget (service search, rate card, exam facts, chat sample, spec sheet, referral path, EMI calculator, sample ID card, box strip), set in `features/products/designs.js`. `lib/site.js` works out the product from the URL; `useSiteTheme` swaps in that product's accent and dark colour.
 - Three layouts (`app/App.jsx`): marketing pages get the navbar and footer; dashboards and admin get the app shell (`components/layout/AppLayout.jsx`, a sidebar, no footer); sign-in pages stand alone. Routes pick one with `layout` in `app/routes.jsx`.
 - The app shell has a Ctrl/Cmd+K command palette (`components/layout/CommandPalette.jsx`) over pages, products and services.
 - Admin is `/admin/<section>`; `features/admin/adminNav.js` lists the sections and the roles that see them.
