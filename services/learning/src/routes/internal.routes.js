@@ -76,3 +76,15 @@ internalRoutes.post(
     });
   },
 );
+
+/** Pirento AI's admin answers: programme places, paid work and practice tasks waiting on staff, applications. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const [places, work, toGrade, apps] = await Promise.all([
+    Enrolment.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]),
+    Work.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]),
+    Assignment.countDocuments({status: 'submitted'}),
+    Application.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]),
+  ]);
+  const map = (rows) => Object.fromEntries(rows.map((r) => [r._id, r.n]));
+  res.json({data: {places: map(places), paidWork: map(work), practiceTasksToGrade: toGrade, applications: map(apps)}});
+});

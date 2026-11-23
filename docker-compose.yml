@@ -83,6 +83,7 @@ services:
     environment:
       <<: *env
       SERVICE: orders
+      AI_URL: http://ai:4009 # checks customer documents
       MONGO_URI: mongodb://mongo:27017/pirento_orders
       WALLET_URL: http://wallet:4002
       CATALOG_URL: http://catalog:4003 # paused checkouts
@@ -142,6 +143,7 @@ services:
     environment:
       <<: *env
       SERVICE: support
+      AI_URL: http://ai:4009 # sorts new tickets
       MONGO_URI: mongodb://mongo:27017/pirento_support
     depends_on: [mongo]
 

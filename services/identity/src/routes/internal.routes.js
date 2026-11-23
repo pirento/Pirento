@@ -96,3 +96,9 @@ internalRoutes.post(
     });
   },
 );
+
+/** Pirento AI's admin answers: applications by status, and how many wait for review. No personal details. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const counts = await Identity.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]);
+  res.json({data: {applicationsByStatus: Object.fromEntries(counts.map((c) => [c._id, c.n]))}});
+});

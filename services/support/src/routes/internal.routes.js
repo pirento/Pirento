@@ -6,6 +6,7 @@ import {ApiError, nextSeq, requireInternal, validate} from '@pirento/shared/serv
 import {PRODUCTS} from '@pirento/shared';
 import {Ticket} from '../models/Ticket.js';
 import {Enquiry} from '../models/Enquiry.js';
+import {triage} from '../lib/triage.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -77,6 +78,24 @@ internalRoutes.post(
       via: 'ai',
       messages: [{from: 'customer', body: message}],
     });
+    triage(ticket); // in the background
     res.status(201).json({data: {ticketNo: ticket.ticketNo, link: `/support/${ticket._id}`}});
   },
 );
+
+/** Pirento AI's admin answers: open tickets by status, priority and product, and the oldest still open. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const [counts, oldest] = await Promise.all([
+    Ticket.aggregate([
+      {$match: {status: {$ne: 'closed'}}},
+      {$group: {_id: {status: '$status', priority: '$priority', product: '$product'}, n: {$sum: 1}}},
+    ]),
+    Ticket.find({status: 'open'}, {ticketNo: 1, subject: 1, priority: 1, product: 1, createdAt: 1})
+      .sort({createdAt: 1})
+      .limit(10)
+      .lean(),
+  ]);
+  res.json({
+    data: {notClosed: counts.map((c) => ({...c._id, count: c.n})), oldestOpen: oldest.map(({_id, ...t}) => t)},
+  });
+});

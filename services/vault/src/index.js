@@ -5,6 +5,7 @@ import {config} from './config.js';
 import {internalRoutes} from './routes/internal.routes.js';
 import {fileRoutes} from './routes/file.routes.js';
 import {credentialRoutes} from './routes/credential.routes.js';
+import {startExpiryReminders} from './lib/expiry.js';
 
 const app = createApp('vault');
 // Internal routes go first: they carry the service key, not a user's token.
@@ -13,3 +14,4 @@ app.use(requireAuth, requireBharatId); // everything in the vault belongs to som
 app.use(fileRoutes, credentialRoutes);
 
 start(finish(app), {name: 'vault', port: config.port, mongoUri: config.mongoUri});
+startExpiryReminders(); // an email 30 days before a stored document expires

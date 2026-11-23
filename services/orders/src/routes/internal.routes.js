@@ -60,3 +60,56 @@ internalRoutes.post(
     });
   },
 );
+
+/** Pirento AI's partner coach: the person's Pirento One code, plan and the orders their code brought (no buyers). */
+internalRoutes.post(
+  '/internal/partner-summary',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const partner = await Partner.findOne({userId: req.body.userId}).lean();
+    if (!partner) return res.json({data: null});
+    const orders = await Order.find(
+      {ref: partner.code},
+      {serviceName: 1, product: 1, status: 1, commission: 1, createdAt: 1},
+    )
+      .sort({createdAt: -1})
+      .limit(100)
+      .lean();
+    res.json({
+      data: {
+        code: partner.code,
+        plan: partner.plan?.name ?? 'Free',
+        referredOrders: orders.map((o) => ({
+          service: o.serviceName,
+          product: o.product,
+          status: o.status,
+          commissionRupees: o.commission?.amount ? o.commission.amount / 100 : 0,
+          at: o.createdAt,
+        })),
+      },
+    });
+  },
+);
+
+/** Pirento AI's admin answers: live order counts by status and product, and paid orders waiting over 3 days. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const stale = new Date(Date.now() - 3 * 86_400_000);
+  const [byStatus, waiting, today] = await Promise.all([
+    Order.aggregate([{$group: {_id: {status: '$status', product: '$product'}, n: {$sum: 1}}}]),
+    Order.find(
+      {status: {$in: ['paid', 'in_progress']}, updatedAt: {$lt: stale}},
+      {orderNo: 1, product: 1, serviceName: 1, status: 1, updatedAt: 1},
+    )
+      .sort({updatedAt: 1})
+      .limit(20)
+      .lean(),
+    Order.countDocuments({createdAt: {$gte: new Date(new Date().toISOString().slice(0, 10))}}),
+  ]);
+  res.json({
+    data: {
+      byStatus: byStatus.map((r) => ({...r._id, count: r.n})),
+      placedToday: today,
+      waitingOver3Days: waiting.map(({_id, ...o}) => o),
+    },
+  });
+});

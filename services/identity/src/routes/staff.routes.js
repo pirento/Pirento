@@ -21,6 +21,7 @@ import {Identity} from '../models/Identity.js';
 import {KycVideo} from '../models/KycVideo.js';
 import {kycMedia, signedDocument} from '../lib/digio.js';
 import {UNSIGN, kycDone, refreshKyc, refreshSign, signed} from '../lib/verification.js';
+import {flagsFor, lookalikes} from '../lib/flags.js';
 
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.identity));
@@ -33,6 +34,18 @@ staffRoutes.get('/staff/queue', async (req, res) => {
 });
 
 /** One person's application status, for the admin user page (no form answers). */
+/** Warning signs for the reviewer (lib/flags.js): details shared with another person's application. */
+staffRoutes.get('/staff/:id/flags', async (req, res) => {
+  const doc = isId(req.params.id) && (await Identity.findById(req.params.id).lean());
+  if (!doc) throw notFound('Application not found');
+  // shortcut: the sections fields are not indexed; add indexes on PAN and mobile past ~100k applications.
+  const filter = lookalikes(doc);
+  const others = filter
+    ? await Identity.find(filter, {userId: 1, status: 1, bharatId: 1, sections: 1}).limit(20).lean()
+    : [];
+  res.json({data: flagsFor(doc, others)});
+});
+
 staffRoutes.get('/staff/user/:userId', async (req, res) => {
   const doc = await Identity.findOne(
     {userId: req.params.userId},

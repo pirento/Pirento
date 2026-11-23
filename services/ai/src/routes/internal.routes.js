@@ -24,15 +24,21 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
 });
 
 /** One intern job ({input} is the job's facts). 503 without a key, 502 when Claude gave no usable answer. */
+// /internal/jobs/:kind for every job; /internal/intern/:kind is the older name the learning service uses.
 internalRoutes.post(
-  '/internal/intern/:kind',
-  validate(z.object({input: z.record(z.string(), z.unknown())})),
+  ['/internal/jobs/:kind', '/internal/intern/:kind'],
+  validate(
+    z.object({
+      input: z.record(z.string(), z.unknown()),
+      attachments: z.array(z.record(z.string(), z.unknown())).max(5).default([]),
+    }),
+  ),
   async (req, res) => {
     if (!Object.hasOwn(JOBS, req.params.kind)) throw new ApiError(404, 'NOT_FOUND', 'No such job');
     if (!config.enabled) throw new ApiError(503, 'AI_OFF', 'The AI is not set up');
     // Keep the input bounded: the learning service sends summaries, never whole histories.
     if (JSON.stringify(req.body.input).length > 40_000) throw new ApiError(400, 'TOO_LARGE', 'Input too large');
-    const out = await runJob(req.params.kind, req.body.input);
+    const out = await runJob(req.params.kind, req.body.input, '', req.body.attachments);
     if (!out) throw new ApiError(502, 'AI_NO_ANSWER', 'The AI gave no usable answer');
     res.json({data: out});
   },

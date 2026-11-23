@@ -1,7 +1,19 @@
 // Documents on an order: the customer sends their papers, the team sends back the finished work.
 // Files are encrypted at rest and always downloaded, never shown in the browser.
 import express, {Router} from 'express';
-import {ApiError, audit, badInput, canUse, decrypt, encrypt, isId, notFound, requireAuth} from '@pirento/shared/server';
+import {
+  ApiError,
+  audit,
+  badInput,
+  cached,
+  callService,
+  canUse,
+  decrypt,
+  encrypt,
+  isId,
+  notFound,
+  requireAuth,
+} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Order} from '../models/Order.js';
 import {OrderFile, WITHOUT_BYTES} from '../models/OrderFile.js';
@@ -96,4 +108,44 @@ fileRoutes.delete('/:id/files/:fileId', async (req, res) => {
   await file.deleteOne();
   if (side === 'team') audit(req, 'order.file.delete', `#${order.orderNo}`, file.name);
   res.json({data: {deleted: true}});
+});
+
+const CHECKABLE = /^(application\/pdf|image\/(png|jpeg|webp|gif))$/;
+const CHECK_BYTES = 4.5 * 1024 * 1024; // base64 grows it by a third; the AI service takes 8 MB a request
+
+/**
+ * The customer asks Pirento AI to look over the documents they sent before the team does: what each looks like,
+ * what seems missing, what is unclear. Their own order only; PDFs and photos, newest first, up to 4.5 MB in all.
+ * The same set of files gets the same answer for an hour, so repeated clicks cost nothing.
+ */
+fileRoutes.post('/:id/files/check', async (req, res) => {
+  const {order, side} = await orderAndSide(req);
+  if (side !== 'customer') throw new ApiError(403, 'FORBIDDEN', 'Only the customer checks their documents here');
+  const files = await OrderFile.find({orderId: String(order._id), from: 'customer'})
+    .sort({createdAt: -1})
+    .limit(10);
+  const picked = [];
+  let bytes = 0;
+  for (const f of files) {
+    if (!CHECKABLE.test(f.type ?? '') || bytes + f.size > CHECK_BYTES) continue;
+    bytes += f.size;
+    picked.push(f);
+  }
+  if (!picked.length) throw badInput('Upload a PDF or photo of your documents first');
+  const key = `orders:doccheck:${order._id}:${picked.map((f) => f._id).join(',')}`;
+  const result = await cached(key, 3600, () =>
+    callService(
+      config.aiUrl,
+      '/internal/jobs/docCheck',
+      {
+        input: {service: order.serviceName, product: order.product, files: picked.map((f) => f.name)},
+        attachments: picked.map((f) => ({
+          type: f.type === 'application/pdf' ? 'document' : 'image',
+          source: {type: 'base64', media_type: f.type, data: decrypt(config.fileKey, f).toString('base64')},
+        })),
+      },
+      {timeoutMs: 120_000},
+    ),
+  );
+  res.json({data: result});
 });

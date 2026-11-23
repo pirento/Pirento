@@ -1,11 +1,13 @@
 // One-shot jobs for Claude with structured answers: for Pirento Intern (write a task, review an answer, pick the
-// intern for paid work, draft a resume) and for the support team (draft a ticket reply). Each job has its own frozen system prompt (no dates or
+// intern for paid work, draft a resume), the support team (draft a ticket reply) and the AI tools in every product
+// (assistJobs.js). Each job has its own frozen system prompt (no dates or
 // ids), so its cached prefix keeps hitting; everything that changes goes in the user message as JSON.
 import Anthropic from '@anthropic-ai/sdk';
 import {betaZodOutputFormat} from '@anthropic-ai/sdk/helpers/beta/zod';
 import {z} from 'zod';
 import {config} from '../config.js';
 import {MODEL} from './prompt.js';
+import {ASSIST_JOBS} from './assistJobs.js';
 
 const client = config.enabled ? new Anthropic() : null;
 
@@ -14,6 +16,7 @@ Write in plain, short English a student understands. Be fair and specific. Never
 Only refer to lessons by the ids given in the input; never invent an id.`;
 
 export const JOBS = {
+  ...ASSIST_JOBS,
   task: {
     system: `${RULES}
 Job: write one practice task for an intern for the period named ("daily" is about 1 hour of work, "weekly" about 5 hours, "monthly" a small project).
@@ -62,7 +65,7 @@ Job: draft the intern's resume summary from the facts given only (profile, certi
 };
 
 /** The request for one job; exported so tests can check its shape without calling the API. */
-export function buildJob(kind, input, notes = '') {
+export function buildJob(kind, input, notes = '', attachments = []) {
   const job = JOBS[kind];
   const system = [{type: 'text', text: job.system, cache_control: {type: 'ephemeral'}}];
   if (notes) system.push({type: 'text', text: `The team's notes:\n\n${notes}`, cache_control: {type: 'ephemeral'}});
@@ -73,13 +76,21 @@ export function buildJob(kind, input, notes = '') {
     fallbacks: 'default', // on a safety decline, the API reruns it on Anthropic's recommended model
     output_config: {effort: 'low', format: betaZodOutputFormat(job.schema)},
     system,
-    messages: [{role: 'user', content: JSON.stringify(input)}],
+    // Files (a notice, order documents) go before the facts, as the model reads best.
+    messages: [
+      {
+        role: 'user',
+        content: attachments.length
+          ? [...attachments, {type: 'text', text: JSON.stringify(input)}]
+          : JSON.stringify(input),
+      },
+    ],
   };
 }
 
 /** Runs one job and returns its parsed JSON, or null when Claude declined or the answer did not parse. */
-export async function runJob(kind, input, notes) {
-  const res = await client.beta.messages.parse(buildJob(kind, input, notes));
+export async function runJob(kind, input, notes, attachments) {
+  const res = await client.beta.messages.parse(buildJob(kind, input, notes, attachments));
   if (res.stop_reason === 'refusal') return null;
   return res.parsed_output ?? null;
 }

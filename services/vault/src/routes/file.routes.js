@@ -1,6 +1,7 @@
 // Upload, list, download and delete files.
 import express, {Router} from 'express';
-import {ApiError, badInput, decrypt, encrypt} from '@pirento/shared/server';
+import {z} from 'zod';
+import {ApiError, badInput, decrypt, encrypt, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
@@ -69,3 +70,47 @@ fileRoutes.delete('/files/:id', async (req, res) => {
   if (deletedCount) await giveRoom(req.user.sub, file.size);
   res.json({data: {deleted: true}});
 });
+
+export const LABELS = [
+  'Aadhaar',
+  'PAN',
+  'Passport',
+  'Driving licence',
+  'Voter ID',
+  'Bank',
+  'Bill',
+  'Agreement',
+  'Certificate',
+  'Insurance',
+  'Tax',
+  'Photo',
+  'Other',
+];
+
+/** A label (chosen by hand or suggested by Pirento AI from the name) and the document's expiry date. */
+fileRoutes.patch(
+  '/files/:id',
+  validate(
+    z.object({
+      label: z.enum(LABELS).or(z.literal('')).optional(),
+      expiresOn: z.iso.date().or(z.literal('')).optional(),
+    }),
+  ),
+  async (req, res) => {
+    const file = await findOwned(VaultFile, req, WITHOUT_BYTES);
+    const set = {};
+    const unset = {};
+    if (req.body.label !== undefined) (req.body.label ? set : unset).label = req.body.label || 1;
+    if (req.body.expiresOn !== undefined) {
+      if (req.body.expiresOn) Object.assign(set, {expiresOn: new Date(req.body.expiresOn)});
+      else unset.expiresOn = 1;
+      unset.expiryReminded = 1; // a new date gets its own reminder
+    }
+    const doc = await VaultFile.findByIdAndUpdate(
+      file._id,
+      {$set: set, $unset: unset},
+      {new: true, projection: WITHOUT_BYTES},
+    );
+    res.json({data: doc});
+  },
+);

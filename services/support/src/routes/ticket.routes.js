@@ -4,6 +4,7 @@ import {z} from 'zod';
 import {ApiError, audit, canUse, isId, nextSeq, notFound, notify, validate} from '@pirento/shared/server';
 import {PRODUCTS, getProduct} from '@pirento/shared';
 import {PRIORITIES, Ticket} from '../models/Ticket.js';
+import {triage} from '../lib/triage.js';
 
 export const ticketRoutes = Router();
 
@@ -43,6 +44,7 @@ ticketRoutes.post(
       priority: req.body.priority,
       messages: [{from: 'customer', body: req.body.message}],
     });
+    triage(ticket); // in the background
     res.status(201).json({data: ticket});
   },
 );

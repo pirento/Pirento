@@ -63,3 +63,18 @@ internalRoutes.post(
     });
   },
 );
+
+/** Pirento AI's admin answers (finance): withdrawals by status with amounts, and the money held in wallets. */
+internalRoutes.post('/internal/staff-summary', validate(z.object({}).passthrough()), async (_req, res) => {
+  const [w, held] = await Promise.all([
+    query(`SELECT status, COUNT(*) AS n, COALESCE(SUM(amount), 0) AS paise FROM withdrawals GROUP BY status`),
+    query('SELECT COALESCE(SUM(balance), 0) AS paise, COUNT(*) AS wallets FROM wallets'),
+  ]);
+  res.json({
+    data: {
+      withdrawals: w.rows.map((r) => ({status: r.status, count: r.n, rupees: r.paise / 100})),
+      heldRupees: held.rows[0].paise / 100,
+      wallets: held.rows[0].wallets,
+    },
+  });
+});
