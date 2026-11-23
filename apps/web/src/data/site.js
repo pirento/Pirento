@@ -94,6 +94,7 @@ export const productNav = {
     links: [
       ['Apply', '/bharat-id#apply'],
       ['Checks', '/bharat-id#checks'],
+      ['Questions', '/bharat-id#faq'],
       ['For business', '/bharat-id/business'],
     ],
     cta: ['Apply now', '/bharat-id/start', 'Apply'],

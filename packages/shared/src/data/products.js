@@ -232,6 +232,7 @@ const SITE = {
         title: 'Sign with Aadhaar',
         body: 'You sign your declaration with Aadhaar eSign on Digio, with a one-time code to your Aadhaar mobile.',
       },
+      {title: 'Set your PIN', body: 'A 6-digit PIN only you know, to sign in and to prove it is you later.'},
       {title: 'We review by hand', body: 'Our team checks your details. If something needs a change, we tell you why.'},
       {title: 'Get your ID', body: 'A 10-digit Bharat ID with a QR to its public verify page.'},
     ],
@@ -249,6 +250,18 @@ const SITE = {
       {
         q: 'Why do I sign a declaration?',
         a: 'It records your details and your consent. You sign it with Aadhaar eSign on Digio and can download the signed copy from your dashboard.',
+      },
+      {
+        q: 'Can I change my details later?',
+        a: 'Your contact, address, work, bank and nominee, yes: ask from your dashboard and our team checks the change first. Your name, date of birth and documents were checked by the video KYC and eSign, so ask support if one is wrong.',
+      },
+      {
+        q: 'Who can see my details?',
+        a: 'Only the short public facts on the verify page: your masked name, state and issue date. A business sees more only after you approve its request in your dashboard, and you can stop it there.',
+      },
+      {
+        q: 'Can a Bharat ID be suspended?',
+        a: 'Yes, if our team finds it misused or wrong. It then stops working everywhere until it is restored, its verify page says so, and we email you why.',
       },
     ],
   },

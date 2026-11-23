@@ -126,6 +126,9 @@ export const PRODUCT_DETAILS = {
         body: 'A video KYC on Digio shows it is really you, and you sign your declaration with Aadhaar eSign.',
       },
       {title: 'Less kept, less at risk', body: 'Only the last 4 digits of your Aadhaar and bank account are stored.'},
+      {title: 'Sign in with a PIN', body: 'Your Bharat ID, your 6-digit PIN and your date of birth open Pirento.'},
+      {title: 'You decide who sees', body: 'Businesses ask first; you approve or stop them from your dashboard.'},
+      {title: 'Keep it current', body: 'Moved or changed your number? Ask from your dashboard; our team checks it.'},
     ],
     audience: [
       {title: 'Pirento customers', body: 'One reviewed identity across every Pirento product.'},
