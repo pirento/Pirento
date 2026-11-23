@@ -4,6 +4,7 @@ import {Tag} from '../../components/ui/Tag';
 import {DashSection} from '../../components/ui/DashSection';
 import {AppFrame} from '../products/AppFrame';
 import {CALLS, apiBase} from './apiSample';
+import {AiTool} from '../ai/AiTool';
 
 const ERRORS = [
   ['401 NO_KEY', 'No key sent. Send Authorization: Bearer <key>.'],
@@ -104,6 +105,11 @@ export function ApiReference({frame}) {
             </div>
           ))}
         </dl>
+      </DashSection>
+      <DashSection n={CALLS.length + 2} id="ask" label="Pirento AI" title="Ask how / to build it.">
+        <div className="max-w-3xl">
+          <AiTool id="devHelp" />
+        </div>
       </DashSection>
     </AppFrame>
   );

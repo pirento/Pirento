@@ -927,6 +927,25 @@ check(
   'reveal password',
   (await call(`/vault/credentials/${cred._id}/secret`, {token: user})).data?.password === 'p@ss',
 );
+const labelled = (
+  await call(`/vault/files/${file._id}`, {method: 'PATCH', token: user, body: {label: 'PAN', expiresOn: '2030-01-31'}})
+).data;
+check(
+  'a vault file takes a label and an expiry date',
+  labelled?.label === 'PAN' && labelled.expiresOn?.startsWith('2030-01-31'),
+  labelled,
+);
+check(
+  'only known labels',
+  (await call(`/vault/files/${file._id}`, {method: 'PATCH', token: user, body: {label: 'Secret stuff'}})).status ===
+    400,
+);
+check(
+  "someone else's file cannot be labelled",
+  [403, 404].includes(
+    (await call(`/vault/files/${file._id}`, {method: 'PATCH', token: boss, body: {label: 'PAN'}})).status,
+  ),
+);
 check('delete file', (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).data?.deleted);
 check(
   'a file deleted twice gives its space back once',
@@ -3199,6 +3218,43 @@ check(
   (await call('/ai/chats/new/messages', {method: 'POST', token: user, body: {content: 'hi', product: 'nope'}}))
     .status === 400,
 );
+check(
+  'an unknown AI tool is not found',
+  (await call('/ai/assist/nope', {method: 'POST', token: user, body: {}})).status === 404,
+);
+check(
+  'AI tools check their input first',
+  (await call('/ai/assist/recommend', {method: 'POST', token: user, body: {need: 'x'}})).status === 400,
+);
+check(
+  'AI tools wait for the key',
+  (
+    await call('/ai/assist/recommend', {
+      method: 'POST',
+      token: user,
+      body: {need: 'register my company', product: 'legal'},
+    })
+  ).status === 503,
+);
+check(
+  'the Bharat ID helper takes a step, never values',
+  (await call('/ai/assist/idHelp', {method: 'POST', token: user, body: {step: 'not-a-step'}})).status === 400,
+);
+check(
+  'staff AI tools are for staff',
+  (await call('/ai/assist/impactStory', {method: 'POST', token: user, body: {facts: 'Planted 100 trees in Ajmer'}}))
+    .status === 403,
+);
+check(
+  'the admin assistant waits for the key too',
+  (await call('/ai/assist/adminAnswer', {method: 'POST', token: boss, body: {question: 'How many orders are late?'}}))
+    .status === 503,
+);
+check(
+  'reviewers see warning signs',
+  Array.isArray((await call(`/identity/staff/${app1._id}/flags`, {token: boss})).data),
+);
+check('customers do not', (await call(`/identity/staff/${app1._id}/flags`, {token: user})).status === 403);
 // Back to the default, so the next run starts where a fresh database does.
 await call('/ai/staff/ai/settings', {method: 'PUT', token: boss, body: {on: true, freeDailyLimit: 30}});
 check(

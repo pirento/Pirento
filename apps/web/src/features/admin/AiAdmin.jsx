@@ -12,6 +12,7 @@ import {useSession} from '../../lib/api/session';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate, inr} from '../../lib/format';
 import {selectCls} from '../learning/Pipeline';
+import {AiTool} from '../ai/AiTool';
 
 async function save(fn, setNote, done) {
   setNote('');
@@ -349,7 +350,14 @@ function Feedback() {
   );
 }
 
-const TABS = {overview: 'Overview', knowledge: 'Knowledge', feedback: 'Rated answers', plans: 'Plans'};
+const TABS = {
+  overview: 'Overview',
+  ask: 'Ask',
+  story: 'Foundation story',
+  knowledge: 'Knowledge',
+  feedback: 'Rated answers',
+  plans: 'Plans',
+};
 
 export function AiAdmin() {
   const {user} = useSession();
@@ -365,6 +373,16 @@ export function AiAdmin() {
         ))}
       </div>
       {tab === 'overview' && <Overview canEdit={canEdit} />}
+      {tab === 'ask' && (
+        <div className="max-w-3xl">
+          <AiTool id="adminAnswer" />
+        </div>
+      )}
+      {tab === 'story' && (
+        <div className="max-w-3xl">
+          <AiTool id="impactStory" />
+        </div>
+      )}
       {tab === 'knowledge' && <Knowledge />}
       {tab === 'feedback' && <Feedback />}
       {tab === 'plans' && <Plans canEdit={canEdit} />}

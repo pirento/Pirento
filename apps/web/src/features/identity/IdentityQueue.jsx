@@ -6,6 +6,7 @@ import {Field} from '../../components/ui/Field';
 import {Tag} from '../../components/ui/Tag';
 import {StaffQueue} from '../admin/StaffQueue';
 import {SectionSummary} from './SectionSummary';
+import {useApi} from '../../lib/api/useApi';
 import {DigioFiles} from './DigioFiles';
 import {KycVideoPlayer} from './KycVideoPlayer';
 import {api} from '../../lib/api/client';
@@ -52,6 +53,7 @@ function Application({doc, onChange}) {
         </Tag>
       </summary>
       <div className="space-y-6 pb-8">
+        <Flags id={doc._id} />
         <SectionSummary doc={doc} email={doc.email} declarationPath={`/api/identity/staff/${doc._id}/declaration`} />
         {legacy ? (
           doc.status === 'submitted' && <KycVideoPlayer doc={doc} />
@@ -112,3 +114,19 @@ export const IdentityQueue = () => (
     render={(d, reload) => <Application key={d._id} doc={d} onChange={reload} />}
   />
 );
+
+/** Warning signs (the same PAN, mobile, or Aadhaar ending and birth date on another person's application). */
+function Flags({id}) {
+  const flags = useApi(`/identity/staff/${id}/flags`);
+  if (!flags.data?.length) return null;
+  return (
+    <ul className="space-y-1 rounded-[14px] border border-accent p-4 text-sm" role="alert">
+      {flags.data.map((f) => (
+        <li key={f.detail}>
+          ⚠ <span className="font-medium">{f.flag}:</span> {f.detail}
+        </li>
+      ))}
+      <li className="text-xs text-muted">Check before deciding; a family can share a mobile.</li>
+    </ul>
+  );
+}

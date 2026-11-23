@@ -12,6 +12,7 @@ import {useSession} from '../../lib/api/session';
 import {inr} from '../../lib/format';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
+import {AiTool} from '../ai/AiTool';
 
 export function Capital() {
   const {user} = useSession();
@@ -81,6 +82,18 @@ export function Capital() {
               ]}
             />
             <p className="mt-4 text-sm text-muted">An estimate on a reducing balance. It is not a loan offer.</p>
+            {user && Number(form.amount) >= 1000 && Number(form.months) >= 1 && (
+              <div className="mt-8">
+                <AiTool
+                  id="emiExplain"
+                  fixed={{
+                    amount: Math.round(Number(form.amount)),
+                    ratePercent: Number(form.rate),
+                    months: Math.round(Number(form.months)),
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </Section>
