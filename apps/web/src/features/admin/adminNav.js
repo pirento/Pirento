@@ -26,6 +26,7 @@ import {
   UserX,
   ShoppingBag,
   Sparkles,
+  Sprout,
   Users,
 } from 'lucide-react';
 
@@ -69,6 +70,15 @@ export const ADMIN_SECTIONS = [
     icon: ShoppingBag,
     roles: ['staff', 'finance', 'superadmin'],
     intro: 'Paid and in-progress orders, oldest first. Take one, move it along, or send the customer a note.',
+  },
+  {
+    id: 'green',
+    group: 'Work',
+    label: 'Pirento Green',
+    icon: Sprout,
+    roles: ['staff', 'finance', 'superadmin'], // ACCESS.orders
+    intro:
+      'Trees sponsored and planted, drive by drive, counted from paid orders. Write the planting record for the sponsorships still waiting on one.',
   },
   {
     id: 'bharat-id',

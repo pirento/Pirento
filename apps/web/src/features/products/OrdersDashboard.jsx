@@ -26,7 +26,8 @@ import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {DashSection} from '../../components/ui/DashSection';
 import {Heading} from '../../components/ui/Heading';
-import {orderDashboard as copy, productDashboards} from '../../data/site';
+import {green, orderDashboard as copy, productDashboards} from '../../data/site';
+import {GreenTrees} from './GreenTrees';
 import {AI_TOOLS_FOR} from '../../data/aiTools';
 import {AiToolBox} from '../ai/AiTool';
 import {useSignedIn} from '../auth/useSignedIn';
@@ -455,6 +456,13 @@ export function OrdersDashboard({product, section = 'overview'}) {
         <DashSection n={1} id="consultations" label={copy.consultations.label} title={copy.consultations.title}>
           <p className="body -mt-2 mb-8">{copy.consultations.intro}</p>
           <Consultations mine={mine} orders={orders} browse={browse} product={product} />
+        </DashSection>
+      )}
+
+      {section === 'trees' && (
+        <DashSection n={1} id="trees" label={green.trees.label} title={green.trees.title}>
+          <p className="body -mt-2 mb-8">{green.trees.intro}</p>
+          <GreenTrees mine={mine} loading={!orders.data} />
         </DashSection>
       )}
 

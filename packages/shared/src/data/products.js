@@ -74,6 +74,10 @@ const SITE = {
         a: 'No. Sponsorship is a record of trees you paid for; no certified credit, return or CSR eligibility is promised.',
       },
       {q: 'Can I sponsor for my company?', a: 'Yes. Choose the scale that fits at checkout and tell us in the notes.'},
+      {
+        q: 'How do I know my trees were planted?',
+        a: 'Once they are in the ground our team writes the planting record on your order: the site, the date and the spot on the map. You see it in Green → My trees, and you are emailed when it is written.',
+      },
     ],
   },
   intern: {

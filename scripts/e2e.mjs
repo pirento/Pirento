@@ -212,6 +212,21 @@ check(
     seen.fulfilment.by === 'boss@example.com',
   seen?.fulfilment,
 );
+// Green's record: counted from paid orders, public without people or money, the team's with money.
+const impact = (await call('/orders/green/impact')).data;
+check(
+  'green record counts the planted trees',
+  impact?.trees >= 10 && impact.planted >= 10 && impact.recent.some((r) => r.site === planted.site),
+  impact,
+);
+check('public green record shows no money or people', !JSON.stringify(impact).match(/raised|userId|email|orderNo/));
+const greenStaff = (await call('/orders/staff/green', {token: boss})).data;
+check(
+  'team sees green totals by drive',
+  greenStaff?.totals.raised >= 99000 && greenStaff.drives.some((d) => d.slug === 'green-aravalli-ridge'),
+  greenStaff,
+);
+check('customers cannot read the team green view', (await call('/orders/staff/green', {token: user})).status === 403);
 check(
   'quantity capped',
   (await call('/orders', {method: 'POST', token: user, body: {serviceSlug: 'gst-registration', quantity: 2, intake}}))

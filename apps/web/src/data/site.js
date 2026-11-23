@@ -337,7 +337,7 @@ export const productDashboards = {
     {id: 'consultations', label: 'Consultations', icon: 'consultations'},
   ]),
   black: ORDER_SECTIONS('My filings', 'Services', [DOCUMENTS]),
-  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives'),
+  green: ORDER_SECTIONS('My sponsorships', 'Plantation drives', [{id: 'trees', label: 'My trees', icon: 'trees'}]),
   giftox: ORDER_SECTIONS('My gift orders', 'Gift boxes'),
   intern: APP_SECTIONS(
     {id: 'programme', label: 'Programme', icon: 'programme'},
@@ -863,6 +863,34 @@ export const checkoutGuest = {
 export const receipt = {
   title: 'Payment receipt',
   note: 'This receipt confirms a payment made on Pirento. It is not a GST tax invoice.',
+};
+
+// Pirento Green's own sections: the public planting record, the customer's trees and the team's view.
+// Every number on them is counted from paid sponsorships; nothing here is a carbon credit or a forecast.
+export const green = {
+  impact: {
+    label: 'The record',
+    title: 'Counted from / real sponsorships.',
+    intro:
+      'Trees sponsored and trees our team has recorded as planted, counted live from paid orders. A tree counts as planted only once its site and date are written down.',
+    empty: 'No sponsorships yet. The first one starts this record.',
+    recent: 'Latest planting records',
+  },
+  trees: {
+    label: 'My trees',
+    title: 'Where your / trees went in.',
+    intro:
+      'Every tree you sponsored, and the planting record our team writes once they are in the ground: the site, the date and the spot on the map.',
+    empty: 'No trees sponsored yet.',
+    waiting: 'Paid · waiting for its planting record',
+  },
+  admin: {
+    drives: 'By drive',
+    waiting: 'Waiting for a planting record',
+    waitingIntro: 'Paid sponsorships with no planting site yet, oldest first. Open one to write its record.',
+    none: 'Every paid sponsorship has its planting record.',
+    prices: 'Open, reprice or retire a drive in Services & prices.',
+  },
 };
 
 // Dashboards of the order-based products (Legal, Black, Green, Giftox): section names and headings.
