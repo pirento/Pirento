@@ -67,7 +67,8 @@ export const productNav = {
   ai: {
     links: [
       ['What it does', '/ai#features'],
-      ['How it works', '/ai#how'],
+      ['Everywhere', '/ai#everywhere'],
+      ['Plans', '/ai#plans'],
       ['Questions', '/ai#faq'],
     ],
     cta: ['Start a chat', '/ai/dashboard', 'Chat'],
@@ -614,6 +615,34 @@ export const appDashboards = {
       intro:
         'Write a few facts you want it to keep in mind in every chat (your company, your city, how you like answers). Only what you write here is kept; delete any line, or switch memory off, whenever you like.',
       placeholder: 'e.g. My company is Asha Foods Pvt Ltd, in Pune',
+    },
+    home: {
+      everywhere: {
+        label: 'Across Pirento',
+        title: 'One assistant, / in every product.',
+        intro: 'Pirento AI works inside each product, on your own data, and the team always has the last word.',
+        items: [
+          [
+            'Pirento Legal',
+            'Fill the checkout by chatting, review a contract, reply to a notice, ask about your order, read a document in your language.',
+          ],
+          ['Pirento Black', 'Explain a tax notice, list your filing dates and add them to your calendar.'],
+          ['Pirento Green', 'A report of your tree sponsorships, and a CSR section for your company.'],
+          ['Giftox', 'The right gift box for a budget, and the message to go with it.'],
+          ['Pirento Intern', 'Tasks set for you, a tutor in every lesson, mock interviews and a resume draft.'],
+          ['Bharat ID', 'Help with each step of the application; it never sees what you type.'],
+          ['Pirento Vault', 'Labels for your files from their names, and a reminder before a document expires.'],
+          ['Pirento One', 'Messages to share your code, and tips on what your referrals buy.'],
+        ],
+      },
+      plans: {
+        label: 'Plans',
+        title: 'Free every day, / more with a plan.',
+        free: 'messages a day, for everyone',
+        perDay: 'messages a day',
+        note: 'Plans are paid from your Pirento wallet and can renew themselves if you choose.',
+        choose: 'Choose in your dashboard',
+      },
     },
     plans: {
       page: 'More messages, / when you need them.',

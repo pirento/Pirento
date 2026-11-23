@@ -17,7 +17,8 @@ export function ChatSample({product}) {
         ))}
         <li className="flex w-fit max-w-[85%] items-start gap-3 rounded-[18px] rounded-bl-md border border-rule px-4 py-3 text-sm text-muted">
           <Sparkles aria-hidden className="mt-0.5 size-4 shrink-0 text-ink" />
-          Answers name the Pirento service that fits, with its price and a link.
+          Answers name the Pirento service that fits, with its price and a link, and can read your own orders when you
+          ask.
         </li>
       </ol>
       <Button to={to} variant="accent" className="mt-6">

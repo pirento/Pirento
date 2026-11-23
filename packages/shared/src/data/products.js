@@ -112,14 +112,40 @@ const SITE = {
     ],
     steps: [
       signIn,
-      {title: 'Ask in your words', body: 'English, Hindi or a mix. Up to 30 messages a day.'},
-      {title: 'Get a service link', body: 'Answers point to the exact Pirento service and its price.'},
+      {
+        title: 'Ask your way',
+        body: 'Type or speak in English, Hindi or a mix, or attach a notice or bill to have it explained.',
+      },
+      {
+        title: 'Get answers that know you',
+        body: 'It points to the exact Pirento service and price, and, when you ask, reads your own orders, wallet, Bharat ID, Intern and tickets.',
+      },
+      {
+        title: 'Use it everywhere',
+        body: 'Ask Pirento AI from any Pirento dashboard; it knows which product you are in.',
+      },
     ],
     faq: [
       {q: 'Is this legal advice?', a: 'No. It gives general information. For your matter, book a consultation.'},
       {
         q: 'Are my chats private?',
         a: 'They are saved in your account until you delete them, and sent to our AI provider to answer you.',
+      },
+      {
+        q: 'Can it see my account?',
+        a: 'Only yours, and only when you ask about it: your orders, wallet, Bharat ID, Intern and tickets, as short summaries. It never sees anyone else’s.',
+      },
+      {
+        q: 'What happens to a file I attach?',
+        a: 'It is sent with that one question to be explained and is not stored; the chat keeps only its name.',
+      },
+      {
+        q: 'Does it remember me?',
+        a: 'Only if you switch on Memory and write the notes yourself. You can delete any note, or switch it off, whenever you like.',
+      },
+      {
+        q: 'How many messages can I send?',
+        a: 'Everyone gets a free number each day; plans paid from your Pirento wallet give more. Both are shown on this page.',
       },
     ],
   },

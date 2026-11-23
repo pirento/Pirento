@@ -4,7 +4,7 @@
 import {createApp, finish, requireAuth, start} from '@pirento/shared/server';
 import {config} from './config.js';
 import {internalRoutes} from './routes/internal.routes.js';
-import {chatRoutes} from './routes/chat.routes.js';
+import {chatRoutes, publicRoutes} from './routes/chat.routes.js';
 import {staffRoutes} from './routes/staff.routes.js';
 import {assistRoutes} from './routes/assist.routes.js';
 import {startRenewals} from './lib/renew.js';
@@ -12,7 +12,7 @@ import {startRenewals} from './lib/renew.js';
 // A chat message may carry one PDF or photo (5 MB, base64), so bodies here can be larger than elsewhere.
 const app = createApp('ai', {jsonLimit: '8mb'});
 // Internal routes go first: they carry the service key, not a user's token.
-app.use(internalRoutes, staffRoutes, assistRoutes);
+app.use(internalRoutes, publicRoutes, staffRoutes, assistRoutes);
 app.use(requireAuth);
 app.use(chatRoutes);
 

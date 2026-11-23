@@ -229,3 +229,13 @@ chatRoutes.post(
     res.json({data: {rating: doc.rating}});
   },
 );
+
+/** For the Pirento AI home page, without sign-in: the free allowance and the plans on sale. */
+export const publicRoutes = Router();
+publicRoutes.get('/plans/public', async (_req, res) => {
+  const [plans, settings] = await Promise.all([
+    Plan.find({active: true}, {name: 1, price: 1, dailyLimit: 1, months: 1}).sort({price: 1}).lean(),
+    readSettings(),
+  ]);
+  res.json({data: {free: settings.freeDailyLimit, plans}});
+});

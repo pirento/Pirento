@@ -5,6 +5,7 @@ import {AlertTriangle} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {PlansSection} from '../partner/PlansSection';
+import {AiEverywhere, AiPlans} from '../ai/AiHomeSections';
 import {BusinessSection} from '../business/BusinessSection';
 import {AuthSection, WaysSection} from '../identity/HomeSections';
 import {useApi} from '../../lib/api/useApi';
@@ -60,6 +61,8 @@ export function ProductHome() {
     design.covers !== 'extra' && ((n) => <Extra key="e" product={product} n={n} />),
     (n) => <Audience key="a" product={product} n={n} />,
     plans.length > 0 && ((n) => <PlansSection key="p" plans={plans} n={n} />),
+    slug === 'ai' && ((n) => <AiEverywhere key="ae" n={n} />),
+    slug === 'ai' && ((n) => <AiPlans key="ap" n={n} />),
     slug === 'bharat-id' && ((n) => <WaysSection key="w" n={n} />),
     slug === 'bharat-id' && ((n) => <AuthSection key="au" n={n} />),
     slug === 'bharat-id' && ((n) => <BusinessSection key="b" n={n} />),
