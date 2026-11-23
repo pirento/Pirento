@@ -1,13 +1,13 @@
-// All ten products, one row each.
+// All ten products, one row each, beside each product's own logo.
 import {useRef} from 'react';
 import {PRODUCTS} from '@pirento/shared';
-import {Illustration} from '../../components/Illustration';
 import {PageHero} from '../../components/PageHero';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {CheckList} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
 import {StatusTag} from '../../components/ui/Tag';
-import {productIllustration} from '../../data/site';
+import {ProductIcon} from '../../components/ui/ProductIcon';
+import {SiteLogo, hasLogo} from '../../components/layout/PirentoLogo';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
 
@@ -15,7 +15,14 @@ function FeatureRow({product, flip}) {
   return (
     <article className="grid gap-10 border-t border-rule py-16 lg:grid-cols-12 lg:items-center">
       <div className={`lg:col-span-6 ${flip ? 'lg:order-2' : ''}`} data-reveal>
-        <Illustration name={productIllustration[product.slug]} />
+        {/* The product's own mark, not a picture: its pictures live on its home page, each used once. */}
+        <div className="grid-bg flex aspect-[8/5] items-center justify-center rounded-[22px] border border-rule bg-stone">
+          {hasLogo(product.slug) ? (
+            <SiteLogo brand={product.slug} alt={product.name} className="h-16 w-auto md:h-20" />
+          ) : (
+            <ProductIcon product={product} className="size-20" />
+          )}
+        </div>
       </div>
       <div className={`lg:col-span-5 ${flip ? 'lg:col-start-1' : 'lg:col-start-8'}`}>
         <p className="eyebrow" data-reveal>
