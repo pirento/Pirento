@@ -29,3 +29,50 @@ export const NOT_INCLUDED = {
   gov: 'Government fees, stamp duty and other charges set by the authority',
   later: 'Filings and compliance for later periods, unless the package lists them',
 };
+
+// A price that ends in 99, at or above the given amount, as the catalogue's prices do.
+const ends99 = (rupees) => Math.ceil((rupees + 1) / 100) * 100 - 1;
+
+/**
+ * Three packages for a service priced once: Basic at its price, Standard about 2× and Premium about 3.5×.
+ * Consultation-led services add written advice and follow-ups; fixed-price ones add priority and support.
+ * Admin → Services & prices can change any of them.
+ */
+export function tiers({price, deliveryTime, model}, included = []) {
+  const consult = model === 'consult';
+  return [
+    {
+      id: 'basic',
+      name: 'Basic',
+      price,
+      deliveryTime: deliveryTime ?? '',
+      // The page's own list where it has one (a consultation page already names the call), else a plain line.
+      includes: included.length
+        ? included.slice(0, 4)
+        : [consult ? 'A consultation with an expert on your matter' : 'The work described on this page'],
+    },
+    {
+      id: 'standard',
+      name: 'Standard',
+      price: ends99(price * 2),
+      deliveryTime: deliveryTime ?? '',
+      recommended: true,
+      includes: consult
+        ? ['Everything in Basic', 'A written summary of the advice', 'One follow-up call within 15 days']
+        : ['Everything in Basic', 'Priority handling by our team', 'A 30-minute call with the expert on your work'],
+    },
+    {
+      id: 'premium',
+      name: 'Premium',
+      price: ends99(price * 3.5),
+      deliveryTime: deliveryTime ?? '',
+      includes: consult
+        ? ['Everything in Standard', 'Review of up to 3 documents', 'Priority booking for every call']
+        : [
+            'Everything in Standard',
+            'A named expert from start to finish',
+            'Questions on the delivered work answered for 30 days',
+          ],
+    },
+  ];
+}
