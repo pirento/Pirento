@@ -59,6 +59,7 @@ const SECTION_ICONS = {
   openings: Megaphone,
   learn: BookOpen,
   programme: Gem,
+  memory: BookOpen,
   tasks: ListChecks,
   classes: Video,
   work: Wallet2,

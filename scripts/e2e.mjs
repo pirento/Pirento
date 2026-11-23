@@ -2193,6 +2193,15 @@ check(
   'approved company opening is public',
   (await call('/learning/openings')).data?.find((o) => o._id === cop._id)?.company === 'Acme Labs',
 );
+const coPage = (await call(`/learning/companies/${acme._id}`)).data;
+check(
+  'the company has a public page with its open roles and no contact details',
+  coPage?.company === 'Acme Labs' &&
+    coPage.openings.some((o) => o._id === cop._id) &&
+    !('phone' in coPage) &&
+    !('email' in coPage),
+  coPage,
+);
 await call(`/learning/openings/${cop._id}/apply`, {method: 'POST', token: user, body: applyBody});
 const coApps = (await call('/learning/employer/applications', {token: co})).data;
 check(
@@ -2220,6 +2229,7 @@ check(
   !(await call('/learning/openings')).data?.some((o) => o._id === cop._id),
 );
 check('a paused company is locked out', (await call('/learning/employer/applications', {token: co})).status === 403);
+check('a paused company has no public page', (await call(`/learning/companies/${acme._id}`)).status === 404);
 
 // ── Intern courses: tracks, question bank, lessons ──────────────────────
 const slug = `qa-${Date.now() % 1_000_000}`;
@@ -3187,6 +3197,21 @@ check('paid once', (await call('/wallet', {token: user})).data.balance === aiWal
 await call(`/ai/plans/${aiPlan._id}/buy`, {method: 'POST', token: user});
 check('a double click pays once', (await call('/wallet', {token: user})).data.balance === aiWalletBefore - 9900);
 check('the plan raises the allowance', (await call('/ai/usage', {token: user})).data?.limit === 200);
+check(
+  'auto-renew can be switched on for the running plan',
+  (await call('/ai/plans/auto-renew', {method: 'PUT', token: user, body: {on: true}})).data?.autoRenew === true &&
+    (await call('/ai/usage', {token: user})).data?.plan?.autoRenew === true,
+);
+check('memory starts off', (await call('/ai/memory', {token: user})).data?.on === false);
+check(
+  'memory keeps what the person writes',
+  (await call('/ai/memory', {method: 'PUT', token: user, body: {on: true, notes: ['My company is Asha Foods']}})).data
+    ?.notes?.length === 1,
+);
+check(
+  'memory has a limit',
+  (await call('/ai/memory', {method: 'PUT', token: user, body: {on: true, notes: Array(11).fill('x')}})).status === 400,
+);
 const note = (
   await call('/ai/staff/ai/knowledge', {
     method: 'POST',

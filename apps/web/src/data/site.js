@@ -352,7 +352,12 @@ export const productDashboards = {
     {id: 'files', label: 'Files', icon: 'files'},
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
   ),
-  ai: [{id: 'overview', label: 'Chat', icon: 'chat'}, {id: 'plans', label: 'Plans', icon: 'plans'}, ...SHARED_SECTIONS],
+  ai: [
+    {id: 'overview', label: 'Chat', icon: 'chat'},
+    {id: 'memory', label: 'Memory', icon: 'memory'},
+    {id: 'plans', label: 'Plans', icon: 'plans'},
+    ...SHARED_SECTIONS,
+  ],
   one: APP_SECTIONS(
     {id: 'referrals', label: 'Referrals', icon: 'referrals'},
     {id: 'plans', label: 'Plans', icon: 'plans'},
@@ -603,6 +608,12 @@ export const appDashboards = {
       intern: ['What tasks are due for me?', 'How is my programme mark looking?', 'Which track should I take?'],
       'bharat-id': ['What is left in my Bharat ID application?', 'How do I sign in with my Bharat ID?'],
       one: ['How does the Pirento One commission work?', 'How much is in my wallet?'],
+    },
+    memory: {
+      page: 'What Pirento AI / remembers about you.',
+      intro:
+        'Write a few facts you want it to keep in mind in every chat (your company, your city, how you like answers). Only what you write here is kept; delete any line, or switch memory off, whenever you like.',
+      placeholder: 'e.g. My company is Asha Foods Pvt Ltd, in Pune',
     },
     plans: {
       page: 'More messages, / when you need them.',

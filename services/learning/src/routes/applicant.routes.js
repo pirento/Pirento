@@ -7,12 +7,14 @@ import {config} from '../config.js';
 import {Application} from '../models/Application.js';
 import {Opening} from '../models/Opening.js';
 import {Resume} from '../models/Resume.js';
+import {Employer} from '../models/Employer.js';
 import {APPLICANT_MOVES, canMove} from '../lib/pipeline.js';
 import {sendFile, uploadName} from '../lib/files.js';
 
 export const applicantRoutes = Router();
 
-const PUBLIC_OPENING = {createdBy: 0, employerId: 0, review: 0};
+// The company's id stays: it links to its public page (/companies/:id), which shows nothing private.
+const PUBLIC_OPENING = {createdBy: 0, review: 0};
 
 applicantRoutes.get('/openings', async (_req, res) => {
   // The public list is the same for everyone, so it is cached; any opening change forgets it.
@@ -147,3 +149,15 @@ applicantRoutes.post(
     res.json({data: doc});
   },
 );
+
+/** A company's public page: name, website, what it does, and its open roles. Never its contact person or phone. */
+applicantRoutes.get('/companies/:id', async (req, res) => {
+  const company =
+    isId(req.params.id) &&
+    (await Employer.findOne({_id: req.params.id, status: 'approved'}, {company: 1, website: 1, about: 1}).lean());
+  if (!company) throw notFound('No such company on Pirento Intern');
+  const openings = await Opening.find({employerId: String(company._id), open: true}, PUBLIC_OPENING)
+    .sort({createdAt: -1})
+    .lean();
+  res.json({data: {...company, openings}});
+});

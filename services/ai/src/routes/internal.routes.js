@@ -7,6 +7,7 @@ import {Chat} from '../models/Chat.js';
 import {Usage} from '../models/Usage.js';
 import {Feedback} from '../models/Feedback.js';
 import {Subscription} from '../models/Subscription.js';
+import {Memory} from '../models/Memory.js';
 import {JOBS, runJob} from '../lib/jobs.js';
 
 export const internalRoutes = Router();
@@ -19,6 +20,7 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     Usage.deleteMany({userId}),
     Feedback.deleteMany({userId}),
     Subscription.deleteMany({userId}),
+    Memory.deleteMany({userId}),
   ]);
   res.json({data: {forgotten: true}});
 });

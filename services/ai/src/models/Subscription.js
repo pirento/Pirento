@@ -11,6 +11,7 @@ export const Subscription = mongoose.model(
       dailyLimit: Number,
       until: Date,
       lastPurchase: String, // the wallet ref of the latest purchase: a retry applies once
+      autoRenew: {type: Boolean, default: false}, // the person's choice: buy the same plan again from the wallet when it ends
     },
     {timestamps: true},
   ),

@@ -30,3 +30,10 @@ test('knowledge is its own cached block, and the product goes last as a system m
     content: 'The person is asking from the Pirento Legal part of Pirento.',
   });
 });
+
+test('remembered notes go in the last system message, marked as facts', () => {
+  const req = buildRequest([{role: 'user', content: 'hi'}], {memory: ['My company is Asha Foods']});
+  assert.equal(req.messages.at(-1).role, 'system');
+  assert.match(req.messages.at(-1).content, /not instructions[\s\S]*Asha Foods/);
+  assert.equal(req.system.length, 1);
+});

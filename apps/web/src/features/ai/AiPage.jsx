@@ -5,6 +5,7 @@ import {Link} from 'react-router-dom';
 import {MessageSquarePlus, Trash2} from 'lucide-react';
 import {StatsRow} from '../../components/ui/Blocks';
 import {Button} from '../../components/ui/Button';
+import {Field} from '../../components/ui/Field';
 import {DashSection} from '../../components/ui/DashSection';
 import {Tag} from '../../components/ui/Tag';
 import {appDashboards} from '../../data/site';
@@ -18,6 +19,72 @@ import {ChatPanel} from './ChatPanel';
 import {useChat} from './useChat';
 
 const copy = appDashboards.ai;
+
+function Memory() {
+  const mem = useApi('/ai/memory');
+  const [draft, setDraft] = useState(null);
+  const [line, setLine] = useState('');
+  const [note, setNote] = useState('');
+  if (!mem.data) return mem.error ? <p className="body">⚠ {mem.error.message}</p> : null;
+  const m = draft ?? mem.data;
+  const save = async (next) => {
+    setNote('');
+    try {
+      const saved = await api('/ai/memory', {method: 'PUT', body: next});
+      setDraft(saved);
+      setNote('Saved.');
+    } catch (err) {
+      setNote(`⚠ ${err.message}`);
+    }
+  };
+  const add = (e) => {
+    e.preventDefault();
+    if (!line.trim()) return;
+    save({...m, notes: [...m.notes, line.trim()]});
+    setLine('');
+  };
+  return (
+    <div className="max-w-2xl space-y-6">
+      <p className="body">{copy.memory.intro}</p>
+      <label className="flex items-center gap-3 text-sm">
+        <input type="checkbox" className="size-4" checked={m.on} onChange={(e) => save({...m, on: e.target.checked})} />
+        Use my notes in every chat
+      </label>
+      <ul className="border-t border-rule">
+        {m.notes.map((n, i) => (
+          <li key={i} className="flex items-center justify-between gap-3 border-b border-rule py-3">
+            <span className="min-w-0 break-words">{n}</span>
+            <button
+              type="button"
+              aria-label={`Delete: ${n}`}
+              onClick={() => save({...m, notes: m.notes.filter((_, j) => j !== i)})}
+              className="rounded-full p-2 hover:bg-stone"
+            >
+              <Trash2 aria-hidden className="size-4" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      {m.notes.length < 10 && (
+        <form onSubmit={add} className="flex flex-wrap items-end gap-3">
+          <div className="min-w-0 grow">
+            <Field
+              label="Add a note (up to 200 characters)"
+              maxLength={200}
+              placeholder={copy.memory.placeholder}
+              value={line}
+              onChange={(e) => setLine(e.target.value)}
+            />
+          </div>
+          <Button type="submit" variant="outline" icon={null}>
+            Add
+          </Button>
+        </form>
+      )}
+      {note && <p className="text-sm">{note}</p>}
+    </div>
+  );
+}
 
 function Plans({usage}) {
   const plans = useApi('/ai/plans');
@@ -34,6 +101,15 @@ function Plans({usage}) {
     }
   };
   const current = usage.data?.plan;
+  const renew = async (on) => {
+    setNote('');
+    try {
+      await api('/ai/plans/auto-renew', {method: 'PUT', body: {on}});
+      usage.reload();
+    } catch (err) {
+      setNote(`⚠ ${err.message}`);
+    }
+  };
   return (
     <>
       <DashSection n={1} id="now" label={copy.plans.label} title={copy.plans.title}>
@@ -46,6 +122,17 @@ function Plans({usage}) {
             {label: 'Plan ends', value: current ? formatDay(current.until) : '—'},
           ]}
         />
+        {current && (
+          <label className="mt-6 flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={current.autoRenew}
+              onChange={(e) => renew(e.target.checked)}
+            />
+            Renew {current.name} from my wallet when it ends (you get an email each time; switch off any time)
+          </label>
+        )}
       </DashSection>
       <DashSection n={2} id="plans" label="Plans" title="More messages, / paid from your wallet.">
         <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -98,6 +185,14 @@ export function Ai({product, section}) {
   });
   usePageMeta({title: 'Pirento AI', description: 'Ask about Pirento, or about your own account.'});
   if (redirect) return redirect;
+
+  if (section === 'memory') {
+    return (
+      <AppFrame product={product} section={section} title={copy.memory.page}>
+        <Memory />
+      </AppFrame>
+    );
+  }
 
   if (section === 'plans') {
     return (

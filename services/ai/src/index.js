@@ -7,6 +7,7 @@ import {internalRoutes} from './routes/internal.routes.js';
 import {chatRoutes} from './routes/chat.routes.js';
 import {staffRoutes} from './routes/staff.routes.js';
 import {assistRoutes} from './routes/assist.routes.js';
+import {startRenewals} from './lib/renew.js';
 
 // A chat message may carry one PDF or photo (5 MB, base64), so bodies here can be larger than elsewhere.
 const app = createApp('ai', {jsonLimit: '8mb'});
@@ -16,3 +17,4 @@ app.use(requireAuth);
 app.use(chatRoutes);
 
 start(finish(app), {name: 'ai', port: config.port, mongoUri: config.mongoUri});
+startRenewals(); // AI plans the person set to renew from their wallet

@@ -12,7 +12,7 @@ const MAX_ROUNDS = 4; // account lookups per turn: enough for two or three areas
  * for each piece of text as it arrives and resolves with the final message, so the caller can check why it
  * stopped (a refusal, or running out of room). Tool rounds are not saved: the chat keeps questions and answers.
  */
-export async function streamReply(history, onText, {who, product, knowledge, webSearch, attachment} = {}) {
+export async function streamReply(history, onText, {who, product, knowledge, webSearch, attachment, memory} = {}) {
   const extra = [];
   const tools = webSearch ? [...TOOLS, WEB_SEARCH] : TOOLS;
   for (let round = 0; ; round++) {

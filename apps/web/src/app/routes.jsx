@@ -51,6 +51,7 @@ export const ROUTES = [
   {path: '/orders/:id', Page: page(() => import('../features/orders/OrderPage'), 'OrderPage')},
 
   // Public checks and help
+  {path: '/intern/companies/:id', Page: page(() => import('../features/learning/CompanyPage'), 'CompanyPage')},
   {path: '/verify', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
   {path: '/verify/:code', Page: page(() => import('../features/verify/VerifyPage'), 'Verify')},
   {path: '/support', layout: 'app', Page: page(() => import('../features/support/SupportPage'), 'Support')},

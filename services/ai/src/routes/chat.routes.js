@@ -8,6 +8,8 @@ import {config} from '../config.js';
 import {Chat} from '../models/Chat.js';
 import {Feedback} from '../models/Feedback.js';
 import {Plan} from '../models/Plan.js';
+import {MEMORY_MAX, Memory} from '../models/Memory.js';
+import {Subscription} from '../models/Subscription.js';
 import {readSettings} from '../models/Settings.js';
 import {streamReply} from '../lib/claude.js';
 import {knowledgeText} from '../lib/knowledge.js';
@@ -20,6 +22,12 @@ const findOwnChat = async (req) => {
   const chat = isId(req.params.id) && (await Chat.findOne({_id: req.params.id, userId: req.user.sub}));
   if (!chat) throw notFound('Chat not found');
   return chat;
+};
+
+/** The notes the person asked to be remembered, when they switched memory on. */
+const memoryOf = async (userId) => {
+  const m = await Memory.findOne({userId, on: true}, {notes: 1}).lean();
+  return m?.notes?.length ? m.notes : null;
 };
 
 const productName = (slug) => PRODUCTS.find((p) => p.slug === slug)?.name ?? '';
@@ -47,6 +55,36 @@ chatRoutes.post('/plans/:id/buy', async (req, res) => {
   if (!isId(req.params.id)) throw notFound('This plan is not on offer');
   res.json({data: await buyPlan(req.user.sub, req.params.id)});
 });
+
+/** Turns auto-renew of the running plan on or off. */
+chatRoutes.put('/plans/auto-renew', validate(z.object({on: z.boolean()})), async (req, res) => {
+  const sub = await Subscription.findOneAndUpdate(
+    {userId: req.user.sub, until: {$gt: new Date()}},
+    {$set: {autoRenew: req.body.on}},
+    {new: true},
+  );
+  if (!sub) throw notFound('No running plan to renew');
+  res.json({data: {autoRenew: sub.autoRenew}});
+});
+
+/** What the person asked the assistant to remember, and whether it uses it. */
+chatRoutes.get('/memory', async (req, res) => {
+  res.json({data: (await Memory.findOne({userId: req.user.sub}, {on: 1, notes: 1}).lean()) ?? {on: false, notes: []}});
+});
+
+chatRoutes.put(
+  '/memory',
+  validate(
+    z.object({
+      on: z.boolean(),
+      notes: z.array(z.string().trim().min(1).max(MEMORY_MAX.chars)).max(MEMORY_MAX.notes),
+    }),
+  ),
+  async (req, res) => {
+    const doc = await Memory.findOneAndUpdate({userId: req.user.sub}, {$set: req.body}, {upsert: true, new: true});
+    res.json({data: {on: doc.on, notes: doc.notes}});
+  },
+);
 
 chatRoutes.get('/chats', async (req, res) => {
   res.json({data: await Chat.find({userId: req.user.sub}, {messages: 0}).sort({updatedAt: -1}).limit(50)});
@@ -129,6 +167,7 @@ chatRoutes.post(
           res.write(text);
         },
         {
+          memory: await memoryOf(req.user.sub),
           who: {userId: req.user.sub, email: req.user.email, product: chat.product || undefined},
           product: productName(chat.product),
           knowledge: await knowledgeText(),

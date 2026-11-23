@@ -13,7 +13,10 @@ export const runningPlan = (sub, now = new Date()) => (sub?.until && new Date(su
 export async function allowanceOf(userId) {
   const [sub, settings] = await Promise.all([Subscription.findOne({userId}).lean(), readSettings()]);
   const plan = runningPlan(sub);
-  return {limit: plan?.dailyLimit ?? settings.freeDailyLimit, plan: plan && {name: plan.name, until: plan.until}};
+  return {
+    limit: plan?.dailyLimit ?? settings.freeDailyLimit,
+    plan: plan && {name: plan.name, until: plan.until, autoRenew: Boolean(plan.autoRenew)},
+  };
 }
 
 /**

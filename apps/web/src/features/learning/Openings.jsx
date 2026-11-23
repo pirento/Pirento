@@ -82,7 +82,13 @@ function Opening({o, applied, user, resume, onApplied}) {
       </p>
       <h4 className="mt-4 text-2xl">{o.title}</h4>
       <p className="mt-2 text-sm text-muted">
-        {o.company ?? 'Pirento'}
+        {o.employerId ? (
+          <Link to={`/intern/companies/${o.employerId}`} className="underline underline-offset-4">
+            {o.company}
+          </Link>
+        ) : (
+          'Pirento'
+        )}
         {o.weeks && ` · ${o.weeks} weeks`}
         {o.stipend && ` · ${o.stipend}`}
       </p>
@@ -117,6 +123,15 @@ function Opening({o, applied, user, resume, onApplied}) {
       </div>
     </li>
   );
+}
+
+/** One opening on its own (a company's page), with the person's own application state. */
+export function OpeningCard({o}) {
+  const {user} = useSession();
+  const mine = useApi(user ? '/learning/openings/mine' : null);
+  const resume = useApi(user ? '/learning/resume' : null);
+  const applied = mine.data?.find((a) => a.openingId === o._id)?.status;
+  return <Opening o={o} applied={applied} user={user} resume={resume} onApplied={mine.reload} />;
 }
 
 export function Openings({bare = false}) {
