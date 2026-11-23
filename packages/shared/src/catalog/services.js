@@ -169,6 +169,8 @@ export const ART_SCENES = [
   'handover',
   'questions',
   'growth',
+  'helpdesk',
+  'signin',
   'ledger',
   'planting',
   'classroom',

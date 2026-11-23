@@ -190,6 +190,65 @@ export const PROCESS_SCENES = {
       </g>
     </>
   ),
+  // A support desk: someone with a headset answering, and the requests they work through.
+  helpdesk: (
+    <>
+      <Person x={230} y={190} shirt={A} long />
+      <path d="M186 186c0-50 88-50 88 0" {...S} strokeWidth="6" />
+      <rect x="176" y="176" width="16" height="30" rx="6" fill="var(--inverse)" />
+      <path d="M268 206c0 22-12 32-34 32" {...S} strokeWidth="3" />
+      <circle cx="232" cy="238" r="6" fill="var(--inverse)" />
+      <rect x="110" y="350" width="260" height="20" rx="8" {...card} />
+      <path d="M140 370v80M340 370v80" {...S} />
+      <g className={lift}>
+        {[0, 1, 2].map((i) => (
+          <g key={i}>
+            <rect x="430" y={110 + i * 100} width="260" height="80" rx="14" {...card} />
+            <circle
+              cx="470"
+              cy={150 + i * 100}
+              r="16"
+              fill={i === 0 ? A : 'var(--paper)'}
+              stroke="var(--ink)"
+              strokeWidth="2"
+            />
+            {i > 0 && <Check x={470} y={150 + i * 100} size={0.6} />}
+            <path d={`M500 ${140 + i * 100}h150M500 ${162 + i * 100}h${100 - i * 20}`} {...S} opacity=".55" />
+          </g>
+        ))}
+      </g>
+    </>
+  ),
+  // Signing in with a code: a phone showing the six boxes, a lock, and the tick once it matches.
+  signin: (
+    <>
+      <rect x="270" y="70" width="220" height="370" rx="30" {...card} />
+      <path d="M350 96h60" {...S} strokeWidth="5" />
+      <path d="M340 170v-24a40 40 0 0 1 80 0v24" {...S} strokeWidth="4" />
+      <rect x="326" y="168" width="108" height="78" rx="14" {...card} fill={A} />
+      <circle cx="380" cy="200" r="10" fill="var(--paper)" stroke="var(--ink)" strokeWidth="2" />
+      <path d="M380 210v16" {...S} strokeWidth="4" />
+      <g className={lift}>
+        {[0, 1, 2, 3, 4, 5].map((i) => (
+          <rect
+            key={i}
+            x={292 + i * 30}
+            y="286"
+            width="24"
+            height="34"
+            rx="6"
+            {...card}
+            fill={i < 4 ? 'var(--stone)' : 'var(--paper)'}
+          />
+        ))}
+        <path d="M298 304h12M328 304h12M358 304h12M388 304h12" {...S} strokeWidth="4" />
+      </g>
+      <rect x="300" y="350" width="160" height="40" rx="20" fill="var(--ink)" />
+      <circle cx="580" cy="300" r="50" fill={A} stroke="var(--ink)" strokeWidth="2" />
+      <Check x={580} y={300} size={1.6} />
+      <path d="M150 210h80M150 240h60M170 270h60" {...S} opacity=".4" strokeWidth="4" />
+    </>
+  ),
   // Bars rising to a flag: what it gives you.
   growth: (
     <>

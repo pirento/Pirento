@@ -877,6 +877,11 @@ export const servicePageCopy = {
 export const processArt = {
   how: {scene: 'filing', caption: 'One account for every Pirento product, one step at a time.'},
   faq: {scene: 'questions', caption: 'Ask before you begin; the answers are below.'},
+  catalogue: {scene: 'meeting', caption: 'A lawyer, CA or CS picks up your work and keeps you updated.'},
+  business: {scene: 'idcheck', caption: 'A business checks a holder only with the holder’s consent.'},
+  support: {scene: 'helpdesk', caption: 'One desk for every product; replies come back here and by email.'},
+  company: {scene: 'office', caption: 'The roles this company has open on Pirento Intern.'},
+  notFound: {scene: 'search', caption: 'We looked, but this address leads nowhere.'},
   verify: {scene: 'search', caption: 'Check any Pirento code against our records in a second.'},
 };
 
