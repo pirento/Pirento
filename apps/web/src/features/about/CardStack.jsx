@@ -1,56 +1,94 @@
-// A deck of family cards in 3D (GSAP): the front card follows a finger or mouse up and flies off the top on a swipe
-// up, going to the back; a swipe down brings the last card back. The names beside it, the keyboard (↑ ↓) and a tap
-// on a name move it too. No box around it. Still under reduced motion.
+// A deck of family cards in 3D that the page's own scroll plays (GSAP ScrollTrigger): the deck holds in view while
+// each card in turn lifts off the top, and once the last card is in front the page scrolls on. No loop, no box. On a
+// mouse the front card tilts toward the pointer. Under reduced motion the cards simply sit in a grid.
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import gsap from 'gsap';
-import {ArrowUp} from 'lucide-react';
+import {ScrollTrigger} from 'gsap/ScrollTrigger';
+import {ArrowDown} from 'lucide-react';
 import {home} from '../../data/site';
-import {reducedMotion} from '../../lib/motion';
+import {lenis, reducedMotion} from '../../lib/motion';
 import {FamilyCard} from './FamilyCard';
 
-const STEP = 24; // px each card behind sits lower
+gsap.registerPlugin(ScrollTrigger);
+
+const STEP = 22; // px each card behind sits lower
 const DEPTH = 3; // cards seen behind the front one
-const TAP = 6; // px a pointer may move and still count as a tap
-const THROW = 70; // px up (or a quick flick) that sends the front card away
+const PER_CARD = 0.7; // share of the viewport's height scrolled per card
+const WIDTH = 'w-[min(17rem,74vw)] sm:w-[19rem] lg:w-[21rem]';
+// A soft light where the pointer is, so the tilt reads as a real card (theme colours only).
+const LIGHT =
+  'radial-gradient(circle at var(--mx, 50%) var(--my, 0%), color-mix(in srgb, var(--on-inverse) 22%, transparent), transparent 60%)';
+
+const two = (n) => String(n).padStart(2, '0');
 
 export function CardStack({items, label}) {
-  const count = items.length;
-  const [top, setTop] = useState(0);
-  const [height, setHeight] = useState(0);
-  const cards = useRef([]);
-  const veils = useRef([]);
-  const stage = useRef(null);
-  const moved = useRef(false);
-  const busy = useRef(false);
-  const first = useRef(true);
-  const depth = (i, t) => (i - t + count) % count;
+  const [still] = useState(reducedMotion);
+  if (still) {
+    return (
+      <div className="mt-16 grid justify-items-center gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item, i) => (
+          <div key={item.name} className={WIDTH}>
+            <FamilyCard item={item} index={i} count={items.length} front />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return <Deck items={items} label={label} />;
+}
 
-  /** Settles every card at its depth: the front one flat, the others lower, smaller and veiled. */
-  const place = (t, animate) => {
+function Deck({items, label}) {
+  const count = items.length;
+  const [active, setActive] = useState(0);
+  const [height, setHeight] = useState(0);
+  const wrap = useRef(null);
+  const stage = useRef(null);
+  const cards = useRef([]);
+  const tilts = useRef([]);
+  const veils = useRef([]);
+  const trigger = useRef(null);
+  const shown = useRef(0);
+
+  /** Lays the deck out for a scroll position `p` (0 = first card in front, count-1 = last). */
+  const render = (p, h) => {
     cards.current.forEach((el, i) => {
       if (!el) return;
-      const d = depth(i, t);
-      const vars = {
-        xPercent: -50,
-        y: Math.min(d, DEPTH) * STEP,
-        z: -d * 50,
-        rotationX: 0,
-        scale: 1 - Math.min(d, DEPTH) * 0.05,
-        autoAlpha: d > DEPTH - 1 ? 0 : 1,
-        zIndex: count - d,
-      };
-      const veil = {opacity: Math.min(d, 2) * 0.28};
-      if (animate && !reducedMotion()) {
-        gsap.to(el, {...vars, duration: 0.6, ease: 'power3.out', overwrite: true});
-        gsap.to(veils.current[i], {...veil, duration: 0.6, overwrite: true});
+      const k = i - p;
+      if (k < 0) {
+        // Lifting off: up and tipped back, fading as it goes.
+        const t = Math.max(k, -1);
+        // It stays solid until most of the way up, so the card behind never shows through it.
+        gsap.set(el, {
+          y: t * (h + 160),
+          z: 0,
+          rotationX: -t * 28,
+          scale: 1,
+          autoAlpha: t > -0.7 ? 1 : (1 + t) / 0.3,
+          zIndex: count - i,
+        });
+        gsap.set(veils.current[i], {opacity: 0});
       } else {
-        gsap.set(el, vars);
-        gsap.set(veils.current[i], veil);
+        // Waiting: lower, further back, a little smaller and tipped, under a veil.
+        const d = Math.min(k, DEPTH);
+        gsap.set(el, {
+          y: d * STEP,
+          z: -d * 80,
+          rotationX: -d * 5,
+          scale: 1 - d * 0.06,
+          autoAlpha: Math.max(0, Math.min(1, DEPTH - k)),
+          zIndex: count - i,
+        });
+        gsap.set(veils.current[i], {opacity: Math.min(k, 2) * 0.25});
       }
     });
+    const now = Math.min(count - 1, Math.max(0, Math.round(p)));
+    if (now !== shown.current) {
+      shown.current = now;
+      setActive(now);
+    }
   };
 
-  // Every card takes the tallest card's height, measured afresh when the width changes.
+  // Every card takes the tallest card's height, measured afresh when the stage changes width.
   useLayoutEffect(() => {
     if (height) return;
     setHeight(Math.max(...cards.current.map((el) => el?.firstElementChild?.offsetHeight ?? 0)));
@@ -68,145 +106,114 @@ export function CardStack({items, label}) {
       ro.disconnect();
     };
   }, []);
+
+  // The scroll plays the deck: pinned in the middle of the screen for one stretch per card, then let go.
   useLayoutEffect(() => {
-    place(top, !first.current);
-    first.current = false;
-  });
-
-  const focusFront = (t) => {
-    requestAnimationFrame(() => {
-      cards.current[t]?.firstElementChild?.focus({preventScroll: true});
+    if (!height) return undefined;
+    const ctx = gsap.context(() => {
+      gsap.set(cards.current, {xPercent: -50});
+      render(0, height);
+      trigger.current = ScrollTrigger.create({
+        trigger: wrap.current,
+        start: 'center center',
+        end: () => `+=${(count - 1) * window.innerHeight * PER_CARD}`,
+        pin: true,
+        // The page wrapper carries a transform (its fade-in), which breaks a fixed pin; a transform pin is unaffected.
+        pinType: 'transform',
+        onUpdate: (self) => render(self.progress * (count - 1), height),
+      });
     });
+    ScrollTrigger.refresh();
+    return () => {
+      trigger.current = null;
+      ctx.revert();
+    };
+  }, [height, count]);
+
+  /** Scrolls the page to where card `i` is in front. */
+  const goTo = (i) => {
+    const st = trigger.current;
+    if (!st) return;
+    const y = st.start + ((st.end - st.start) * i) / Math.max(1, count - 1) + 1;
+    if (lenis) lenis.scrollTo(y, {duration: 1});
+    else window.scrollTo({top: y, behavior: 'smooth'});
   };
 
-  /** Sends the front card off the top; it comes back in at the back. */
-  const next = () => {
-    if (busy.current) return;
-    const el = cards.current[top];
-    const t = (top + 1) % count;
-    if (reducedMotion()) return setTop(t);
-    busy.current = true;
-    gsap.to(el, {
-      y: -(height || 400) * 0.9,
-      rotationX: 32,
-      autoAlpha: 0,
-      duration: 0.45,
-      ease: 'power2.in',
-      overwrite: true,
-      onComplete: () => {
-        gsap.set(el, {y: DEPTH * STEP + 30, rotationX: 0, scale: 0.8});
-        busy.current = false;
-        setTop(t);
-      },
-    });
+  // On a mouse, the front card tilts toward the pointer and the light follows it.
+  const onPointerMove = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    const el = tilts.current[active];
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    gsap.to(el, {rotationY: x * 14, rotationX: -y * 10, duration: 0.5, ease: 'power3.out'});
+    el.style.setProperty('--mx', `${(x + 0.5) * 100}%`);
+    el.style.setProperty('--my', `${(y + 0.5) * 100}%`);
   };
-  /** Brings the card at the back down onto the front. */
-  const prev = () => {
-    if (busy.current) return;
-    const t = (top - 1 + count) % count;
-    if (!reducedMotion()) gsap.set(cards.current[t], {y: -(height || 400) * 0.6, rotationX: -24, autoAlpha: 0});
-    setTop(t);
-  };
-
-  // Dragging the front card: up follows the pointer and tilts back; let go far or fast enough and it flies.
-  const onPointerDown = (e) => {
-    if (e.button > 0 || busy.current) return;
-    const el = cards.current[top];
-    if (!el?.contains(e.target)) return;
-    moved.current = false;
-    const s = {y: e.clientY, lastY: e.clientY, lastT: e.timeStamp, v: 0, dy: 0};
-    const move = (ev) => {
-      s.dy = ev.clientY - s.y;
-      if (Math.abs(s.dy) > TAP) moved.current = true;
-      if (!moved.current) return;
-      s.v = (ev.clientY - s.lastY) / Math.max(1, ev.timeStamp - s.lastT);
-      s.lastY = ev.clientY;
-      s.lastT = ev.timeStamp;
-      gsap.set(el, {y: s.dy < 0 ? s.dy : s.dy * 0.3, rotationX: s.dy < 0 ? Math.min(30, -s.dy / 6) : 0});
-    };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-      if (!moved.current) return;
-      if (s.dy < -THROW || s.v < -0.6) next();
-      else if (s.dy > THROW || s.v > 0.6) prev();
-      else place(top, true);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+  const onPointerLeave = () => {
+    gsap.to(tilts.current, {rotationY: 0, rotationX: 0, duration: 0.7, ease: 'power3.out'});
   };
 
   return (
-    <div className="mt-16 grid items-center gap-12 lg:grid-cols-12">
-      <ol className="order-2 lg:order-1 lg:col-span-5" aria-label={label}>
+    <div ref={wrap} className="mt-16 grid items-center gap-12 lg:grid-cols-12">
+      <ol className="hidden lg:col-span-5 lg:block" aria-label={label}>
         {items.map((item, i) => (
           <li key={item.name}>
             <button
               type="button"
-              onClick={() => setTop(i)}
-              aria-current={i === top || undefined}
+              onClick={() => goTo(i)}
+              aria-current={i === active || undefined}
               className={`flex w-full items-center gap-4 border-b border-rule py-3.5 text-left transition-colors duration-500 ${
-                i === top ? 'text-ink' : 'text-muted hover:text-ink'
+                i === active ? 'text-ink' : 'text-muted hover:text-ink'
               }`}
             >
-              <span className="w-6 font-mono text-xs tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+              <span className="w-6 font-mono text-xs tabular-nums">{two(i + 1)}</span>
               <span className="flex-1 text-lg">{item.name}</span>
               <span
                 aria-hidden
-                className={`size-2 rounded-full transition-colors duration-500 ${i === top ? 'bg-accent' : 'bg-rule'}`}
+                className={`size-2 rounded-full transition-colors duration-500 ${i === active ? 'bg-accent' : 'bg-rule'}`}
               />
             </button>
           </li>
         ))}
       </ol>
 
-      <div className="order-1 lg:order-2 lg:col-span-7">
+      <div className="lg:col-span-7">
         <div
           ref={stage}
           role="region"
           aria-roledescription="carousel"
           aria-label={label}
-          // Keys reach here from the card in front, which holds the focus; the stage itself draws no box.
-          onKeyDown={(e) => {
-            const by = {ArrowUp: 1, ArrowDown: -1}[e.key];
-            if (!by) return;
-            e.preventDefault();
-            if (by > 0) next();
-            else prev();
-            focusFront((top + by + count) % count);
-          }}
-          onDragStart={(e) => e.preventDefault()}
-          onPointerDown={onPointerDown}
-          className="relative select-none"
-          style={{perspective: '1200px', height: height ? height + DEPTH * STEP + 8 : undefined}}
+          onPointerMove={onPointerMove}
+          onPointerLeave={onPointerLeave}
+          className="group/stage relative"
+          style={{perspective: '1400px', height: height ? height + DEPTH * STEP + 8 : undefined}}
         >
-          {items.map((item, i) => {
-            const front = i === top;
-            return (
+          {items.map((item, i) => (
+            <div
+              key={item.name}
+              ref={(el) => {
+                cards.current[i] = el;
+              }}
+              aria-hidden={i !== active}
+              className={`absolute top-0 left-1/2 origin-bottom ${WIDTH}`}
+              style={{height: height || undefined, transformStyle: 'preserve-3d'}}
+            >
               <div
-                key={item.name}
                 ref={(el) => {
-                  cards.current[i] = el;
+                  tilts.current[i] = el;
                 }}
-                aria-hidden={!front}
-                // A drag never opens a card; a card behind comes to the front instead of opening.
-                onClickCapture={(e) => {
-                  if (moved.current || !front) {
-                    e.preventDefault();
-                    if (!moved.current) setTop(i);
-                  }
-                  moved.current = false;
-                }}
-                className={`absolute top-0 left-1/2 w-[min(19rem,78vw)] origin-bottom rounded-[24px] ${
-                  front
-                    ? 'cursor-grab touch-none shadow-[0_30px_70px_-40px_rgba(15,38,32,0.5)] active:cursor-grabbing'
-                    : ''
+                className={`relative h-full rounded-[24px] ${
+                  i === active ? 'shadow-[0_40px_80px_-40px_rgba(15,38,32,0.55)]' : ''
                 }`}
-                style={{height: height || undefined}}
               >
-                <FamilyCard item={item} index={i} count={count} front={front} />
+                <FamilyCard item={item} index={i} count={count} front={i === active} />
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-[24px] opacity-0 transition-opacity duration-500 [@media(hover:hover)]:group-hover/stage:opacity-100"
+                  style={{background: LIGHT}}
+                />
                 <div
                   ref={(el) => {
                     veils.current[i] = el;
@@ -215,15 +222,21 @@ export function CardStack({items, label}) {
                   className="pointer-events-none absolute inset-0 rounded-[24px] bg-paper opacity-0"
                 />
               </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
-        <p className="mt-6 flex items-center justify-center gap-2 text-xs text-muted">
-          <ArrowUp aria-hidden className="size-3.5" />
-          {home.stackHint}
-        </p>
+        <div className="mt-6 flex items-center justify-center gap-4 text-xs text-muted">
+          <span className="font-mono tabular-nums">
+            {two(active + 1)} / {two(count)}
+          </span>
+          <span aria-hidden className="h-px w-8 bg-rule" />
+          <span className="flex items-center gap-1.5">
+            <ArrowDown aria-hidden className="size-3.5" />
+            {home.stackHint}
+          </span>
+        </div>
         <p className="sr-only" aria-live="polite">
-          {items[top].name}, {top + 1} of {count}
+          {items[active].name}, {active + 1} of {count}
         </p>
       </div>
     </div>

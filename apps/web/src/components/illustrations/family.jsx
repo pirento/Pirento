@@ -1,5 +1,4 @@
-// One small scene per card in the home's family stacks (the Foundation's programmes, the ventures, the bodies
-// alongside), each drawn once and used only there. Same line style and theme colours as the other scenes. 800×500.
+// One small scene per card in the home's family stacks (the ventures and the bodies alongside), each drawn once and used only there. Same line style and theme colours as the other scenes. 800×500.
 import {A, S, card, lift} from './parts';
 
 const ground = <path d="M120 430h560" {...S} strokeWidth="4" />;
@@ -7,76 +6,6 @@ const sparkle = (x, y, r = 12) =>
   `M${x} ${y - 2 * r}l${r * 0.8} ${r * 1.2} ${r * 1.2} ${r * 0.8}-${r * 1.2} ${r * 0.8}-${r * 0.8} ${r * 1.2}-${r * 0.8}-${r * 1.2}-${r * 1.2}-${r * 0.8} ${r * 1.2}-${r * 0.8}z`;
 
 export const FAMILY_SCENES = {
-  // Foundation · Pirento Green: three young native trees, the middle one marked on the map.
-  saplings: (
-    <>
-      {ground}
-      {[
-        [220, 130, 50],
-        [400, 170, 64],
-        [580, 130, 50],
-      ].map(([x, h, r]) => (
-        <g key={x}>
-          <path d={`M${x} 430v-${h}`} {...S} strokeWidth="5" />
-          <circle cx={x} cy={430 - h} r={r} {...card} fill={x === 400 ? A : 'var(--paper)'} />
-          <path d={`M${x - 34} 430c6-20 20-28 34-28s28 8 34 28`} {...card} />
-        </g>
-      ))}
-      <g className={lift}>
-        <path d="M400 60c-28 0-46 20-46 44 0 34 46 72 46 72s46-38 46-72c0-24-18-44-46-44z" {...card} />
-        <circle cx="400" cy="104" r="14" fill={A} stroke="var(--ink)" strokeWidth="2" />
-      </g>
-    </>
-  ),
-  // Foundation · Food and relief: a sack of grain beside a warm bowl.
-  ration: (
-    <>
-      {ground}
-      <g className={lift}>
-        <path d="M210 430q-34-120 26-200l-20-44h150l-20 44q60 80 26 200z" {...card} />
-        <path d="M236 230h106" {...S} strokeWidth="4" />
-        <path d="M250 330h80M262 360h56" {...S} opacity=".5" />
-      </g>
-      <path d="M450 330h240c0 64-52 96-120 96s-120-32-120-96z" {...card} fill={A} />
-      <path d="M436 330h268" {...S} strokeWidth="4" />
-      <path d="M530 290c-16-20 16-30 0-52M570 290c-16-20 16-30 0-52M610 290c-16-20 16-30 0-52" {...S} strokeWidth="3" />
-    </>
-  ),
-  // Foundation · Education: a school bag, a pencil and two books.
-  schoolbag: (
-    <>
-      {ground}
-      <g className={lift}>
-        <path d="M310 150v-30c0-36 120-36 120 0v30" {...S} strokeWidth="6" />
-        <rect x="260" y="150" width="220" height="280" rx="44" {...card} />
-        <rect x="290" y="280" width="160" height="110" rx="20" {...card} fill={A} />
-        <path d="M330 310h80" {...S} strokeWidth="4" />
-      </g>
-      <g transform="rotate(-28 610 250)">
-        <rect x="530" y="235" width="150" height="30" rx="4" {...card} />
-        <path d="M680 235l30 15-30 15z" {...card} />
-        <path d="M556 235v30" {...S} />
-      </g>
-      <rect x="530" y="396" width="160" height="34" rx="4" {...card} />
-      <rect x="544" y="362" width="132" height="34" rx="4" {...card} fill={A} />
-    </>
-  ),
-  // Foundation · Health and livelihood: a camp tent with a medical cross, and a spool of thread for training.
-  healthcamp: (
-    <>
-      {ground}
-      <path d="M140 430L320 170l180 260z" {...card} />
-      <path d="M274 430l46-110 46 110" {...card} fill="var(--stone)" />
-      <g className={lift}>
-        <circle cx="590" cy="220" r="70" {...card} fill={A} />
-        <path d="M590 184v72M554 220h72" stroke="var(--on-accent)" strokeWidth="18" strokeLinecap="round" />
-      </g>
-      <rect x="550" y="334" width="80" height="18" rx="4" {...card} />
-      <rect x="560" y="352" width="60" height="58" {...card} />
-      <rect x="550" y="410" width="80" height="18" rx="4" {...card} />
-      <path d="M560 370h60M560 392h60" {...S} opacity=".5" />
-    </>
-  ),
   // A T Elevator: lift doors, the floor sign above and the call buttons beside.
   liftdoors: (
     <>
