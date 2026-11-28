@@ -150,16 +150,23 @@ export function ProductGroups({copy, n}) {
         role="region"
         aria-roledescription="carousel"
         aria-label={copy.label}
-        tabIndex={0}
+        // Keys reach here from the card in front, which holds the focus; the stage itself draws no box.
         onKeyDown={(e) => {
-          if (e.key === 'ArrowLeft') step(-1);
-          if (e.key === 'ArrowRight') step(1);
+          const by = {ArrowLeft: -1, ArrowRight: 1}[e.key];
+          if (!by) return;
+          e.preventDefault();
+          const next = (((Math.round(ring.current.pos) + by) % count) + count) % count;
+          step(by);
+          // Focus follows the card that comes to the front, so the next key and Enter act on it.
+          requestAnimationFrame(() => {
+            items.current[next]?.querySelector('a')?.focus({preventScroll: true});
+          });
         }}
         // Links and pictures would start the browser's own drag and cancel the swipe.
         onDragStart={(e) => e.preventDefault()}
         onPointerDown={onPointerDown}
-        className="relative mt-10 cursor-grab touch-pan-y overflow-hidden rounded-[22px] py-8 select-none focus-visible:outline-2 active:cursor-grabbing"
-        style={{perspective: '1800px', height: height ? height + 64 : undefined}}
+        className="relative mt-10 cursor-grab touch-pan-y overflow-hidden pt-8 pb-14 select-none [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)] active:cursor-grabbing"
+        style={{perspective: '1800px', height: height ? height + 88 : undefined}}
       >
         {/* The list's own flat layer sits in front of the cards turned back in 3D, so only the cards take clicks. */}
         <ul className="pointer-events-none relative h-full" style={{transformStyle: 'preserve-3d'}}>
@@ -180,19 +187,19 @@ export function ProductGroups({copy, n}) {
                   }
                   moved.current = false;
                 }}
-                className={`pointer-events-auto absolute top-0 left-1/2 w-[min(22rem,76vw)] rounded-[22px] ${
+                className={`pointer-events-auto absolute top-0 left-1/2 w-[min(22rem,76vw)] rounded-[28px] ${
                   front ? 'shadow-[0_30px_80px_-40px_rgba(15,38,32,0.45)]' : ''
                 }`}
                 style={{height: height || undefined}}
               >
-                <ProductCard product={product} group={g} tabIndex={front ? 0 : -1} />
+                <ProductCard product={product} group={g} index={i} count={count} tabIndex={front ? 0 : -1} />
                 {/* A soft veil over the cards to the sides, so they recede without showing through each other. */}
                 <div
                   ref={(el) => {
                     veils.current[i] = el;
                   }}
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-[22px] bg-paper opacity-0"
+                  className="pointer-events-none absolute inset-0 rounded-[28px] bg-paper opacity-0"
                 />
               </li>
             );
