@@ -1,9 +1,9 @@
-// Home: the ten products as a 3D carousel (GSAP). The ring follows a finger or mouse as it is dragged and settles on
-// the nearest card when let go, further for a quick flick. The card in front opens its product; a side card comes
-// forward on a tap; arrows, dots, the keyboard and the need chips move it too. Still under reduced motion.
+// Home: the ten products as a 3D carousel (GSAP). The ring follows a finger or mouse as it is dragged, one card at
+// most, and moves on by exactly one card when let go, so every card is seen in turn. The card in front opens its
+// product; a side card comes forward on a tap; dots, the keyboard and the need chips move it too. Still under reduced
+// motion.
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import gsap from 'gsap';
-import {ArrowLeft, ArrowRight} from 'lucide-react';
 import {getProduct} from '@pirento/shared';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {reducedMotion} from '../../lib/motion';
@@ -11,7 +11,7 @@ import {ProductCard} from './ProductCard';
 
 const GAP = 0.74; // how far apart neighbouring cards sit, as a share of a card's width
 const TAP = 6; // px a pointer may move and still count as a tap
-const FLICK = 180; // ms of travel a flick adds when let go
+const NUDGE = 0.15; // share of a card a drag must travel (or flick) to move on by one
 
 // The way round from a to b on a ring of `count`, between -count/2 and count/2.
 const around = (a, b, count) => {
@@ -90,7 +90,7 @@ export function ProductGroups({copy, n}) {
     layout(ring.current.pos);
   });
 
-  // Dragging: the ring follows the pointer, then settles on the nearest card, carried on by a quick flick.
+  // Dragging: the ring follows the pointer up to one card, then settles one card on or back where it was.
   const onPointerDown = (e) => {
     if (e.button > 0) return;
     gsap.killTweensOf(ring.current);
@@ -106,7 +106,7 @@ export function ProductGroups({copy, n}) {
       s.v = (ev.clientX - s.lastX) / dt;
       s.lastX = ev.clientX;
       s.lastT = ev.timeStamp;
-      ring.current.pos = s.pos - dx / (s.width * GAP);
+      ring.current.pos = s.pos - Math.max(-1, Math.min(1, dx / (s.width * GAP)));
       layout(ring.current.pos);
     };
     const up = () => {
@@ -114,9 +114,10 @@ export function ProductGroups({copy, n}) {
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
       const s = drag.current;
-      spin(
-        moved.current ? Math.round(ring.current.pos - (s.v * FLICK) / (s.width * GAP)) : Math.round(ring.current.pos),
-      );
+      // One card per swipe: far enough, or quick enough, moves on by one in the drag's direction.
+      const travel = ring.current.pos - s.pos;
+      const dir = Math.abs(travel) > NUDGE ? Math.sign(travel) : Math.abs(s.v) > 0.3 ? -Math.sign(s.v) : 0;
+      spin(Math.round(s.pos) + (moved.current ? dir : 0));
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
@@ -207,15 +208,7 @@ export function ProductGroups({copy, n}) {
         </ul>
       </div>
 
-      <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-4">
-        <button
-          type="button"
-          onClick={() => step(-1)}
-          aria-label="Previous product"
-          className="flex size-12 items-center justify-center rounded-full border border-rule hover:border-ink"
-        >
-          <ArrowLeft aria-hidden className="size-5" />
-        </button>
+      <div className="mt-6 flex justify-center">
         <ol className="flex items-center gap-1" aria-label="Choose a product">
           {cards.map(({product}, i) => (
             <li key={product.slug}>
@@ -236,14 +229,6 @@ export function ProductGroups({copy, n}) {
             </li>
           ))}
         </ol>
-        <button
-          type="button"
-          onClick={() => step(1)}
-          aria-label="Next product"
-          className="flex size-12 items-center justify-center rounded-full border border-rule hover:border-ink"
-        >
-          <ArrowRight aria-hidden className="size-5" />
-        </button>
       </div>
       <p className="sr-only" aria-live="polite">
         {cards[active].product.name}, {active + 1} of {count}

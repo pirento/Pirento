@@ -134,7 +134,7 @@ export function About() {
           title="Beyond the / ten products."
           intro="The Foundation, the ventures, the businesses alongside us and our tools."
         />
-        <FamilyRows art={false} />
+        <FamilyRows />
       </Section>
 
       <Section id="people" className="pt-0! md:pt-0!">
