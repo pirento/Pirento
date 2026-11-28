@@ -15,7 +15,7 @@ import {SpecSheet} from './widgets/SpecSheet';
 import {CarbonPrice} from './widgets/CarbonPrice';
 
 export const DESIGNS = {
-  legal: {hero: 'split', Widget: ServiceSearch, features: 'bento', how: 'steps'},
+  legal: {hero: 'editorial', Widget: ServiceSearch, features: 'bento', how: 'steps'},
   black: {hero: 'editorial', Widget: RateCard, features: 'rows', how: 'timeline', covers: 'extra'},
   green: {hero: 'split-reverse', Widget: CarbonPrice, features: 'cards', how: 'steps'},
   intern: {hero: 'center', Widget: ExamFacts, features: 'rows', how: 'timeline'},

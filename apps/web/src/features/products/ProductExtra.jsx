@@ -1,31 +1,24 @@
 // The section that differs per product site (prices, tracks, steps…).
 import {Link} from 'react-router-dom';
 import {ID_SECTIONS} from '@pirento/shared';
-import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {inr} from '../../lib/format';
 import {Openings} from '../learning/Openings';
-import {useLegalAreas, useServicesFor} from '../../lib/prices';
+import {LegalPrices} from '../legal/LegalPrices';
+import {useServicesFor} from '../../lib/prices';
 
+/** Legal has its own price rail; every other product shows its prices or its own list. */
 export function Extra({product, n}) {
+  return product.slug === 'legal' ? <LegalPrices n={n} /> : <OtherExtra product={product} n={n} />;
+}
+
+function OtherExtra({product, n}) {
   const services = useServicesFor(product.slug).filter((s) => s.price);
-  const areas = useLegalAreas();
   if (services.length) {
-    // Services and packages made in admin lead, so something new is seen on the home page.
-    const list =
-      product.slug === 'legal'
-        ? [...services.filter((s) => s.custom), ...services.filter((s) => !s.custom)].slice(0, 9)
-        : services;
+    const list = services;
     return (
       <Section id="services" className="pt-0! md:pt-0!">
-        <SectionHeader
-          n={n}
-          label="Services"
-          title="Prices you / see first."
-          intro={
-            product.slug === 'legal' ? `${services.length} services across ${areas.length} categories.` : undefined
-          }
-        />
+        <SectionHeader n={n} label="Services" title="Prices you / see first." />
         <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {list.map((s, i) => (
             // Two across on a tablet: an odd last card takes the whole row instead of leaving a hole.
@@ -60,40 +53,6 @@ export function Extra({product, n}) {
             </li>
           ))}
         </ul>
-        {product.slug === 'legal' && (
-          <>
-            <h3 className="mt-20 text-2xl">Every category</h3>
-            <ul className="mt-6 grid gap-px overflow-hidden rounded-[22px] border border-rule bg-rule sm:grid-cols-2 lg:grid-cols-4">
-              {areas.map((c, i) => (
-                <li key={c.title} className="bg-paper" data-reveal>
-                  <Link
-                    to={`/legal/services#${c.anchor}`}
-                    className="flex h-full flex-col p-6 transition-colors duration-300 hover:bg-stone"
-                  >
-                    <span className="num text-base! text-muted">{String(i + 1).padStart(2, '0')}</span>
-                    <span className="mt-6 font-medium">{c.title}</span>
-                    <span className="mt-1 text-sm text-muted">{c.count} services</span>
-                  </Link>
-                </li>
-              ))}
-              {/* Blank cells finish the last row, so the hairline grid never shows a grey gap (2 or 4 across). */}
-              {[0, 1, 2].map((k) => (
-                <li
-                  key={`blank-${k}`}
-                  aria-hidden
-                  className={`hidden bg-paper ${k < (2 - (areas.length % 2)) % 2 ? 'sm:block' : ''} ${k < (4 - (areas.length % 4)) % 4 ? 'lg:block' : 'lg:hidden'}`}
-                />
-              ))}
-            </ul>
-          </>
-        )}
-        {product.slug === 'legal' && (
-          <div className="mt-10" data-reveal>
-            <Button to="/legal/services" variant="outline">
-              All {services.length} legal services
-            </Button>
-          </div>
-        )}
       </Section>
     );
   }

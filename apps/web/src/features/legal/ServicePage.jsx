@@ -1,6 +1,7 @@
 // One service as a full page: packages to buy, then what it is, what is included, documents, how it works, benefits
 // and questions. Every section comes from the catalogue and admin's edits (servicePage); an empty one is not shown.
-import {useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {Link, useParams} from 'react-router-dom';
 import {Clock, Mail} from 'lucide-react';
 import {packagesOf, servicePage} from '@pirento/shared';
@@ -18,7 +19,7 @@ import {usePageMeta} from '../../lib/page';
 import {useService, useServicesFor} from '../../lib/prices';
 import {useSession} from '../../lib/api/session';
 import {AiTool} from '../ai/AiTool';
-import {servicePageCopy as copy} from '../../data/site';
+import {legalCopy, servicePageCopy as copy} from '../../data/site';
 import {ServiceArt} from './ServiceArt';
 
 function PackageCards({service}) {
@@ -73,6 +74,30 @@ function PackageCards({service}) {
   );
 }
 
+const FIRST = 3; // points a list shows on a phone before "Show all"
+
+/** One titled list; on a phone it shows its first few points until opened. */
+function ListCard({title, items}) {
+  const [all, setAll] = useState(false);
+  return (
+    <div className="rounded-[22px] border border-rule p-6 sm:p-8" data-reveal>
+      <h3 className="text-2xl">{title}</h3>
+      <div className={`mt-6 ${all ? '' : 'max-sm:[&_li:nth-child(n+4)]:hidden'}`}>
+        <CheckList items={items} />
+      </div>
+      {!all && items.length > FIRST && (
+        <button
+          type="button"
+          onClick={() => setAll(true)}
+          className="mt-5 rounded-full border border-rule px-4 py-2 text-sm hover:border-ink sm:hidden"
+        >
+          {legalCopy.showAll(items.length)}
+        </button>
+      )}
+    </div>
+  );
+}
+
 /** Titled lists side by side (included / not included / documents, and so on); empty ones are left out. */
 function ListCards({groups}) {
   const shown = groups.filter(([, items]) => items?.length);
@@ -80,14 +105,50 @@ function ListCards({groups}) {
   return (
     <div className={`mt-16 grid gap-4 md:grid-cols-2 ${shown.length > 2 ? 'lg:grid-cols-3' : ''}`}>
       {shown.map(([title, items]) => (
-        <div key={title} className="rounded-[22px] border border-rule p-8" data-reveal>
-          <h3 className="text-2xl">{title}</h3>
-          <div className="mt-6">
-            <CheckList items={items} />
-          </div>
-        </div>
+        <ListCard key={title} title={title} items={items} />
       ))}
     </div>
+  );
+}
+
+/** On a phone, a bar at the foot of the screen with the price and a way back to the packages, shown once you have
+ * scrolled past them. In a portal: the page wrapper's transform would pin a fixed bar to the page, not the screen. */
+function BuyBar({service}) {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const check = () => {
+      const box = document.getElementById('packages')?.getBoundingClientRect();
+      // Out of the way again once the contact form and footer come up.
+      const contact = document.getElementById('contact')?.getBoundingClientRect();
+      setOn(Boolean(box) && box.bottom < 0 && (!contact || contact.top > window.innerHeight));
+    };
+    check();
+    window.addEventListener('scroll', check, {passive: true});
+    return () => {
+      window.removeEventListener('scroll', check);
+    };
+  }, []);
+  return createPortal(
+    <div
+      aria-hidden={!on}
+      inert={!on}
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-rule bg-paper/95 px-5 py-3 backdrop-blur transition-transform duration-500 ease-ui md:hidden ${
+        on ? 'translate-y-0' : 'translate-y-full'
+      }`}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-sm">{service.name}</p>
+          <p className="text-sm text-muted">
+            {copy.from} <span className="font-medium text-ink tabular-nums">{inr(service.price)}</span>
+          </p>
+        </div>
+        <a href="#packages" className="shrink-0 rounded-full bg-accent px-5 py-3 text-sm font-medium text-on-accent">
+          {legalCopy.bar}
+        </a>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -350,6 +411,7 @@ export function Service() {
       )}
 
       <ContactCta n={next()} service={service.slug} />
+      {service.price ? <BuyBar service={service} /> : null}
     </div>
   );
 }
