@@ -1,9 +1,9 @@
-// Home: the company's three ventures, the businesses alongside it, and a short "about us" that leads to /about.
+// Home: the company's three ventures and the businesses alongside it, each as a deck of cards, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {ABOUT, ALONGSIDE, COMPANY, PARTNER, PEOPLE, VENTURES} from '../../data/group';
 import {Avatar} from './Avatar';
-import {OrgCard} from './OrgCard';
+import {CardStack} from './CardStack';
 
 export function VenturesSection({n}) {
   return (
@@ -14,11 +14,7 @@ export function VenturesSection({n}) {
         title={`Built with / ${COMPANY.short}.`}
         intro={`Three businesses run with ${COMPANY.name}, beside the Pirento products.`}
       />
-      <div className="mt-16 grid gap-4 md:grid-cols-3">
-        {VENTURES.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
+      <CardStack items={VENTURES.map((v) => ({...v, lead: PEOPLE[v.lead]}))} label="Ventures" />
     </Section>
   );
 }
@@ -32,11 +28,7 @@ export function AlongsideSection({n}) {
         title="Close to us, / run on their own."
         intro="A family business and a charitable trust that share our people, not our company."
       />
-      <div className="mt-16 grid gap-4 md:grid-cols-2">
-        {ALONGSIDE.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
+      <CardStack items={ALONGSIDE.map((a) => ({...a, meta: a.note}))} label="Alongside" />
     </Section>
   );
 }
@@ -47,20 +39,20 @@ export function AboutTeaser({n}) {
     <Section>
       <SectionHeader n={n} label="About us" title={ABOUT.title} intro={ABOUT.intro} />
       <div
-        className="mt-14 grid gap-8 rounded-[22px] border border-rule p-6 md:p-8 lg:grid-cols-12 lg:items-center"
+        className="mt-14 grid gap-8 rounded-[22px] border border-rule p-6 md:p-8 lg:grid-cols-[auto_1fr_auto] lg:items-center"
         data-reveal
       >
-        <ul className="flex flex-wrap gap-y-3 -space-x-3 lg:col-span-5" aria-label="Our people">
+        <ul className="flex flex-wrap gap-y-3 -space-x-1.5 sm:-space-x-3" aria-label="Our people">
           {people.map((p) => (
             <li key={p.name} title={p.name} className="rounded-full ring-4 ring-paper">
-              <Avatar person={p} className="size-14 text-sm" />
+              <Avatar person={p} className="size-10 text-xs sm:size-14 sm:text-sm" />
               <span className="sr-only">{p.name}</span>
             </li>
           ))}
         </ul>
-        <p className="text-sm leading-relaxed text-muted lg:col-span-5">{PARTNER.body}</p>
-        <div className="lg:col-span-2 lg:justify-self-end">
-          <Button to="/about" variant="outline">
+        <p className="text-sm leading-relaxed text-muted">{PARTNER.body}</p>
+        <div>
+          <Button to="/about" variant="outline" className="whitespace-nowrap">
             Meet the team
           </Button>
         </div>

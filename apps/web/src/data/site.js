@@ -172,7 +172,10 @@ export const home = {
       },
     ],
   },
-  marquee: 'One account · one wallet · one Bharat ID · ten products',
+  marquee: 'Ten products, one account',
+  // Under each family stack: how to move it.
+  stackHint: 'Swipe up for the next card',
+  foundationLink: 'Visit Pirento Foundation',
   ecosystem: {
     label: 'Ecosystem',
     title: 'Ten products, / grouped by need.',
@@ -1161,6 +1164,19 @@ export const productCardArt = {
   capital: 'coins',
   'bharat-id': 'qrcard',
   giftox: 'balloons',
+};
+
+// The home's family stacks: one picture per card, by the card's name (Foundation programmes, ventures, alongside).
+export const familyArt = {
+  'Pirento Green': 'saplings',
+  'Food and relief': 'ration',
+  Education: 'schoolbag',
+  'Health and livelihood': 'healthcamp',
+  'A T Elevator': 'liftdoors',
+  'A T Facility': 'mop',
+  'Inzario Space': 'sofa',
+  'Shri Sarraf': 'ring',
+  'JBC Seva Trust': 'carehands',
 };
 
 // Each product home's second picture: how its work goes, under "How it works" (Pirento One has no such section, so its
