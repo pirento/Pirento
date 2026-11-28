@@ -112,6 +112,8 @@ staffRoutes.patch(
     }
     audit(req, `withdrawal.${decision}`, doc.email, decision === 'paid' ? `UTR ${utr}` : reason);
     notify(doc.userId, {
+      event: 'withdrawal.update',
+      link: '/wallet',
       label: 'Withdrawal',
       big: decision === 'paid' ? 'Sent' : 'Returned to your wallet',
       note:

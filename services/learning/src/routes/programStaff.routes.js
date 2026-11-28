@@ -85,6 +85,8 @@ staff.post('/enrolments/:id/finish', async (req, res) => {
   const done = await finish(e);
   audit(req, 'program.finish', e.email, `${done.score.total}% ${done.score.grade}`);
   notify(e.userId, {
+    event: 'intern.programme',
+    link: '/intern/dashboard/programme',
     brand: BRAND,
     label: `${e.months}-month programme`,
     big: `Finished · ${done.score.total}%`,
@@ -115,7 +117,14 @@ staff.patch(
       ));
     if (!doc) throw notFound('No sent task here');
     audit(req, 'program.task.grade', doc.title, `${doc.grade}`);
-    notify(doc.userId, {brand: BRAND, label: doc.title, big: `Graded · ${doc.grade}/100`, note: doc.feedback});
+    notify(doc.userId, {
+      event: 'intern.programme',
+      link: '/intern/dashboard/tasks',
+      brand: BRAND,
+      label: doc.title,
+      big: `Graded · ${doc.grade}/100`,
+      note: doc.feedback,
+    });
     res.json({data: doc});
   },
 );
@@ -299,6 +308,8 @@ staff.post('/work/:id/assign', validate(z.object({userId: z.string().min(1).max(
   if (!doc) throw conflict('TAKEN', 'This work is no longer open');
   audit(req, 'work.assign', doc.title, e.email);
   notify(e.userId, {
+    event: 'intern.work',
+    link: '/intern/dashboard/work',
     brand: BRAND,
     label: doc.title,
     big: 'New paid work for you',
@@ -344,6 +355,8 @@ staff.patch(
       out = await pay(doc).catch((err) => (console.error('work pay', doc._id, err.message), doc));
     }
     notify(doc.assignee.userId, {
+      event: 'intern.work',
+      link: '/intern/dashboard/work',
       brand: BRAND,
       label: doc.title,
       big: req.body.status === 'approved' ? `Approved · ₹${doc.pay / 100} to your wallet` : 'Needs another go',

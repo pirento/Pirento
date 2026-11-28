@@ -51,7 +51,14 @@ const DAY = 86_400_000;
 
 /** Emails the customer about their order, in that product's name. */
 const tell = (order, big, note) =>
-  notify(order.userId, {brand: getProduct(order.product)?.name, label: `Order #${order.orderNo}`, big, note});
+  notify(order.userId, {
+    event: 'order.update',
+    link: `/${order.product}/dashboard/orders/${order._id}`,
+    brand: getProduct(order.product)?.name,
+    label: `Order #${order.orderNo}`,
+    big,
+    note,
+  });
 
 /** The filter that keeps product-scoped staff to their products. */
 const scoped = (req, filter = {}) => {
@@ -306,6 +313,8 @@ staffRoutes.patch(
     // Work handed to someone else lands in their bell (and inbox); taking it yourself needs no notice.
     if (assignee && assignee.id !== req.user.sub) {
       notify(assignee.id, {
+        event: 'staff.assigned',
+        link: `/orders/${order._id}`,
         brand: 'Pirento admin',
         label: `Order #${order.orderNo}`,
         big: 'Assigned to you',

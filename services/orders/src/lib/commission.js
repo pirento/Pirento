@@ -30,6 +30,8 @@ export async function payCommission(order) {
   });
   await Order.updateOne({_id: order._id}, {$set: {'commission.paid': true}});
   notify(c.userId, {
+    event: 'commission.paid',
+    link: '/one/dashboard',
     brand: 'Pirento One',
     label: `Order #${order.orderNo}`,
     big: `₹${(c.amount / 100).toLocaleString('en-IN')} commission`,

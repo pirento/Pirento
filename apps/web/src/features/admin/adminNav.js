@@ -21,6 +21,8 @@ import {
   Megaphone,
   ScrollText,
   ReceiptText,
+  BellRing,
+  MessageCircle,
   Truck,
   SlidersHorizontal,
   TicketPercent,
@@ -133,6 +135,15 @@ export const ADMIN_SECTIONS = [
     icon: Mail,
     roles: ['support', 'staff', 'superadmin'], // ACCESS.support
     intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
+  },
+  {
+    id: 'whatsapp',
+    group: 'Work',
+    label: 'WhatsApp',
+    icon: MessageCircle,
+    roles: ['support', 'staff', 'superadmin'], // ACCESS.whatsapp
+    intro:
+      'Chats on Pirento’s WhatsApp number. The bot and Pirento AI answer from each person’s own account; a person takes over when asked, with the chat’s ticket.',
   },
   {
     id: 'invoices',
@@ -295,6 +306,15 @@ export const ADMIN_SECTIONS = [
     roles: ALL_STAFF,
     intro:
       'Every service and its price. Finance and superadmins change a price or take a service off sale; superadmins add services, set each one’s packages and page, and the questions asked before and after payment.',
+  },
+  {
+    id: 'notifications',
+    group: 'Settings',
+    label: 'Notifications',
+    icon: BellRing,
+    roles: SUPER, // ACCESS.notices
+    intro:
+      'Every notification Pirento sends: which channels it goes on (dashboard, email, SMS, WhatsApp), how it reads on each, a test to yourself, and the delivery log.',
   },
   {
     id: 'settings',

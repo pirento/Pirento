@@ -3,6 +3,7 @@ import {callService, conflict} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {clearFailures} from './backoff.js';
 import {endAllSessions} from './session.js';
+import {NoticeDelivery} from '../models/NoticeDelivery.js';
 import {Notice} from '../models/Notice.js';
 
 /**
@@ -22,6 +23,7 @@ export async function forgetUser(user) {
   user.email = `deleted-${user._id}@deleted.invalid`;
   user.name = '';
   user.billing = undefined;
+  user.noticePrefs = undefined;
   user.role = 'customer';
   user.products = [];
   // No way back in: no staff door, no Google link.
@@ -32,5 +34,6 @@ export async function forgetUser(user) {
   await user.save();
   await endAllSessions(user._id);
   await Notice.deleteMany({userId: String(user._id)});
+  await NoticeDelivery.deleteMany({userId: String(user._id)});
   return user;
 }

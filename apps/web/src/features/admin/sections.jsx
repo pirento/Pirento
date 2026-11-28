@@ -15,6 +15,8 @@ import {Enquiries} from './Enquiries';
 import {VaultCases} from './VaultCases';
 import {Shipments} from './Shipments';
 import {Invoices} from './Invoices';
+import {NoticesAdmin} from './NoticesAdmin';
+import {WhatsAppAdmin} from './WhatsAppAdmin';
 import {Deletions} from './Deletions';
 import {MyWork} from './MyWork';
 import {BookService} from './BookService';
@@ -57,6 +59,8 @@ export const SECTIONS = {
   vault: VaultCases,
   shipments: Shipments,
   invoices: Invoices,
+  notifications: NoticesAdmin,
+  whatsapp: WhatsAppAdmin,
   users: Users,
   payments: Payments,
   withdrawals: Withdrawals,

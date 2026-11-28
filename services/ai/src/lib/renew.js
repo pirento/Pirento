@@ -16,6 +16,8 @@ export async function renewDue(now = new Date()) {
       const after = await buyPlan(sub.userId, sub.planId, now);
       if (after?.until > sub.until) {
         notify(sub.userId, {
+          event: 'ai.plan',
+          link: '/ai/dashboard/plans',
           brand: 'Pirento AI',
           label: `${sub.name} plan`,
           big: 'Renewed',
@@ -25,6 +27,8 @@ export async function renewDue(now = new Date()) {
     } catch (err) {
       await Subscription.updateOne({_id: sub._id}, {$set: {autoRenew: false}});
       notify(sub.userId, {
+        event: 'ai.plan',
+        link: '/ai/dashboard/plans',
         brand: 'Pirento AI',
         label: `${sub.name} plan`,
         big: 'Could not renew',

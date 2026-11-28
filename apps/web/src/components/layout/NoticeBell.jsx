@@ -1,6 +1,8 @@
-// The bell in every dashboard: the notices emailed to this person (order updates, replies, Vault check-ins…), kept
-// so they can be read again here. Opening it marks them read.
+// The bell in every dashboard: the person's notices (order updates, replies, parcels, Vault check-ins…), each opening
+// the page it is about, and a link to /notifications for the full history and the channel choices. Opening it marks
+// them read.
 import {useState} from 'react';
+import {Link} from 'react-router-dom';
 import {Bell} from 'lucide-react';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
@@ -43,7 +45,16 @@ export function NoticeBell({align = 'left'}) {
           {!notices.data?.items.length && <p className="px-3 py-4 text-sm text-muted">Nothing new.</p>}
           <ul className="max-h-[60dvh] overflow-y-auto">
             {notices.data?.items.map((n) => (
-              <li key={n._id} className="rounded-[14px] px-3 py-3 hover:bg-stone">
+              <li key={n._id} className="relative rounded-[14px] px-3 py-3 hover:bg-stone">
+                {n.link?.startsWith('/') && (
+                  // The whole row opens what the notice is about.
+                  <Link
+                    to={n.link}
+                    onClick={() => setOpen(false)}
+                    className="absolute inset-0 rounded-[14px]"
+                    aria-label={`${n.label}: ${n.big}`}
+                  />
+                )}
                 <p className="text-xs text-muted">
                   {n.brand} · {formatDate(n.createdAt)}
                 </p>
@@ -54,6 +65,13 @@ export function NoticeBell({align = 'left'}) {
               </li>
             ))}
           </ul>
+          <Link
+            to="/notifications"
+            onClick={() => setOpen(false)}
+            className="mt-1 block rounded-[14px] px-3 py-3 text-sm underline underline-offset-4 hover:bg-stone"
+          >
+            See all, and choose email, SMS and WhatsApp
+          </Link>
         </div>
       )}
     </div>

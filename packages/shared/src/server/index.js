@@ -6,6 +6,7 @@ export {env, isProduction} from './env.js';
 export {STAFF, ACCESS, jwtSecret, requireAuth, requireRole, isStaff, canUse, productScope} from './auth.js';
 export {safeEqual, requireInternal, callService, audit, notify, requireBharatId} from './internal.js';
 export {validate} from './validate.js';
+export {sendWhatsApp, waId, whatsappNumber, whatsappOn, whatsappSignatureOk} from './whatsapp.js';
 export {start, nextSeq, isId, searchFilter} from './db.js';
 export {keyFrom, encrypt, decrypt} from './crypto.js';
 export {sealFile, openFile, dropFiles, fileStoreOn} from './files.js';

@@ -30,11 +30,12 @@ export function audit(req, action, target, detail = '') {
 }
 
 /**
- * Emails a customer a short notice (sent by the auth service, which knows their address).
- * Never fails the request that caused it: a lost email is logged, not thrown.
+ * Tells a person something happened. `event` is one of NOTICE_EVENTS (data/notices.js): the auth service keeps it
+ * for the dashboard bell and sends it on the channels admin and the person chose (email, SMS, WhatsApp), each in
+ * its own format; `link` is the page it is about. Never fails the request that caused it: a lost notice is logged.
  */
-export function notify(userId, {brand = 'Pirento', label, big, note, sms = false}) {
-  const row = {userId: String(userId), brand, label, big, note, sms};
+export function notify(userId, {event = 'general', brand = 'Pirento', label, big, note, link = ''}) {
+  const row = {userId: String(userId), event, brand, label, big, note, link};
   return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/notify', row).catch((err) =>
     console.error('notice lost', label, err.message),
   );

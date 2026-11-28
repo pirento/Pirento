@@ -1,10 +1,10 @@
 // Opening a ticket, reading it, replying and closing.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, audit, canUse, isId, nextSeq, notFound, notify, validate} from '@pirento/shared/server';
+import {ApiError, audit, canUse, isId, notFound, notify, validate} from '@pirento/shared/server';
 import {PRODUCTS, getProduct} from '@pirento/shared';
 import {PRIORITIES, Ticket} from '../models/Ticket.js';
-import {triage} from '../lib/triage.js';
+import {openTicket} from '../lib/tickets.js';
 
 export const ticketRoutes = Router();
 
@@ -34,17 +34,15 @@ ticketRoutes.post(
     }),
   ),
   async (req, res) => {
-    const ticket = await Ticket.create({
-      ticketNo: (await nextSeq('ticket')) + 10_000_000,
+    const ticket = await openTicket({
       userId: req.user.sub,
       email: req.user.email,
       subject: req.body.subject,
+      message: req.body.message,
       orderNo: req.body.orderNo,
       product: req.body.product,
       priority: req.body.priority,
-      messages: [{from: 'customer', body: req.body.message}],
     });
-    triage(ticket); // in the background
     res.status(201).json({data: ticket});
   },
 );
@@ -74,8 +72,10 @@ ticketRoutes.post('/:id/messages', validate(z.object({body: messageBody})), asyn
   if (from === 'staff') {
     audit(req, 'ticket.reply', `#${ticket.ticketNo ?? ticket._id}`);
     notify(ticket.userId, {
+      event: 'ticket.reply',
+      link: `/support/${ticket._id}`,
       brand: getProduct(ticket.product ?? '')?.name,
-      label: `Support request #${ticket.ticketNo}`,
+      label: `Ticket #${ticket.ticketNo}`,
       big: 'New reply',
       note: `The team answered "${ticket.subject}". Open Support in your dashboard to read it and reply.`,
     });
@@ -123,6 +123,8 @@ ticketRoutes.patch(
     audit(req, 'ticket.assign', `#${ticket.ticketNo}`, assignee?.email ?? 'unassigned');
     if (assignee && assignee.id !== req.user.sub) {
       notify(assignee.id, {
+        event: 'staff.assigned',
+        link: `/support/${ticket._id}`,
         brand: 'Pirento admin',
         label: `Ticket #${ticket.ticketNo}`,
         big: 'Assigned to you',

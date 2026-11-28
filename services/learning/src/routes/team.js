@@ -120,7 +120,14 @@ export function teamRoutes(scope) {
     if (!doc) throw conflict('CHANGED', 'Someone else moved this application. Reload and try again.');
     log(req, `application.${to}`, doc);
     const [big, note] = NOTICE[to](doc);
-    notify(doc.userId, {brand: BRAND, label: 'Your application', big, note});
+    notify(doc.userId, {
+      event: 'intern.application',
+      link: '/intern/dashboard/internships',
+      brand: BRAND,
+      label: 'Your application',
+      big,
+      note,
+    });
     res.json({data: doc});
   });
 
@@ -143,6 +150,8 @@ export function teamRoutes(scope) {
       if (!doc) throw conflict('NOT_RUNNING', 'Tasks are set only while the internship is running');
       log(req, 'application.task', doc, req.body.title);
       notify(doc.userId, {
+        event: 'intern.application',
+        link: '/intern/dashboard/internships',
         brand: BRAND,
         label: 'Your internship',
         big: 'A new task',
@@ -167,6 +176,8 @@ export function teamRoutes(scope) {
       const task = doc.tasks.id(req.params.taskId);
       log(req, `application.task.${req.body.status}`, doc, task.title);
       notify(doc.userId, {
+        event: 'intern.application',
+        link: '/intern/dashboard/internships',
         brand: BRAND,
         label: 'Your internship',
         big: req.body.status === 'approved' ? 'Task approved' : 'Task needs another go',

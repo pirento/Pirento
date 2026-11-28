@@ -26,6 +26,14 @@ export const User = mongoose.model(
       username: {type: String, unique: true, sparse: true, lowercase: true, trim: true},
       // Who invoices are made out to, when it is not just the account's name: a business, its GSTIN, its address.
       billing: {name: String, gstin: String, address: String, state: String},
+      // Which channels the person wants notices on, and products they muted. WhatsApp needs their opt-in.
+      noticePrefs: {
+        email: {type: Boolean, default: true},
+        sms: {type: Boolean, default: true},
+        whatsapp: {type: Boolean, default: false},
+        whatsappAt: Date, // when they opted in (Meta asks businesses to keep it)
+        muted: {type: [String], default: []},
+      },
       termsAcceptedAt: Date,
       termsVersion: String,
     },

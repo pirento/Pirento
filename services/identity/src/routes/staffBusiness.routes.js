@@ -43,7 +43,14 @@ const MOVES = {
 };
 
 const tell = (b, big, note) =>
-  notify(b.userId, {brand: 'Bharat ID for Business', label: b.request.company.slice(0, 80), big, note});
+  notify(b.userId, {
+    event: 'business.request',
+    link: '/bharat-id/business/dashboard',
+    brand: 'Bharat ID for Business',
+    label: b.request.company.slice(0, 80),
+    big,
+    note,
+  });
 
 staffBusinessRoutes.patch(
   '/staff/business/:id',

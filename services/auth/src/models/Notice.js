@@ -6,10 +6,12 @@ export const Notice = mongoose.model(
   new mongoose.Schema(
     {
       userId: {type: String, required: true},
+      event: {type: String, default: 'general'}, // one of NOTICE_EVENTS
       brand: {type: String, maxlength: 60},
       label: {type: String, maxlength: 80},
       big: {type: String, maxlength: 80},
       note: {type: String, maxlength: 600},
+      link: {type: String, maxlength: 300}, // the page it is about
       readAt: Date,
     },
     {timestamps: true},

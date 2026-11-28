@@ -31,6 +31,8 @@ export const ACCESS = {
   vault: ['support', 'staff', 'superadmin'], // Vault legacy cases: calls to the nominee, the death certificate
   vaultRelease: ['superadmin'], // releasing a vault to its nominee
   shipping: ['staff', 'superadmin'], // Blue Dart shipments: book, track
+  notices: ['superadmin'], // which channels each notification uses, the delivery log
+  whatsapp: ['support', 'staff', 'superadmin'], // the WhatsApp inbox: chats the bot hands over
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');

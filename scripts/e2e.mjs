@@ -2033,6 +2033,12 @@ const completeReferred = async () => {
   });
   const delivered = (await call(`/orders/staff/shipments/${parcel?._id}/track`, {method: 'POST', token: boss})).data;
   check('delivered', delivered?.status === 'delivered' && delivered.said === 'Shipment delivered', delivered);
+  // Notices are sent in the background: wait for the last one.
+  for (let i = 0; i < 40; i++) {
+    const items = (await call('/auth/me/notices', {token: buyer})).data?.items ?? [];
+    if (items.some((n) => n.big === 'Delivered')) break;
+    await new Promise((r) => setTimeout(r, 250));
+  }
   const bell = (await call('/auth/me/notices', {token: buyer})).data;
   check(
     'the customer hears each change in their bell',
@@ -4097,6 +4103,231 @@ check(
   gBack?.user?.id === gIn.user.id || gBack?.user?._id === gIn.user._id,
   gBack,
 );
+// ── Notifications and WhatsApp (the guest account has a mobile) ─────────
+{
+  const tok = gIn.token;
+  const wa = `91${String(gMobile).replace(/\D/g, '').slice(-10)}`;
+  const until = async (fn, tries = 40) => {
+    for (let i = 0; i < tries; i++) {
+      const v = await fn();
+      if (v) return v;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return null;
+  };
+  const p0 = (await call('/auth/me/notice-prefs', {token: tok})).data;
+  check(
+    'notice choices: email and SMS on, WhatsApp off until they say yes',
+    p0?.email && p0.sms && !p0.whatsapp && p0.phone.endsWith(String(gMobile).slice(-4)),
+    p0,
+  );
+  await call('/auth/me/notice-prefs', {
+    method: 'PUT',
+    token: tok,
+    body: {email: true, sms: true, whatsapp: true, muted: ['green']},
+  });
+  check('only superadmins set notifications', (await call('/auth/staff/notices', {token: tok})).status === 403);
+  const ns = (await call('/auth/staff/notices', {token: boss})).data;
+  check(
+    'every event with its previews, and WhatsApp set up',
+    ns?.events.some((e) => e.id === 'ticket.opened' && e.preview.sms && e.preview.whatsapp.template.length === 4) &&
+      ns.ready.whatsapp === true,
+    ns?.ready,
+  );
+
+  const t1 = (
+    await call('/support', {method: 'POST', token: tok, body: {subject: 'Where is my parcel?', message: 'Help'}})
+  ).data;
+  const bellNote = await until(async () =>
+    (await call('/auth/me/notices', {token: tok})).data?.items.find((n) => n.event === 'ticket.opened'),
+  );
+  check(
+    'a new ticket is confirmed with its number and link',
+    bellNote?.label === `Ticket #${t1?.ticketNo}` && bellNote.link === `/support/${t1?._id}`,
+    bellNote,
+  );
+  const waSent = await until(async () => {
+    const sent = await (await fetch(`${DIGIO}/__test/whatsapp`)).json();
+    return sent.find((m) => m.to === wa && JSON.stringify(m).includes(String(t1?.ticketNo)));
+  });
+  check(
+    'and on WhatsApp through the approved update template',
+    waSent?.type === 'template' &&
+      waSent.template.name === 'pirento_update' &&
+      waSent.template.components[0].parameters.length === 4,
+    waSent,
+  );
+  await call('/auth/staff/notices/ticket.opened', {
+    method: 'PUT',
+    token: boss,
+    body: {channels: {dashboard: true, email: true, sms: false, whatsapp: false}},
+  });
+  const t2 = (await call('/support', {method: 'POST', token: tok, body: {subject: 'Second question', message: 'Hi'}}))
+    .data;
+  const skipped = await until(async () =>
+    (
+      await call('/auth/staff/notices/log?event=ticket.opened&channel=whatsapp&status=skipped', {token: boss})
+    ).data?.items.find((r) => r.reason === 'off for this event'),
+  );
+  check('a channel admin turned off is skipped, and logged', skipped?.reason === 'off for this event', {skipped, t2});
+  await call('/auth/staff/notices/ticket.opened', {
+    method: 'PUT',
+    token: boss,
+    body: {channels: {dashboard: true, email: true, sms: false, whatsapp: true}},
+  });
+  const tested = (await call('/auth/staff/notices/order.update/test', {method: 'POST', token: boss})).data;
+  check('admin sends a test to themselves', tested?.route.dashboard === true, tested);
+
+  // The WhatsApp bot, through Meta's signed webhook.
+  const sign = (body) => `sha256=${crypto.createHmac('sha256', 'test-wa-secret').update(body).digest('hex')}`;
+  const inbound = (from, text, id) => {
+    const body = JSON.stringify({
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                contacts: [{wa_id: from, profile: {name: 'Guest'}}],
+                messages: [{from, id, type: 'text', text: {body: text}}],
+              },
+            },
+          ],
+        },
+      ],
+    });
+    return fetch(`${B}/support/whatsapp/webhook`, {
+      method: 'POST',
+      headers: {'content-type': 'application/json', 'x-hub-signature-256': sign(body)},
+      body,
+    });
+  };
+  const chatOf = async (number) =>
+    (await call(`/support/staff/whatsapp?q=${number}`, {token: boss})).data?.items.find((c) => c.wa === number);
+  const messagesOf = async (id) => (await call(`/support/staff/whatsapp/${id}`, {token: boss})).data?.messages ?? [];
+  const lastBot = async (id, n) =>
+    until(async () => {
+      const m = await messagesOf(id);
+      return m.filter((x) => x.dir === 'out').length >= n && m.filter((x) => x.dir === 'out').at(-1);
+    });
+
+  check(
+    'Meta verification echoes the challenge',
+    (await (
+      await fetch(`${B}/support/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=test-verify&hub.challenge=c42`)
+    ).text()) === 'c42',
+  );
+  check(
+    'a webhook without the signature is refused',
+    (
+      await fetch(`${B}/support/whatsapp/webhook`, {
+        method: 'POST',
+        headers: {'content-type': 'application/json'},
+        body: '{}',
+      })
+    ).status === 400,
+  );
+  await inbound(wa, 'Hi', 'wamid.in1');
+  await inbound(wa, 'Hi', 'wamid.in1'); // Meta sends again: stored once
+  const chat = await until(async () => (await chatOf(wa))?.userId && chatOf(wa));
+  check('the number is matched to its account', chat?.userId && chat.email, chat);
+  const menu = await lastBot(chat?._id, 1);
+  check('hi gets the greeting and the menu', /\*1\* My orders/.test(menu?.text ?? '') && menu.status === 'sent', menu);
+  check('a message sent twice is kept once', (await messagesOf(chat?._id)).filter((m) => m.dir === 'in').length === 1);
+
+  await inbound(wa, 'STOP', 'wamid.in2');
+  await lastBot(chat?._id, 2);
+  check(
+    'STOP turns WhatsApp notices off',
+    (await call('/auth/me/notice-prefs', {token: tok})).data?.whatsapp === false,
+  );
+  await inbound(wa, 'start', 'wamid.in3');
+  await lastBot(chat?._id, 3);
+  check('START turns them back on', (await call('/auth/me/notice-prefs', {token: tok})).data?.whatsapp === true);
+
+  await inbound(wa, 'mera order kab aayega?', 'wamid.in4');
+  const aiReply = await lastBot(chat?._id, 4);
+  check('a question goes to Pirento AI (here off, so the fallback)', /MENU/.test(aiReply?.text ?? ''), aiReply);
+
+  await inbound(wa, '7', 'wamid.in5');
+  const handed = await lastBot(chat?._id, 5);
+  const afterHand = await chatOf(wa);
+  check(
+    '7 hands the chat to a person, with a ticket',
+    afterHand?.mode === 'staff' && afterHand.ticketNo && handed?.text.includes(`#${afterHand.ticketNo}`),
+    {afterHand, handed},
+  );
+  const tickets = (await call('/support', {token: tok})).data;
+  check(
+    'the ticket is the customer’s, marked WhatsApp',
+    tickets?.some((t) => t.ticketNo === afterHand?.ticketNo && t.via === 'whatsapp'),
+  );
+  await inbound(wa, 'Any update?', 'wamid.in6');
+  await until(async () => (await messagesOf(chat?._id)).some((m) => m.text === 'Any update?'));
+  check(
+    'with the team, the bot stays quiet and the message joins the ticket',
+    (await messagesOf(chat?._id)).filter((m) => m.dir === 'out').length === 5 &&
+      (await call(`/support/${afterHand?.ticketId}`, {token: tok})).data?.messages.some(
+        (m) => m.body === '[WhatsApp] Any update?',
+      ),
+  );
+  check('a customer cannot open the inbox', (await call('/support/staff/whatsapp', {token: tok})).status === 403);
+  const replied = (
+    await call(`/support/staff/whatsapp/${chat?._id}/reply`, {
+      method: 'POST',
+      token: boss,
+      body: {text: 'Filed today.'},
+    })
+  ).data;
+  check('the team replies on WhatsApp', replied?.from === 'staff' && replied.status === 'sent', replied);
+  check(
+    'and the reply joins the ticket',
+    (await call(`/support/${afterHand?.ticketId}`, {token: tok})).data?.messages.some(
+      (m) => m.body === '[WhatsApp] Filed today.',
+    ),
+  );
+  await call(`/support/staff/whatsapp/${chat?._id}/mode`, {method: 'POST', token: boss, body: {mode: 'bot'}});
+
+  const stranger = '919000000009';
+  await inbound(stranger, 'Hi', 'wamid.in7');
+  const sChat = await until(() => chatOf(stranger));
+  const sReply = await lastBot(sChat?._id, 1);
+  check(
+    'a number on no account is told how to link it',
+    !sChat?.userId && /not on a Pirento account/.test(sReply?.text ?? ''),
+    sReply,
+  );
+
+  const receipt = JSON.stringify({
+    entry: [{changes: [{value: {statuses: [{id: replied?.waMessageId, status: 'read'}]}}]}],
+  });
+  await fetch(`${B}/support/whatsapp/webhook`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', 'x-hub-signature-256': sign(receipt)},
+    body: receipt,
+  });
+  const read = await until(async () =>
+    (await messagesOf(chat?._id)).find((m) => m.waMessageId === replied?.waMessageId && m.status === 'read'),
+  );
+  check('delivery receipts mark a message read', Boolean(read));
+
+  await call('/support/staff/whatsapp-settings', {
+    method: 'PUT',
+    token: boss,
+    body: {bot: false, ai: true, greeting: '', dailyAi: 30},
+  });
+  await inbound(stranger, 'Hello?', 'wamid.in8');
+  await until(async () => (await messagesOf(sChat?._id)).some((m) => m.text === 'Hello?'));
+  await new Promise((r) => setTimeout(r, 500));
+  check(
+    'with the bot off, nothing answers',
+    (await messagesOf(sChat?._id)).filter((m) => m.dir === 'out').length === 1,
+  );
+  await call('/support/staff/whatsapp-settings', {
+    method: 'PUT',
+    token: boss,
+    body: {bot: true, ai: true, greeting: '', dailyAi: 30},
+  });
+}
 const gReq2 = (await call('/auth/otp/checkout/request', {method: 'POST', body: guestBody})).data;
 const gAgain = (
   await call('/auth/otp/checkout/verify', {

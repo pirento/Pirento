@@ -87,6 +87,8 @@ staff.patch(
       const employer = await Employer.findById(doc.employerId);
       if (employer) {
         notify(employer.userId, {
+          event: 'intern.opening',
+          link: '/intern/dashboard/company',
           brand: 'Pirento Intern',
           label: doc.title,
           big: review === 'approved' ? 'Your opening is live' : 'Your opening was not approved',
@@ -138,7 +140,14 @@ employerStaff.patch(
     if (doc.status !== 'approved') await Opening.updateMany({employerId: String(doc._id)}, {$set: {open: false}});
     audit(req, `employer.${doc.status}`, doc.company, req.body.note);
     const [big, note] = DECISION[doc.status];
-    notify(doc.userId, {brand: 'Pirento Intern', label: doc.company, big, note: req.body.note || note});
+    notify(doc.userId, {
+      event: 'intern.opening',
+      link: '/intern/dashboard/company',
+      brand: 'Pirento Intern',
+      label: doc.company,
+      big,
+      note: req.body.note || note,
+    });
     res.json({data: doc});
   },
 );

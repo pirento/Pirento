@@ -132,6 +132,8 @@ staffRoutes.patch(
     }
     audit(req, `bharat-id.${decision}`, doc.bharatId ?? String(doc._id), reason);
     notify(doc.userId, {
+      event: 'bharat-id.decision',
+      link: '/bharat-id/dashboard',
       brand: 'Bharat ID',
       label: 'Your application',
       big: decision === 'approve' ? doc.bharatId : 'Needs changes',
@@ -169,6 +171,8 @@ staffRoutes.patch(
     if (!doc) throw conflict('CHANGED', `This ID is not ${from}`);
     audit(req, `bharat-id.${action}`, doc.bharatId, reason);
     notify(doc.userId, {
+      event: 'bharat-id.status',
+      link: '/bharat-id/dashboard',
       brand: 'Bharat ID',
       label: action === 'suspend' ? 'Your Bharat ID is suspended' : 'Your Bharat ID works again',
       big: doc.bharatId,

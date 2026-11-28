@@ -146,6 +146,8 @@ export async function advance(link) {
   if (stored) {
     await logAction(link.userId, 'linked.fetched', {target: `${stored} holdings`, by: 'system'});
     notify(link.userId, {
+      event: 'vault.linked',
+      link: '/vault/dashboard/linked',
       brand: 'Pirento Vault',
       label: 'Linked accounts',
       big: `${stored} holdings updated`,

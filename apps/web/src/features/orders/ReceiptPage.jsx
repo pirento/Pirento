@@ -52,7 +52,8 @@ export function Receipt() {
       </button>
     </div>
   );
-  if (invoice.loading) return <div className="min-h-dvh" />;
+  // Until the invoice answers (found or not), show nothing rather than flash the plain receipt first.
+  if (!invoice.data && !invoice.error) return <div className="min-h-dvh" />;
   if (invoice.data) {
     return (
       <div>

@@ -37,6 +37,12 @@ export const ROUTES = [
   {path: '/privacy', Page: page(() => import('../features/ecosystem/LegalPage'), 'Privacy')},
   {path: '/refunds', Page: page(() => import('../features/ecosystem/LegalPage'), 'Refunds')},
   {path: '/dashboard', layout: 'app', Page: page(() => import('../features/account/DashboardPage'), 'Dashboard')},
+  {
+    path: '/notifications',
+    layout: 'app',
+    Page: page(() => import('../features/notices/NotificationsPage'), 'Notifications'),
+  },
+  {path: '/whatsapp', layout: 'app', Page: page(() => import('../features/notices/WhatsAppPage'), 'WhatsApp')},
   {path: '/account', layout: 'app', Page: page(() => import('../features/account/AccountPage'), 'Account')},
   {path: '/wallet', layout: 'app', Page: page(() => import('../features/account/WalletPage'), 'Wallet')},
 

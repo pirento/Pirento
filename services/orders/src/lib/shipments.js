@@ -54,11 +54,12 @@ export async function shippableServices() {
 export function tellAbout(s, big) {
   if (!s.userId) return;
   notify(s.userId, {
+    event: 'shipment.update',
     brand: s.orderNo ? (getProduct(s.product)?.name ?? 'Pirento') : 'Pirento',
     label: s.orderNo ? `Order #${s.orderNo}` : 'Your parcel',
     big,
     note: `Blue Dart waybill ${s.awb}${s.said ? `: ${s.said}` : ''}.`,
-    sms: true,
+    link: s.orderId && s.product ? `/${s.product}/dashboard/orders/${s.orderId}` : '',
   });
 }
 

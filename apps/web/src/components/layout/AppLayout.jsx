@@ -43,6 +43,8 @@ import {
   X,
   ScrollText,
   TrendingUp,
+  MessageCircle,
+  Bell,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
@@ -176,6 +178,8 @@ function useAppNav() {
           {label: 'Subscriptions', to: '/subscriptions', icon: RefreshCw},
           {label: 'Wallet', to: '/wallet', icon: WalletIcon},
           {label: 'Support', to: '/support', icon: LifeBuoy},
+          {label: 'WhatsApp', to: '/whatsapp', icon: MessageCircle},
+          {label: 'Notifications', to: '/notifications', icon: Bell},
           {label: 'Account', to: '/account', icon: UserRound},
         ],
       },

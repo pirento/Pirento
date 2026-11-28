@@ -1,7 +1,16 @@
 // Finding orders the caller may see or act on, and moving them to paid.
 import crypto from 'node:crypto';
-import {serviceQuestions} from '@pirento/shared';
-import {canUse, isId, nextSeq, notFound, productScope, razorpayConfig, refundPayment} from '@pirento/shared/server';
+import {getProduct, serviceQuestions} from '@pirento/shared';
+import {
+  canUse,
+  isId,
+  nextSeq,
+  notFound,
+  notify,
+  productScope,
+  razorpayConfig,
+  refundPayment,
+} from '@pirento/shared/server';
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
 import {takeUse} from './coupons.js';
@@ -62,6 +71,16 @@ export async function markPaid(id, payment, note) {
     await takeUse(paid, {strict: false});
     // The invoice first, so a parcel booked right after can carry its number; both in the background.
     issueInvoice(paid)
+      .then((invoice) =>
+        notify(paid.userId, {
+          event: 'order.paid',
+          brand: getProduct(paid.product)?.name ?? 'Pirento',
+          label: `Order #${paid.orderNo}`,
+          big: `Paid · ₹${(paid.amount / 100).toLocaleString('en-IN')}`,
+          note: `${paid.serviceName}.${invoice ? ` Invoice ${invoice.invoiceNo}.` : ''}`,
+          link: `/${paid.product}/dashboard/receipts/${paid._id}`,
+        }),
+      )
       .catch((err) => console.error('invoice', paid.orderNo, err.message))
       // A gift box ships by itself once Pirento AI has checked the address.
       .finally(() => autoShip(paid).catch((err) => console.error('autoship', paid.orderNo, err.message)));

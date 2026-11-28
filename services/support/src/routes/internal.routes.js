@@ -1,12 +1,14 @@
 // Called by the auth service when an account is deleted. Tickets stay as a record of the work,
 // but the person's email and everything they wrote are removed, and so are their contact-form enquiries.
 import {Router} from 'express';
+import {openTicket} from '../lib/tickets.js';
 import {z} from 'zod';
-import {ApiError, nextSeq, requireInternal, validate} from '@pirento/shared/server';
+import {ApiError, requireInternal, validate} from '@pirento/shared/server';
 import {PRODUCTS} from '@pirento/shared';
 import {Ticket} from '../models/Ticket.js';
+import {WaChat} from '../models/WaChat.js';
+import {WaMessage} from '../models/WaMessage.js';
 import {Enquiry} from '../models/Enquiry.js';
-import {triage} from '../lib/triage.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -18,6 +20,10 @@ internalRoutes.post(
     const {userId, email} = req.body;
     // Contact-form enquiries carry no account, only the email they were sent from.
     if (email) await Enquiry.deleteMany({email: email.toLowerCase()});
+    // Their WhatsApp chats with Pirento, messages and all.
+    const chats = await WaChat.find({userId}, {_id: 1}).lean();
+    await WaMessage.deleteMany({chatId: {$in: chats.map((c) => String(c._id))}});
+    await WaChat.deleteMany({userId});
     await Ticket.updateMany(
       {userId},
       {
@@ -69,16 +75,7 @@ internalRoutes.post(
     if ((await Ticket.countDocuments({userId, via: 'ai', createdAt: {$gte: since}})) >= 3) {
       throw new ApiError(429, 'TOO_MANY', 'Three requests were already opened through the assistant today');
     }
-    const ticket = await Ticket.create({
-      ticketNo: (await nextSeq('ticket')) + 10_000_000,
-      userId,
-      email,
-      subject,
-      product,
-      via: 'ai',
-      messages: [{from: 'customer', body: message}],
-    });
-    triage(ticket); // in the background
+    const ticket = await openTicket({userId, email, subject, message, product, via: 'ai'});
     res.status(201).json({data: {ticketNo: ticket.ticketNo, link: `/support/${ticket._id}`}});
   },
 );

@@ -61,6 +61,12 @@ jobs:
           BLUEDART_CLIENT_SECRET: test
           BLUEDART_LOGIN_ID: test
           BLUEDART_LICENCE_KEY: test
+          # WhatsApp (Meta's Cloud API) against the same stand-in
+          WHATSAPP_API_URL: http://127.0.0.1:4090/whatsapp
+          WHATSAPP_TOKEN: test
+          WHATSAPP_PHONE_ID: PHONE1
+          WHATSAPP_APP_SECRET: test-wa-secret
+          WHATSAPP_VERIFY_TOKEN: test-verify
         run: |
           node scripts/digio-standin.mjs > digio.log 2>&1 &
           npm run dev > dev.log 2>&1 &

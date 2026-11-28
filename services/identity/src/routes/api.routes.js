@@ -112,6 +112,8 @@ apiRoutes.post(
     logAccess(req, {bharatId, userId: consent.userId, action: 'consent.request', fields});
     if (req.mode === 'live') {
       notify(doc.userId, {
+        event: 'bharat-id.sharing',
+        link: '/bharat-id/dashboard/sharing',
         brand: 'Bharat ID',
         label: 'Sharing request',
         big: consent.businessName.slice(0, 80),

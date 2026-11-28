@@ -89,3 +89,7 @@ export {PROGRAM_MONTHS, PROGRAM_SCORE, PROGRAM_PASS, gradeFor, finalMark} from '
 export {GREEN_DONATION, GREEN_DRIVES} from './data/greenDrives.js';
 export {greenCertNo, hasGreenCert, isDonation, parseGreenRef} from './orders/greenCertificate.js';
 export {TERMS_VERSION, MIN_PASSWORD, toPhone, maskPhone, isUsername, passwordProblem} from './account/rules.js';
+
+// Notifications: every event, its channels and how it reads on each
+export {NOTICE_CHANNELS, CHANNEL_NAMES, NOTICE_EVENTS, noticeEvent, renderNotice} from './data/notices.js';
+export {WA_MENU, WA_TEXT, WA_WORDS, waIntent} from './data/whatsapp.js';

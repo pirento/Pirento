@@ -39,16 +39,41 @@ export async function sendOtpEmail(to, code, brand, via = mailer()) {
   await via.sendMail({from: process.env.EMAIL_FROM ?? 'Pirento <no-reply@pirento.com>', to, subject, text, html});
 }
 
-/** A short notice in the same frame as the code email (e.g. "your user ID is …"). */
-export function renderNoticeEmail({brand, label, big, note}) {
-  const subject = `${label}: ${big}`;
-  const text = `${label}: ${big}\n\n${note}\n\nVenturecore Solutions Private Limited`;
-  const html = renderOtpEmail({code: big, brand})
-    .html.replace('Sign-in code', escape(label))
-    .replace(/It works for 10 minutes\.[^<]*/, escape(note));
+/**
+ * A notice email: the product, what it is about, what happened in large type, the details, a button to the page it
+ * is about (when there is one) and a line on changing which notices arrive. Words from renderNotice (shared).
+ */
+export function renderNoticeEmail({brand = 'Pirento', label = '', big = '', note = '', link = ''}) {
+  const site = (process.env.SITE_URL ?? 'https://pirento.com').replace(/\/$/, '');
+  const url = link ? (/^https?:/.test(link) ? link : `${site}${link}`) : '';
+  const subject = `${brand}: ${big}${label ? ` · ${label}` : ''}`;
+  const text = [
+    label,
+    big,
+    note,
+    url,
+    `Change which notices you get: ${site}/notifications`,
+    'Venturecore Solutions Private Limited',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  const html = `<!doctype html>
+<html lang="en"><body style="margin:0;background:${C.paper};font-family:Inter,-apple-system,'Segoe UI',Roboto,Arial,sans-serif;color:${C.ink}">
+  <div style="max-width:520px;margin:0 auto;padding:40px 20px">
+    <p style="margin:0 0 28px;font-size:13px;letter-spacing:.06em;text-transform:uppercase;font-weight:600">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${C.accent};margin-right:8px"></span>${escape(brand)}
+    </p>
+    <div style="border:1px solid ${C.rule};border-radius:22px;padding:32px;background:#ffffff">
+      <p style="margin:0 0 8px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:${C.muted}">${escape(label)}</p>
+      <p style="margin:0 0 16px;font-size:28px;line-height:1.25;font-weight:600">${escape(big)}</p>
+      <p style="margin:0;font-size:15px;line-height:1.7;color:${C.muted}">${escape(note)}</p>
+      ${url ? `<p style="margin:24px 0 0"><a href="${escape(url)}" style="display:inline-block;background:${C.ink};color:#ffffff;text-decoration:none;border-radius:999px;padding:12px 22px;font-size:14px">Open</a></p>` : ''}
+    </div>
+    <p style="margin:24px 0 0;font-size:12px;color:${C.muted}">Venturecore Solutions Private Limited · <a href="${escape(site)}/notifications" style="color:${C.muted}">Change which notices you get</a></p>
+  </div>
+</body></html>`;
   return {subject, text, html};
 }
-
 export async function sendNoticeEmail(to, notice, via = mailer()) {
   const {subject, text, html} = renderNoticeEmail(notice);
   if (!via) {

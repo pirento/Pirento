@@ -2,12 +2,12 @@
 // the sign-in for an approved Bharat ID for Business customer.
 import {Router} from 'express';
 import {z} from 'zod';
-import {TERMS_VERSION} from '@pirento/shared';
+import {TERMS_VERSION, toPhone} from '@pirento/shared';
 import {conflict, isId, isProduction, requireInternal, validate} from '@pirento/shared/server';
 import {AuditLog} from '../models/AuditLog.js';
 import {User} from '../models/User.js';
-import {Notice} from '../models/Notice.js';
 import {sendNoticeEmail} from '../lib/email.js';
+import {deliver} from '../lib/notices.js';
 import {firstPassword, freeUsername} from '../lib/businessAccount.js';
 import {LoginLink} from '../models/LoginLink.js';
 import {sendSms} from '../lib/sms.js';
@@ -50,27 +50,48 @@ internalRoutes.post(
   validate(
     z.object({
       userId: z.string().max(40),
+      event: z.string().max(40).default('general'),
       brand: z.string().max(60),
       label: z.string().max(80),
       big: z.string().max(80),
       note: z.string().max(600),
-      sms: z.boolean().default(false), // also text it to the account's mobile (Vault check-in reminders)
+      link: z.string().max(300).default(''),
     }),
   ),
   async (req, res) => {
-    const {userId, sms, ...notice} = req.body;
-    const user = isId(userId) && (await User.findById(userId));
+    const user = isId(req.body.userId) && (await User.findById(req.body.userId));
     const reachable = user && !user.suspended && !user.email.endsWith('.invalid');
-    if (reachable) {
-      // Kept for the dashboard's bell, then sent; the mail server's speed is not the caller's problem.
-      await Notice.create({userId, ...notice});
-      sendNoticeEmail(user.email, notice).catch((err) => console.error('notice email failed', err.message));
-      if (sms && user.phone && phoneCodesOn())
-        sendSms(user.phone, `${notice.brand}: ${notice.big}. ${notice.note}`.slice(0, 300)).catch((err) =>
-          console.error('notice sms failed', err.message),
-        );
-    }
+    // Answered at once; the channels' speed is not the caller's problem.
+    if (reachable) deliver(user, req.body).catch((err) => console.error('notice failed', req.body.event, err.message));
     res.json({data: {sent: Boolean(reachable)}});
+  },
+);
+
+/** Whose account a mobile is (WhatsApp writes from it): the account it is on, if any. */
+internalRoutes.post('/internal/account-by-phone', validate(z.object({phone: z.string().max(20)})), async (req, res) => {
+  const phone = toPhone(req.body.phone);
+  const user = phone && (await User.findOne({phone, suspended: {$ne: true}}, {email: 1, name: 1, noticePrefs: 1}));
+  res.json({
+    data: user && {
+      userId: String(user._id),
+      email: user.email,
+      name: user.name,
+      whatsapp: Boolean(user.noticePrefs?.whatsapp),
+    },
+  });
+});
+
+/** WhatsApp notices on or off from the chat itself (START / STOP). */
+internalRoutes.post(
+  '/internal/notice-prefs',
+  validate(z.object({userId: z.string().max(40), whatsapp: z.boolean()})),
+  async (req, res) => {
+    const set = {
+      'noticePrefs.whatsapp': req.body.whatsapp,
+      ...(req.body.whatsapp && {'noticePrefs.whatsappAt': new Date()}),
+    };
+    await User.updateOne({_id: req.body.userId}, {$set: set});
+    res.json({data: {whatsapp: req.body.whatsapp}});
   },
 );
 

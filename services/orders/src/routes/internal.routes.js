@@ -55,21 +55,40 @@ internalRoutes.post(
   async (req, res) => {
     const orders = await Order.find(
       {userId: req.body.userId},
-      {orderNo: 1, product: 1, serviceName: 1, status: 1, amount: 1, createdAt: 1},
+      {orderNo: 1, product: 1, serviceName: 1, status: 1, amount: 1, createdAt: 1, invoiceNo: 1},
     )
       .sort({createdAt: -1})
       .limit(10)
       .lean();
+    // Parcels too, so "where is my box?" has an answer: status, Blue Dart's words and the latest scan.
+    const parcels = await Shipment.find(
+      {orderId: {$in: orders.map((o) => String(o._id))}, status: {$ne: 'cancelled'}},
+      {orderId: 1, awb: 1, status: 1, said: 1, scans: {$slice: 1}},
+    ).lean();
     res.json({
-      data: orders.map((o) => ({
-        orderNo: o.orderNo,
-        product: o.product,
-        service: o.serviceName,
-        status: o.status,
-        rupees: o.amount / 100,
-        placed: o.createdAt,
-        link: `/${o.product}/dashboard/orders/${o._id}`,
-      })),
+      data: orders.map((o) => {
+        const parcel = parcels.find((p) => p.orderId === String(o._id));
+        return {
+          orderNo: o.orderNo,
+          product: o.product,
+          service: o.serviceName,
+          status: o.status,
+          rupees: o.amount / 100,
+          placed: o.createdAt,
+          link: `/${o.product}/dashboard/orders/${o._id}`,
+          ...(o.invoiceNo && {invoice: o.invoiceNo, invoiceLink: `/${o.product}/dashboard/receipts/${o._id}`}),
+          ...(parcel && {
+            parcel: {
+              courier: 'Blue Dart',
+              waybill: parcel.awb ?? 'not booked yet',
+              status: parcel.status,
+              latest: parcel.scans?.[0]
+                ? `${parcel.scans[0].text}, ${parcel.scans[0].place} (${parcel.scans[0].at})`
+                : parcel.said,
+            },
+          }),
+        };
+      }),
     });
   },
 );

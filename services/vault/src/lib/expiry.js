@@ -19,6 +19,8 @@ export async function sendExpiryReminders(now = new Date()) {
     if (!claimed.modifiedCount) continue;
     const days = Math.max(0, Math.ceil((f.expiresOn - now) / DAY));
     notify(f.userId, {
+      event: 'vault.expiry',
+      link: '/vault/dashboard/files',
       brand: 'Pirento Vault',
       label: f.label ?? 'Document',
       big: `Expires in ${days} day${days === 1 ? '' : 's'}`,

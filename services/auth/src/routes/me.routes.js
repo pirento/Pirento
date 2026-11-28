@@ -1,7 +1,7 @@
 // The signed-in person's own profile.
 import {Router} from 'express';
 import {z} from 'zod';
-import {ApiError, conflict, notFound, requireAuth, validate} from '@pirento/shared/server';
+import {ApiError, conflict, isId, notFound, requireAuth, validate} from '@pirento/shared/server';
 import {GSTIN_PATTERN, STATE_NAMES, isUsername, passwordProblem} from '@pirento/shared';
 import {MIN_PASSWORD, hashPassword, verifyPassword} from '../lib/password.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
@@ -128,9 +128,13 @@ meRoutes.patch(
 );
 
 /** The bell in every dashboard: the latest notices, newest first, with how many are unread. */
+/** Your notices, newest first; `?before=<id>` pages back, `?product=` narrows to one product's brand. */
 meRoutes.get('/me/notices', async (req, res) => {
+  const filter = {userId: req.user.sub};
+  if (isId(req.query.before)) filter._id = {$lt: req.query.before};
+  if (typeof req.query.event === 'string' && req.query.event) filter.event = req.query.event.slice(0, 40);
   const [items, unread] = await Promise.all([
-    Notice.find({userId: req.user.sub}).sort({createdAt: -1}).limit(50).lean(),
+    Notice.find(filter).sort({_id: -1}).limit(50).lean(),
     Notice.countDocuments({userId: req.user.sub, readAt: {$exists: false}}),
   ]);
   res.json({data: {items, unread}});
@@ -140,3 +144,44 @@ meRoutes.post('/me/notices/read', async (req, res) => {
   await Notice.updateMany({userId: req.user.sub, readAt: {$exists: false}}, {$set: {readAt: new Date()}});
   res.json({data: {read: true}});
 });
+
+/** Your notification choices: which channels, WhatsApp opt-in, muted products; and whether a mobile is on file. */
+meRoutes.get('/me/notice-prefs', async (req, res) => {
+  const user = await User.findById(req.user.sub, {noticePrefs: 1, phone: 1});
+  const p = user?.noticePrefs ?? {};
+  res.json({
+    data: {
+      email: p.email !== false,
+      sms: p.sms !== false,
+      whatsapp: Boolean(p.whatsapp),
+      muted: p.muted ?? [],
+      phone: user?.phone ? `+91 ••••• •${user.phone.slice(-4)}` : '',
+    },
+  });
+});
+
+meRoutes.put(
+  '/me/notice-prefs',
+  validate(
+    z.object({
+      email: z.boolean(),
+      sms: z.boolean(),
+      whatsapp: z.boolean(),
+      muted: z.array(z.string().max(30)).max(20).default([]),
+    }),
+  ),
+  async (req, res) => {
+    const user = await User.findById(req.user.sub);
+    if (!user) throw notFound('Account not found');
+    if (req.body.whatsapp && !user.phone) {
+      throw new ApiError(409, 'NO_MOBILE', 'Add your mobile number to your account first');
+    }
+    const was = user.noticePrefs?.whatsapp;
+    user.noticePrefs = {
+      ...req.body,
+      whatsappAt: req.body.whatsapp ? (was ? user.noticePrefs.whatsappAt : new Date()) : undefined,
+    };
+    await user.save();
+    res.json({data: req.body});
+  },
+);

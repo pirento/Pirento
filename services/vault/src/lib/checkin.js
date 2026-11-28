@@ -43,11 +43,12 @@ export async function runCheckins(now = new Date()) {
     }
     await logAction(plan.userId, 'reminder', {target: `${reminder} of ${LEGACY.reminderMonths.length}`, by: 'system'});
     notify(plan.userId, {
+      event: 'vault.checkin',
       brand: 'Pirento Vault',
       label: 'Are you well?',
       big: `Reminder ${reminder} of ${LEGACY.reminderMonths.length}`,
-      note: `We have not seen you in your vault for ${months} months. Tap to tell us you are here: ${config.siteUrl}/vault/alive?t=${token} . If we hear nothing after the last reminder, our team will call your nominee.`,
-      sms: true,
+      note: `We have not seen you in your vault for ${months} months. Tap the link to tell us you are here. If we hear nothing after the last reminder, our team will call your nominee.`,
+      link: `${config.siteUrl}/vault/alive?t=${token}`,
     });
   }
 }

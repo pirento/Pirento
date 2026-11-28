@@ -125,6 +125,8 @@ changeRoutes.patch(
     }
     audit(req, `bharat-id.change.${decision}`, ask.bharatId, titleOf(ask.section));
     notify(ask.userId, {
+      event: 'bharat-id.change',
+      link: '/bharat-id/dashboard',
       brand: 'Bharat ID',
       label: `Change to ${titleOf(ask.section).toLowerCase()}`,
       big: decision === 'approve' ? 'Updated' : 'Not changed',

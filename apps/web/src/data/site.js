@@ -1112,6 +1112,47 @@ export const checkoutGuest = {
 };
 
 // The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
+// Notifications (features/notices/): what a person receives, where, and the history of what was sent.
+export const noticesCopy = {
+  title: 'Notifications',
+  intro: 'Choose where Pirento reaches you, product by product. Everything also stays here and in the bell.',
+  channels: {
+    dashboard: ['Dashboard', 'The bell in every dashboard, and the history below. Always on.'],
+    email: ['Email', 'To the email you sign in with.'],
+    sms: ['SMS', 'Short texts to the mobile on your account.'],
+    whatsapp: ['WhatsApp', 'From Pirento’s WhatsApp number. Needs your yes, and you can type STOP any time.'],
+  },
+  important:
+    'Notices about money, your Bharat ID and your vault’s safety always come by email and SMS, whatever you choose here.',
+  noMobile: 'Add a mobile number to your account first, to get SMS and WhatsApp.',
+  products: 'Products to keep quiet',
+  productsNote: 'Muted products still show in the bell; they skip email, SMS and WhatsApp.',
+  save: 'Save choices',
+  saved: 'Saved.',
+  history: 'Everything we sent you',
+  empty: 'Nothing yet.',
+  more: 'Show older',
+};
+
+// Pirento on WhatsApp (features/notices/WhatsAppPage.jsx). The menu itself is WA_MENU (shared).
+export const whatsappCopy = {
+  title: 'Pirento on WhatsApp',
+  intro:
+    'Ask about your orders, parcels, invoices, tickets, wallet and Bharat ID on WhatsApp. Pirento AI answers at once; a person takes over whenever you ask.',
+  open: 'Open WhatsApp',
+  scan: 'Scan to chat on your phone',
+  can: 'What you can do there',
+  linked: (phone) =>
+    `Your account’s mobile ${phone} is linked: the bot can read your own account when you write from it.`,
+  notLinked: 'Add your mobile number to your account, then write from that number, so the bot knows it is you.',
+  notices: 'Notices on WhatsApp',
+  noticesOn: 'On: order, parcel and ticket updates come to you on WhatsApp.',
+  noticesOff: 'Off. Turn them on in Notifications, or type START in the chat.',
+  privacy:
+    'The bot only reads your own account, and only when you write from your account’s mobile. It never asks for your PIN, passwords or OTPs; never share them in a chat.',
+  firstMessage: 'Hi',
+};
+
 // Invoices (features/orders/InvoiceDoc.jsx, admin → Invoices, the account's billing details).
 export const invoiceCopy = {
   taxTitle: 'Tax invoice',

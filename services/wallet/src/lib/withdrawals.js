@@ -37,6 +37,8 @@ export async function settle(w, payout) {
     ]);
     if (done) {
       notify(w.userId, {
+        event: 'withdrawal.update',
+        link: '/wallet',
         label: 'Withdrawal',
         big: 'Sent',
         note: `We sent ${rupees(w.amount)} to ${w.upi}.${payout.utr ? ` Bank reference (UTR): ${payout.utr}.` : ''}`,
@@ -59,6 +61,8 @@ export async function settle(w, payout) {
   ]);
   if (done) {
     notify(w.userId, {
+      event: 'withdrawal.update',
+      link: '/wallet',
       label: 'Withdrawal',
       big: 'Returned to your wallet',
       note: `The bank could not take it: ${reason}. The amount is back in your wallet.`,

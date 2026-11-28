@@ -1,6 +1,7 @@
 // A stand-in for the outside APIs in local tests and CI, kept in memory: Digio's KYC and sign endpoints (Bharat ID),
-// Digio's Account Aggregator under /fiu_api (Vault linked accounts), API Setu's death certificates under /apisetu
-// and Blue Dart's gateway under /bluedart (shipments), plus /__test routes to play the person or the courier.
+// Digio's Account Aggregator under /fiu_api (Vault linked accounts), API Setu's death certificates under /apisetu,
+// Blue Dart's gateway under /bluedart (shipments) and Meta's WhatsApp API under /whatsapp, plus /__test routes to
+// play the person or the courier, and to read what was sent on WhatsApp.
 // Usage: node scripts/digio-standin.mjs (port 4090).
 import http from 'node:http';
 import crypto from 'node:crypto';
@@ -8,6 +9,7 @@ import crypto from 'node:crypto';
 const kycs = new Map();
 const consents = new Map(); // Account Aggregator consent requests
 const parcels = new Map(); // Blue Dart waybills
+const waSent = []; // WhatsApp messages Pirento sent
 const docs = new Map();
 const byCallback = new Map();
 const id = (p) => p + crypto.randomBytes(8).toString('hex').toUpperCase();
@@ -23,7 +25,7 @@ const server = http.createServer(async (req, res) => {
   for await (const c of req) chunks.push(c);
   const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString() || '{}') : {};
   const path = url.pathname;
-  const digio = !/^\/(__test|apisetu|bluedart)/.test(path);
+  const digio = !/^\/(__test|apisetu|bluedart|whatsapp)/.test(path);
   if (digio && !/^Basic .+/.test(req.headers.authorization ?? '')) {
     return send(res, 401, {code: 'UNAUTHORIZED', message: 'No credentials'});
   }
@@ -200,6 +202,17 @@ const server = http.createServer(async (req, res) => {
     parcels.set(m[1], {type: body.type, status: body.status});
     return send(res, 200, {ok: true});
   }
+
+  // WhatsApp Cloud API (Meta's Graph API): messages sent are kept for /__test/whatsapp.
+  m = path.match(/^\/whatsapp\/([^/]+)\/messages$/);
+  if (req.method === 'POST' && m) {
+    if (!/^Bearer .+/.test(req.headers.authorization ?? '')) return send(res, 401, {error: {message: 'No token'}});
+    if (!/^91[6-9]\d{9}$/.test(body.to ?? '')) return send(res, 400, {error: {message: 'Invalid recipient'}});
+    const msgId = `wamid.out${waSent.length + 1}`;
+    waSent.push({id: msgId, ...body});
+    return send(res, 200, {messaging_product: 'whatsapp', messages: [{id: msgId}]});
+  }
+  if (req.method === 'GET' && path === '/__test/whatsapp') return send(res, 200, waSent);
 
   // Test controls: the applicant finishes the KYC, or signs.
   m = path.match(/^\/__test\/kyc\/([^/]+)$/);
