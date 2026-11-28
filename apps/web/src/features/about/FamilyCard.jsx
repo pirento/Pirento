@@ -43,7 +43,7 @@ export function FamilyCard({item, index, count, front}) {
           )}
           {item.href && (
             <span className="flex items-center gap-2 text-xs font-medium whitespace-nowrap">
-              {item.domain ?? item.linkLabel}
+              {item.domain}
               <span
                 aria-hidden
                 className="flex size-8 items-center justify-center rounded-full border border-rule transition-colors duration-500 ease-ui group-hover/fc:border-accent group-hover/fc:bg-accent group-hover/fc:text-on-accent"

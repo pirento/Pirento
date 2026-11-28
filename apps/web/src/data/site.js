@@ -174,8 +174,7 @@ export const home = {
   },
   marquee: 'Ten products, one account',
   // Under each family stack: how to move it.
-  stackHint: 'Swipe up for the next card',
-  foundationLink: 'Visit Pirento Foundation',
+  stackHint: 'Keep scrolling for the next card',
   ecosystem: {
     label: 'Ecosystem',
     title: 'Ten products, / grouped by need.',
@@ -1166,12 +1165,8 @@ export const productCardArt = {
   giftox: 'balloons',
 };
 
-// The home's family stacks: one picture per card, by the card's name (Foundation programmes, ventures, alongside).
+// The home's family stacks: one picture per card, by the card's name (ventures, alongside).
 export const familyArt = {
-  'Pirento Green': 'saplings',
-  'Food and relief': 'ration',
-  Education: 'schoolbag',
-  'Health and livelihood': 'healthcamp',
   'A T Elevator': 'liftdoors',
   'A T Facility': 'mop',
   'Inzario Space': 'sofa',
