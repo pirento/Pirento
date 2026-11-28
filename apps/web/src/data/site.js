@@ -172,7 +172,7 @@ export const home = {
       },
     ],
   },
-  marquee: 'One account · one wallet · one Bharat ID · ten products',
+  marquee: 'Ten products, one account',
   // Under each family stack: how to move it.
   stackHint: 'Swipe up for the next card',
   foundationLink: 'Visit Pirento Foundation',
