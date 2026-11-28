@@ -8,3 +8,4 @@ apps/web/public/sitemap.xml
 deploy/aws/.terraform/
 deploy/aws/*.tfstate*
 deploy/aws/terraform.tfvars
+dump.rdb
