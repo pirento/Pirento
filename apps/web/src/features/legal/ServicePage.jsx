@@ -3,7 +3,7 @@
 import {useRef} from 'react';
 import {Link, useParams} from 'react-router-dom';
 import {Clock, Mail} from 'lucide-react';
-import {packagesOf} from '@pirento/shared';
+import {packagesOf, servicePage} from '@pirento/shared';
 import {PageHero} from '../../components/PageHero';
 import {ContactCta} from '../../components/layout/ContactCta';
 import {CheckList, Faq, Steps} from '../../components/ui/Blocks';
@@ -109,7 +109,9 @@ function Pairs({items}) {
 export function Service() {
   const {slug} = useParams();
   const service = useService(slug);
-  const page = useApi(service ? `/catalog/services/${slug}` : null).data?.page;
+  // Admin's edits come from the catalog service; without it (a static deploy, an outage) the page still shows the
+  // built-in content every service ships with.
+  const page = useApi(service ? `/catalog/services/${slug}` : null).data?.page ?? (service ? servicePage(slug) : null);
   const siblings = useServicesFor(service?.product ?? '');
   const {user} = useSession();
   const ref = useRef(null);
