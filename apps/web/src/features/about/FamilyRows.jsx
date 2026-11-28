@@ -1,7 +1,7 @@
 // The Pirento family beyond the ten products, in the design system's own patterns: Pirento Foundation as one
 // large card (illustration, tags, link, its programmes along the bottom), then the other parts as card rows grouped like the
 // products above them. A card with a website opens it in a new tab.
-import {ArrowUpDown, ArrowUpRight, Gem, HandHeart, Receipt, Sofa, Sparkles, TrendingUp} from 'lucide-react';
+import {ArrowUpDown, ArrowUpRight, Gem, HandHeart, Receipt, Sofa, Sparkles, Sprout, TrendingUp} from 'lucide-react';
 import {Illustration} from '../../components/Illustration';
 import {Button} from '../../components/ui/Button';
 import {Tag} from '../../components/ui/Tag';
@@ -15,6 +15,7 @@ const ICONS = {
   trust: HandHeart,
   journal: TrendingUp,
   billing: Receipt,
+  foundation: Sprout,
 };
 
 function FoundationRow() {
@@ -58,7 +59,7 @@ function FoundationRow() {
   );
 }
 
-function Card({item}) {
+export function Card({item, group}) {
   const Icon = ICONS[item.icon] ?? Sparkles;
   const lead = item.lead && PEOPLE[item.lead];
   const El = item.href ? 'a' : 'article';
@@ -74,8 +75,9 @@ function Card({item}) {
       <span className="flex size-11 items-center justify-center rounded-full border border-rule transition-colors duration-500 group-hover:border-accent group-hover:bg-accent group-hover:text-on-accent">
         <Icon aria-hidden className="size-5" />
       </span>
-      {item.meta && <p className="mt-8 text-xs text-muted">{item.meta}</p>}
-      <h4 className={`text-2xl ${item.meta ? 'mt-2' : 'mt-8'}`}>{item.name}</h4>
+      {group && <p className="mt-8 text-xs tracking-[0.12em] text-muted uppercase">{group}</p>}
+      {item.meta && <p className={`text-xs text-muted ${group ? 'mt-1' : 'mt-8'}`}>{item.meta}</p>}
+      <h4 className={`text-2xl ${item.meta ? 'mt-2' : group ? 'mt-3' : 'mt-8'}`}>{item.name}</h4>
       <p className="mt-2 text-[0.95rem] leading-relaxed text-muted">{item.body}</p>
       {(lead || item.domain) && (
         <div className="mt-auto flex flex-wrap items-center justify-between gap-x-4 gap-y-2 pt-6 text-sm">

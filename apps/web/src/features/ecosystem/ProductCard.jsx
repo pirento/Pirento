@@ -1,5 +1,5 @@
-// A product card on the Pirento home, dressed in that product's own colours: its dark as the card and its accent in
-// the picture, the status and the link, so each card previews the product's site.
+// A product card on the Pirento home: a plain card with a touch of the product's own colour, in its picture, its
+// status and the border on hover.
 import {Link} from 'react-router-dom';
 import {ArrowUpRight} from 'lucide-react';
 import {Illustration} from '../../components/Illustration';
@@ -12,15 +12,15 @@ export function ProductCard({product, group, wide = false}) {
       to={`/${product.slug}`}
       data-reveal
       data-cursor="Visit"
-      // The colours come from the brand register (PRODUCT_COLOURS) through the product, never from here.
-      style={{'--inverse': product.dark, '--accent': product.color, '--on-accent': product.onColor}}
-      className={`inverse group/pc flex h-full flex-col overflow-hidden rounded-[22px] border border-rule transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-accent ${
+      // The colour comes from the brand register (PRODUCT_COLOURS) through the product, never from here.
+      style={{'--accent': product.color, '--on-accent': product.onColor}}
+      className={`group/pc flex h-full flex-col overflow-hidden rounded-[22px] border border-rule bg-paper transition-[border-color,transform] duration-500 ease-ui hover:-translate-y-1 hover:border-accent ${
         wide ? 'lg:grid lg:grid-cols-2' : ''
       }`}
     >
       <Illustration
         name={productCardArt[product.slug]}
-        className={`rounded-none border-0 ${wide ? 'lg:flex lg:items-center' : ''}`}
+        className={`rounded-none border-0 border-b border-rule ${wide ? 'lg:flex lg:items-center lg:border-r lg:border-b-0' : ''}`}
       />
       <div className="flex flex-1 flex-col p-6 md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-2">
