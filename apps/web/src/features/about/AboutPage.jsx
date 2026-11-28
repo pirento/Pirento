@@ -1,5 +1,5 @@
-// /about: who runs Pirento. The company at a glance, the founders, the story and the group as charts,
-// the family of businesses, the people and our partner.
+// /about: who runs Pirento. The company at a glance, the founders and the team, the story and the group as charts,
+// the family (the Foundation's panel and small 3D cards), and our partner.
 import {useRef} from 'react';
 import {ArrowUpRight} from 'lucide-react';
 import {PRODUCTS} from '@pirento/shared';
@@ -95,7 +95,8 @@ export function About() {
                   alt=""
                   width="600"
                   height="750"
-                  className="aspect-[4/3] w-full object-cover object-top sm:aspect-auto sm:h-full"
+                  // A phone shows the whole portrait, so the face is never cropped away.
+                  className="aspect-[4/5] w-full object-cover object-[50%_30%] sm:aspect-auto sm:h-full"
                 />
               ) : (
                 <Avatar
@@ -117,28 +118,8 @@ export function About() {
         </div>
       </Section>
 
-      <Section inverse>
-        <SectionHeader n={2} label={ABOUT.story.label} title={ABOUT.story.title} />
-        <StoryChart />
-      </Section>
-
-      <Section>
-        <SectionHeader n={3} label={ABOUT.structure.label} title={ABOUT.structure.title} />
-        <GroupChart />
-      </Section>
-
-      <Section id="family" className="pt-0! md:pt-0!">
-        <SectionHeader
-          n={4}
-          label="The Pirento family"
-          title="Beyond the / ten products."
-          intro="The Foundation, the ventures, the businesses alongside us and our tools."
-        />
-        <FamilyRows />
-      </Section>
-
       <Section id="people" className="pt-0! md:pt-0!">
-        <SectionHeader n={5} label={ABOUT.people.label} title={ABOUT.people.title} />
+        <SectionHeader n={2} label={ABOUT.people.label} title={ABOUT.people.title} />
         <ul className="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Object.values(PEOPLE).map((p) => (
             <li key={p.name} className="flex flex-col rounded-[22px] border border-rule p-6" data-reveal>
@@ -158,6 +139,26 @@ export function About() {
             </li>
           ))}
         </ul>
+      </Section>
+
+      <Section inverse>
+        <SectionHeader n={3} label={ABOUT.story.label} title={ABOUT.story.title} />
+        <StoryChart />
+      </Section>
+
+      <Section>
+        <SectionHeader n={4} label={ABOUT.structure.label} title={ABOUT.structure.title} />
+        <GroupChart />
+      </Section>
+
+      <Section id="family" className="pt-0! md:pt-0!">
+        <SectionHeader
+          n={5}
+          label="The Pirento family"
+          title="Beyond the / ten products."
+          intro="The Foundation, the ventures, the businesses alongside us and our tools."
+        />
+        <FamilyRows />
       </Section>
 
       <Section className="pt-0! md:pt-0!">
