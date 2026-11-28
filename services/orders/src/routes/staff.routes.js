@@ -302,6 +302,15 @@ staffRoutes.patch(
       new: true,
     });
     audit(req, 'order.assign', `#${order.orderNo}`, assignee?.email ?? 'unassigned');
+    // Work handed to someone else lands in their bell (and inbox); taking it yourself needs no notice.
+    if (assignee && assignee.id !== req.user.sub) {
+      notify(assignee.id, {
+        brand: 'Pirento admin',
+        label: `Order #${order.orderNo}`,
+        big: 'Assigned to you',
+        note: `${order.serviceName}, from ${req.user.email}.`,
+      });
+    }
     res.json({data: updated});
   },
 );

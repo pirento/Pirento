@@ -1,9 +1,13 @@
-// A stand-in for the Digio API in local tests and CI: the KYC and sign endpoints Bharat ID calls, kept in memory,
-// plus /__test routes to play the applicant finishing each step. Usage: node scripts/digio-standin.mjs (port 4090).
+// A stand-in for the outside APIs in local tests and CI, kept in memory: Digio's KYC and sign endpoints (Bharat ID),
+// Digio's Account Aggregator under /fiu_api (Vault linked accounts), API Setu's death certificates under /apisetu
+// and Blue Dart's gateway under /bluedart (shipments), plus /__test routes to play the person or the courier.
+// Usage: node scripts/digio-standin.mjs (port 4090).
 import http from 'node:http';
 import crypto from 'node:crypto';
 
 const kycs = new Map();
+const consents = new Map(); // Account Aggregator consent requests
+const parcels = new Map(); // Blue Dart waybills
 const docs = new Map();
 const byCallback = new Map();
 const id = (p) => p + crypto.randomBytes(8).toString('hex').toUpperCase();
@@ -19,7 +23,8 @@ const server = http.createServer(async (req, res) => {
   for await (const c of req) chunks.push(c);
   const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString() || '{}') : {};
   const path = url.pathname;
-  if (!path.startsWith('/__test') && !/^Basic .+/.test(req.headers.authorization ?? '')) {
+  const digio = !/^\/(__test|apisetu|bluedart)/.test(path);
+  if (digio && !/^Basic .+/.test(req.headers.authorization ?? '')) {
     return send(res, 401, {code: 'UNAUTHORIZED', message: 'No credentials'});
   }
 
@@ -67,6 +72,133 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && m) {
     const d = docs.get(m[1]);
     return d ? send(res, 200, {id: d.id, agreement_status: d.agreement_status}) : send(res, 404, {code: 'NOT_FOUND'});
+  }
+
+  // Digio's Account Aggregator (FIU-TSP): a consent waits until /__test/aa/:id approves it, then data is ready at once.
+  if (req.method === 'POST' && path === '/fiu_api/client/consent/request') {
+    if (!body.template_id || !body.customer_details?.customer_mobile) return send(res, 400, {code: 'BAD_REQUEST'});
+    const c = {id: id('CRD'), customer: id('CID'), status: 'PENDING', fi: null};
+    consents.set(c.id, c);
+    return send(res, 200, {
+      consent_request_id: c.id,
+      gateway_token_id: id('GWT'),
+      customer_details: {id: c.customer},
+      status: 'PENDING',
+    });
+  }
+  m = path.match(/^\/fiu_api\/client\/consent\/request\/([^/]+)\/details$/);
+  if (req.method === 'GET' && m) {
+    const c = consents.get(m[1]);
+    return c ? send(res, 200, {consent_request_id: c.id, status: c.status}) : send(res, 404, {code: 'NOT_FOUND'});
+  }
+  const AA_ACCOUNTS = [
+    {account_id: 'MF1', fi_type: 'MUTUAL_FUNDS', fip_id: 'CAMS', masked_account_number: 'XXXX6704'},
+    {account_id: 'DM1', fi_type: 'EQUITIES', fip_id: 'CDSL', masked_account_number: 'XXXX1201'},
+    {account_id: 'IN1', fi_type: 'INSURANCE_POLICIES', fip_id: 'LIC', masked_account_number: 'XXXX9001'},
+  ];
+  m = path.match(/^\/fiu_api\/client\/fi\/request\/([^/]+)$/);
+  if (req.method === 'POST' && m) {
+    const c = consents.get(m[1]);
+    if (c?.status !== 'ACTIVE') return send(res, 400, {code: 'CONSENT_NOT_ACTIVE'});
+    c.fi = id('FRID');
+    return send(res, 200, {fi_request_id: c.fi, status: 'PENDING', consent_request_id: c.id});
+  }
+  m = path.match(/^\/fiu_api\/client\/fi\/request\/([^/]+)\/details$/);
+  if (req.method === 'GET' && m) {
+    return send(res, 200, {fi_request_id: m[1], status: 'DATA_AVAILABLE', accounts: AA_ACCOUNTS});
+  }
+  m = path.match(/^\/fiu_api\/client\/fi\/fetch\/([^/]+)$/);
+  if (req.method === 'GET' && m) {
+    const acc = (a) => ({
+      account_id: a.account_id,
+      fi_type: a.fi_type,
+      fip_id: a.fip_id,
+      account_number: a.masked_account_number,
+    });
+    const holding = (h) => ({account: {summary: {investment: {holdings: {holding: h}}}}});
+    return send(res, 200, {
+      fi_request_id: m[1],
+      status: 'DELIVERED',
+      fi: [
+        {
+          ...acc(AA_ACCOUNTS[0]),
+          fi_data: holding([
+            {isin: 'INF000TEST1', schemeName: 'Test Index Fund', folioNo: 'F-1', closingUnits: '12', nav: '50'},
+          ]),
+        },
+        {
+          ...acc(AA_ACCOUNTS[1]),
+          fi_data: {
+            account: {
+              summary: {currentValue: '9000', investment: {holdings: {holding: {issuerName: 'TEST LTD', units: 30}}}},
+            },
+          },
+        },
+        {
+          ...acc(AA_ACCOUNTS[2]),
+          fi_data: {
+            account: {
+              summary: {policyName: 'Test Term Plan', policyType: 'TERM', policyNumber: 'LIC-77', sumAssured: 2500000},
+            },
+          },
+        },
+      ],
+    });
+  }
+  m = path.match(/^\/__test\/aa\/([^/]+)$/);
+  if (req.method === 'POST' && m && consents.has(m[1])) {
+    consents.get(m[1]).status = body.status ?? 'ACTIVE';
+    return send(res, 200, {ok: true});
+  }
+
+  // API Setu: any issuer; a first detail of NOTFOUND has no certificate.
+  m = path.match(/^\/apisetu\/([a-z]+)\/v3\/dtcer\/certificate$/);
+  if (req.method === 'POST' && m) {
+    if (!req.headers['x-apisetu-clientid'] || !req.headers['x-apisetu-apikey'])
+      return send(res, 401, {error: 'invalid_client'});
+    if (!/^[0-9a-f-]{36}$/.test(body.txnId ?? '')) return send(res, 400, {error: 'invalid_txnid'});
+    if (Object.values(body.certificateParameters ?? {})[0] === 'NOTFOUND')
+      return send(res, 404, {error: 'record_not_found'});
+    return send(res, 200, '%PDF-1.4 stand-in death certificate', 'application/pdf');
+  }
+
+  // Blue Dart: a JWT, a waybill per parcel (one per reference), tracking until /__test/bluedart/:awb moves it.
+  if (req.method === 'GET' && path === '/bluedart/token/v1/login') {
+    return req.headers.clientid ? send(res, 200, {JWTToken: id('JWT')}) : send(res, 401, {message: 'No ClientID'});
+  }
+  const signedIn = Boolean(req.headers.jwttoken);
+  if (req.method === 'POST' && path === '/bluedart/waybill/v1/GenerateWayBill') {
+    if (!signedIn) return send(res, 401, {message: 'No JWTToken'});
+    const r = body.Request ?? {};
+    if (!/^\d{6}$/.test(r.Consignee?.ConsigneePincode ?? '')) {
+      return send(res, 200, {GenerateWayBillResult: {IsError: true, Status: [{StatusInformation: 'Invalid pincode'}]}});
+    }
+    const awb = String(70000000000 + parcels.size + 1);
+    parcels.set(awb, {type: 'PU', status: 'Shipment picked up'});
+    return send(res, 200, {GenerateWayBillResult: {AWBNo: awb, IsError: false, Status: []}});
+  }
+  if (req.method === 'GET' && path === '/bluedart/tracking/v1/shipment') {
+    if (!signedIn) return send(res, 401, {message: 'No JWTToken'});
+    const p = parcels.get(url.searchParams.get('numbers'));
+    if (!p) return send(res, 200, {ShipmentData: {Shipment: []}});
+    return send(res, 200, {
+      ShipmentData: {
+        Shipment: [
+          {
+            Status: p.status,
+            StatusType: p.type,
+            Scans: [
+              {ScanDetail: {Scan: p.status, ScanDate: '28-Nov-2026', ScanTime: '10:00', ScannedLocation: 'MUMBAI HUB'}},
+            ],
+          },
+        ],
+      },
+    });
+  }
+  m = path.match(/^\/__test\/bluedart\/(\d+)$/);
+  if (req.method === 'POST' && m && parcels.has(m[1])) {
+    parcels.set(m[1], {type: body.type, status: body.status});
+    return send(res, 200, {ok: true});
   }
 
   // Test controls: the applicant finishes the KYC, or signs.

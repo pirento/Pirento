@@ -211,3 +211,58 @@ export function quietStage(months) {
     return {stage: 'reminding', reminder: LEGACY.reminderMonths.filter((m) => m <= months).length};
   return {stage: 'call-nominee', reminder: LEGACY.reminderMonths.length};
 }
+
+/**
+ * Bodies whose death certificates API Setu can check (POST <issuer>/v3/dtcer/certificate), with the details each one
+ * asks for, as named in its API Setu specification. Another body is one more entry here.
+ */
+export const DEATH_ISSUERS = [
+  {
+    id: 'chennaicorp',
+    name: 'Greater Chennai Corporation, Tamil Nadu',
+    params: [
+      {id: 'REGNO', label: 'Registration number', placeholder: '2013/04/045/001204/0'},
+      {id: 'DATEOFDEATH', label: 'Date of death', placeholder: 'DD/MM/YYYY'},
+    ],
+  },
+  {
+    id: 'statisticsrajasthan',
+    name: 'Chief Registrar of Births and Deaths, Rajasthan',
+    params: [
+      {id: 'RegisNumber', label: 'Registration number'},
+      {id: 'DateofEvent', label: 'Date of death', placeholder: 'DD-MM-YYYY'},
+      {id: 'Year', label: 'Year of registration', placeholder: 'YYYY'},
+    ],
+  },
+  {
+    id: 'edistrictup',
+    name: 'eDistrict Uttar Pradesh',
+    params: [
+      {id: 'ApplicationNo', label: 'Application number'},
+      {id: 'CertificateID', label: 'Certificate number'},
+    ],
+  },
+  {
+    id: 'edistricthp',
+    name: 'eDistrict Himachal Pradesh',
+    params: [{id: 'UDF1', label: 'Application number'}],
+  },
+];
+
+export const deathIssuer = (id) => DEATH_ISSUERS.find((i) => i.id === id);
+
+/**
+ * Whether the name read from a certificate is the owner's: every word of the shorter name appears in the longer one,
+ * ignoring case, dots and titles, so "Late Shri R. K. Verma" matches "Ravi Kumar Verma" only if the initials fit.
+ */
+export function namesMatch(a, b) {
+  const words = (s) =>
+    String(s ?? '')
+      .toLowerCase()
+      .replace(/[^a-z\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w && !['late', 'shri', 'smt', 'sri', 'mr', 'mrs', 'ms', 'dr', 'kumari'].includes(w));
+  const [x, y] = [words(a), words(b)].sort((p, q) => p.length - q.length);
+  if (!x.length) return false;
+  return x.every((w) => (w.length === 1 ? y.some((v) => v.startsWith(w)) : y.includes(w)));
+}

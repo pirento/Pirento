@@ -230,7 +230,7 @@ const SITE = {
       },
       {
         q: 'Can it fetch my mutual funds and policies?',
-        a: 'Fetching them through Digio with your consent is Expected. Today you add them by hand.',
+        a: "Yes, through Digio's Account Aggregator: you approve once, and they come in again every month until you withdraw consent. It goes live once our Account Aggregator registration is done; until then you add them by hand.",
       },
     ],
   },
@@ -448,7 +448,7 @@ export const PRODUCTS = [
       },
     ],
     caveat:
-      'Vault is not zero-knowledge or end-to-end encrypted. It is not a will, and we do not promise that any court accepts its records. Fetching investments through Digio and checking certificates through API Setu are Expected.',
+      'Vault is not zero-knowledge or end-to-end encrypted. It is not a will, and we do not promise that any court accepts its records. Fetching investments through Digio goes live once our Account Aggregator registration is done; API Setu checks certificates only from the bodies connected to it, and the rest are checked by hand.',
     status: 'now',
   },
   {

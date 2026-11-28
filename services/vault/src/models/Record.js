@@ -11,9 +11,13 @@ export const Record = mongoose.model(
       title: {type: String, required: true, maxlength: 120},
       fields: {iv: Buffer, tag: Buffer, data: Buffer}, // the JSON of the fields, sealed
       release: {type: Boolean, default: false}, // the owner allows it to go to their nominee
+      // Records fetched through Digio's Account Aggregator: the next fetch updates the same record by externalId.
+      source: {type: String, enum: ['digio']},
+      linkId: String,
+      externalId: String,
     },
     {timestamps: true},
-  ),
+  ).index({userId: 1, externalId: 1}, {unique: true, partialFilterExpression: {externalId: {$type: 'string'}}}),
 );
 
 /** Projection for listings: everything except the sealed fields. */

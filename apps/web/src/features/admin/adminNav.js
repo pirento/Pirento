@@ -20,6 +20,7 @@ import {
   QrCode,
   Megaphone,
   ScrollText,
+  Truck,
   SlidersHorizontal,
   TicketPercent,
   UserCog,
@@ -131,6 +132,15 @@ export const ADMIN_SECTIONS = [
     icon: Mail,
     roles: ['support', 'staff', 'superadmin'], // ACCESS.support
     intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
+  },
+  {
+    id: 'shipments',
+    group: 'Work',
+    label: 'Shipments',
+    icon: Truck,
+    roles: OPS, // ACCESS.shipping
+    intro:
+      'Every parcel sent with Blue Dart: book one for a Giftox order or on its own, and follow it until it arrives. The customer hears each change.',
   },
   {
     id: 'vault',

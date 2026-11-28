@@ -59,7 +59,16 @@ export {KYC_DONE, KYC_FAILED, declarationSigned, kycDone, kycFailed} from './ide
 // Money helpers
 export {emi} from './money/emi.js';
 export {EXAM_RULES, VAULT_LIMITS} from './data/examRules.js';
-export {VAULT_KINDS, vaultKind, validateRecord, LEGACY, quietStage} from './data/vault.js';
+export {
+  VAULT_KINDS,
+  vaultKind,
+  validateRecord,
+  LEGACY,
+  quietStage,
+  DEATH_ISSUERS,
+  deathIssuer,
+  namesMatch,
+} from './data/vault.js';
 export {PROGRAM_MONTHS, PROGRAM_SCORE, PROGRAM_PASS, gradeFor, finalMark} from './data/internProgram.js';
 export {GREEN_DONATION, GREEN_DRIVES} from './data/greenDrives.js';
 export {greenCertNo, hasGreenCert, isDonation, parseGreenRef} from './orders/greenCertificate.js';

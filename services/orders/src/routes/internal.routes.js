@@ -6,6 +6,7 @@ import {GREEN_DONATION} from '@pirento/shared';
 import {dropFiles, isId, notFound, requireInternal, validate} from '@pirento/shared/server';
 import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
+import {Shipment} from '../models/Shipment.js';
 import {OrderFile} from '../models/OrderFile.js';
 import {Partner} from '../models/Partner.js';
 
@@ -31,6 +32,8 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
       {arrayFilters: [{'mine.from': 'customer'}]},
     ),
     OrderFile.deleteMany({userId}),
+    // A parcel's address and mobile are theirs; the parcel stays as a record of what was sent.
+    Shipment.updateMany({userId}, {$set: {'to.name': 'Deleted account'}, $unset: {'to.address': 1, 'to.mobile': 1}}),
     Partner.deleteMany({userId}),
     // Commission not yet in their wallet is dropped: the account is going, and a credit would reopen its wallet.
     Order.updateMany({'commission.userId': userId, 'commission.paid': {$ne: true}}, {$unset: {commission: 1}}),

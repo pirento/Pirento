@@ -1,14 +1,15 @@
 // The team's legacy desk (admin → Vault). Staff see where each plan stands and who to call, never what is inside a
-// vault. A case moves: call-nominee → nominee-reached (after a call) → verified (death certificate checked by hand;
-// API Setu verification is Expected) → released (superadmins only; the nominee gets a link) → closed. A call that
+// vault. A case moves: call-nominee → nominee-reached (after a call) → verified (death certificate checked with the
+// issuing body through API Setu and read by Pirento AI, or checked by hand) → released (superadmins only; the nominee gets a link) → closed. A call that
 // finds the owner well returns the case to active. After release, staff help the nominee claim each insurance
 // policy the owner released, and see only its insurer, policy number and cover to do so.
 import crypto from 'node:crypto';
 import {Router} from 'express';
 import {z} from 'zod';
-import {LEGACY} from '@pirento/shared';
+import {DEATH_ISSUERS, LEGACY} from '@pirento/shared';
 import {
   ACCESS,
+  ApiError,
   audit,
   callService,
   conflict,
@@ -18,13 +19,14 @@ import {
   requireRole,
   validate,
 } from '@pirento/shared/server';
-import {config} from '../config.js';
+import {apisetuOn, config} from '../config.js';
 import {Legacy} from '../models/Legacy.js';
 import {Record} from '../models/Record.js';
 import {hashToken} from '../lib/checkin.js';
 import {contactsOf} from '../lib/contacts.js';
 import {logAction} from '../lib/log.js';
 import {openFields} from './record.routes.js';
+import {fetchDeathCertificate, readCertificate} from '../lib/apisetu.js';
 
 export const staffRoutes = Router();
 staffRoutes.use('/staff', requireAuth, requireRole(...ACCESS.vault));
@@ -111,27 +113,66 @@ staffRoutes.post(
   },
 );
 
-/** The death certificate, checked by hand against the original (API Setu verification is Expected). */
+/** Who can check a certificate through API Setu, for the team's form. */
+staffRoutes.get('/staff/certificate-issuers', (_req, res) => {
+  res.json({data: {apisetu: apisetuOn(), issuers: DEATH_ISSUERS}});
+});
+
+/**
+ * The death certificate. With an issuer and its details, API Setu asks that body for the certificate and Pirento AI
+ * reads the name on it: a certificate that is not found, or whose name is not the owner's, is refused. Without
+ * them, the team records a certificate it checked by hand against the original.
+ */
 staffRoutes.post(
   '/staff/cases/:id/certificate',
   validate(
-    z.object({
-      number: z.string().trim().min(3, 'Enter the certificate number').max(60),
-      issuedBy: z.string().trim().min(2, 'Who issued it').max(120),
-      date: z.iso.date(),
-    }),
+    z.union([
+      z.object({issuer: z.string().max(40), params: z.record(z.string(), z.string().max(60))}),
+      z.object({
+        number: z.string().trim().min(3, 'Enter the certificate number').max(60),
+        issuedBy: z.string().trim().min(2, 'Who issued it').max(120),
+        date: z.iso.date(),
+      }),
+    ]),
   ),
   async (req, res) => {
     const plan = await caseOf(req);
-    const certificate = {...req.body, method: 'manual', verifiedBy: req.user.sub, verifiedAt: new Date()};
+    if (plan.stage !== 'nominee-reached')
+      throw conflict('WRONG_STAGE', 'Reach the nominee before recording the certificate');
+    let certificate;
+    if (req.body.issuer) {
+      const found = await fetchDeathCertificate(req.body.issuer, req.body.params);
+      if (!found) throw new ApiError(404, 'NO_CERTIFICATE', 'The issuer has no death certificate with these details');
+      const {name} = await contactsOf(plan.userId);
+      const read = await readCertificate(found.pdf, name);
+      if (read && !read.match) {
+        throw conflict(
+          'NAME_MISMATCH',
+          `The certificate is for "${read.name || 'someone else'}", not ${name}. Check it by hand.`,
+        );
+      }
+      certificate = {
+        number: found.number,
+        issuedBy: found.issuer.name,
+        date: read?.dateOfDeath || undefined,
+        method: 'api-setu',
+        issuer: found.issuer.id,
+        txnId: found.txnId,
+        pdfHash: crypto.createHash('sha256').update(found.pdf).digest('hex'),
+        read: read ?? undefined,
+      };
+    } else {
+      certificate = {...req.body, method: 'manual'};
+    }
+    certificate = {...certificate, verifiedBy: req.user.sub, verifiedAt: new Date()};
     const done = await Legacy.updateOne(
       {_id: plan._id, stage: 'nominee-reached'},
       {$set: {stage: 'verified', certificate}},
     );
-    if (!done.modifiedCount) throw conflict('WRONG_STAGE', 'Reach the nominee before recording the certificate');
-    await logAction(plan.userId, 'certificate.verified', {target: req.body.number, by: 'staff'});
+    if (!done.modifiedCount) throw conflict('CHANGED', 'This case just changed; reload it');
+    await logAction(plan.userId, `certificate.${certificate.method}`, {target: certificate.number, by: 'staff'});
     await audit(req, 'vault.certificate', String(plan._id));
-    res.json({data: {stage: 'verified'}});
+    res.json({data: {stage: 'verified', certificate}});
   },
 );
 

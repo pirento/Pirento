@@ -37,11 +37,96 @@ function Contact({label, c, relation}) {
   );
 }
 
+/**
+ * The death certificate: checked with the body that issued it through API Setu (Pirento AI then reads the name on
+ * it), or, when API Setu is off or the body is not on it, recorded after checking the original by hand.
+ */
+function CertificateForm({id, run}) {
+  const setup = useApi('/vault/staff/certificate-issuers');
+  const [issuer, setIssuer] = useState('');
+  const [params, setParams] = useState({});
+  const [manual, setManual] = useState({number: '', issuedBy: '', date: ''});
+  const s = setup.data;
+  if (!s) return null;
+  const chosen = s.issuers.find((i) => i.id === issuer);
+  const send = (body) => (e) => {
+    e.preventDefault();
+    run(() => api(`/vault/staff/cases/${id}/certificate`, {method: 'POST', body}));
+  };
+  return (
+    <div className="space-y-4 rounded-[18px] border border-rule p-5">
+      <p className="font-medium">Death certificate</p>
+      {s.apisetu ? (
+        <form noValidate className="space-y-3" onSubmit={send({issuer, params})}>
+          <p className="text-xs text-muted">
+            API Setu asks the issuing body for it, then Pirento AI checks the name is the owner's.
+          </p>
+          <label className="block">
+            <span className="text-sm font-medium">Issued by</span>
+            <select
+              value={issuer}
+              onChange={(e) => {
+                setIssuer(e.target.value);
+                setParams({});
+              }}
+              className="mt-2 block w-full rounded-[14px] border border-rule bg-paper px-4 py-3"
+            >
+              <option value="">Choose…</option>
+              {s.issuers.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {chosen?.params.map((p) => (
+            <Field
+              key={p.id}
+              label={p.label}
+              placeholder={p.placeholder}
+              value={params[p.id] ?? ''}
+              onChange={(e) => setParams({...params, [p.id]: e.target.value})}
+            />
+          ))}
+          <Button type="submit" variant="primary" icon={null} disabled={!chosen}>
+            Check with API Setu
+          </Button>
+        </form>
+      ) : (
+        <p className="text-xs text-muted">API Setu is not switched on: check the original and record it here.</p>
+      )}
+      <details open={!s.apisetu}>
+        <summary className="cursor-pointer text-sm underline underline-offset-4">Checked by hand instead</summary>
+        <form noValidate className="mt-3 space-y-3" onSubmit={send(manual)}>
+          <Field
+            label="Certificate number"
+            value={manual.number}
+            onChange={(e) => setManual({...manual, number: e.target.value})}
+          />
+          <Field
+            label="Issued by"
+            value={manual.issuedBy}
+            onChange={(e) => setManual({...manual, issuedBy: e.target.value})}
+          />
+          <Field
+            label="Date of death"
+            type="date"
+            value={manual.date}
+            onChange={(e) => setManual({...manual, date: e.target.value})}
+          />
+          <Button type="submit" variant="outline" icon={null}>
+            Mark verified
+          </Button>
+        </form>
+      </details>
+    </div>
+  );
+}
+
 function CaseDetail({id, onChange}) {
   const {user} = useSession();
   const one = useApi(`/vault/staff/cases/${id}`);
   const [note, setNote] = useState('');
-  const [cert, setCert] = useState({number: '', issuedBy: '', date: ''});
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
   const c = one.data;
@@ -100,43 +185,15 @@ function CaseDetail({id, onChange}) {
             </div>
           </div>
         )}
-        {c.stage === 'nominee-reached' && (
-          <form
-            noValidate
-            className="space-y-3 rounded-[18px] border border-rule p-5"
-            onSubmit={(e) => {
-              e.preventDefault();
-              run(() => api(`/vault/staff/cases/${id}/certificate`, {method: 'POST', body: cert}));
-            }}
-          >
-            <p className="font-medium">Death certificate, checked against the original</p>
-            <p className="text-xs text-muted">Checking it with the government through API Setu is Expected.</p>
-            <Field
-              label="Certificate number"
-              value={cert.number}
-              onChange={(e) => setCert({...cert, number: e.target.value})}
-            />
-            <Field
-              label="Issued by"
-              value={cert.issuedBy}
-              onChange={(e) => setCert({...cert, issuedBy: e.target.value})}
-            />
-            <Field
-              label="Date of death"
-              type="date"
-              value={cert.date}
-              onChange={(e) => setCert({...cert, date: e.target.value})}
-            />
-            <Button type="submit" variant="primary" icon={null}>
-              Mark verified
-            </Button>
-          </form>
-        )}
+        {c.stage === 'nominee-reached' && <CertificateForm id={id} run={run} />}
         {c.stage === 'verified' && user?.role === 'superadmin' && (
           <div className="space-y-3">
             <p className="text-sm">
-              Certificate {c.certificate.number}, verified {formatDate(c.certificate.verifiedAt)}. Releasing texts the
-              nominee a link that works for 30 days.
+              Certificate {c.certificate.number} ({c.certificate.issuedBy}),{' '}
+              {c.certificate.method === 'api-setu' ? 'checked through API Setu' : 'checked by hand'}{' '}
+              {formatDate(c.certificate.verifiedAt)}
+              {c.certificate.read?.name && `; Pirento AI read the name "${c.certificate.read.name}"`}. Releasing texts
+              the nominee a link that works for 30 days.
             </p>
             <Button
               variant="accent"

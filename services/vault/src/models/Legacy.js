@@ -22,7 +22,11 @@ export const Legacy = mongoose.model(
         number: {type: String, maxlength: 60},
         issuedBy: {type: String, maxlength: 120},
         date: String,
-        method: {type: String, enum: ['manual']}, // API Setu verification is Expected
+        method: {type: String, enum: ['manual', 'api-setu']},
+        issuer: String, // the API Setu issuer id, for an API Setu check
+        txnId: String, // API Setu's transaction id
+        pdfHash: String, // SHA-256 of the certificate API Setu returned; the PDF itself is not kept
+        read: {name: String, dateOfDeath: String, match: Boolean}, // what Pirento AI read on it
         verifiedBy: by,
         verifiedAt: Date,
       },

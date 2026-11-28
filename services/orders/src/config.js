@@ -14,7 +14,32 @@ export const config = {
   // these can be raised past that.
   maxFileBytes: 5 * 1024 * 1024,
   maxFilesPerOrder: 20,
+  /**
+   * Blue Dart books and tracks every parcel Pirento sends. Off until the API gateway keys (ClientID / secret, from
+   * Blue Dart's developer portal) and the account's login ID, licence key and customer code are set; BLUEDART_URL
+   * points at a stand-in in local tests. The shipper is Pirento's dispatch address.
+   */
+  bluedart: {
+    url: env('BLUEDART_URL', 'https://apigateway.bluedart.com/in/transportation'),
+    clientId: env('BLUEDART_CLIENT_ID', ''),
+    clientSecret: env('BLUEDART_CLIENT_SECRET', ''),
+    loginId: env('BLUEDART_LOGIN_ID', ''),
+    licenceKey: env('BLUEDART_LICENCE_KEY', ''),
+    customerCode: env('BLUEDART_CUSTOMER_CODE', ''),
+    originArea: env('BLUEDART_ORIGIN_AREA', ''),
+    shipper: {
+      name: env('BLUEDART_SHIPPER_NAME', 'Pirento'),
+      address: env('BLUEDART_SHIPPER_ADDRESS', ''),
+      pincode: env('BLUEDART_SHIPPER_PINCODE', ''),
+      mobile: env('BLUEDART_SHIPPER_MOBILE', ''),
+    },
+  },
 };
+
+export const bluedartOn = () =>
+  Boolean(
+    config.bluedart.clientId && config.bluedart.clientSecret && config.bluedart.loginId && config.bluedart.licenceKey,
+  );
 
 /** Prefix of the public completion code per product, e.g. BLK-7F3A9C21. */
 export const CODE_PREFIX = {legal: 'LGL', black: 'BLK', green: 'GRN', giftox: 'GFT'};

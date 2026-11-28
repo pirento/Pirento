@@ -64,7 +64,7 @@ services/<name>/src
 | auth     | 4001 | accounts, email codes, sessions, roles                                                                 |
 | wallet   | 4002 | balances (paise), the ledger, withdrawals, in PostgreSQL (SQL transactions)                            |
 | catalog  | 4003 | products and prices (from `packages/shared`), admin edits and new services, site settings              |
-| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals                                     |
+| orders   | 4004 | checkout, payments, coupons, staff queue, codes, partner referrals, Blue Dart shipments                |
 | identity | 4005 | Bharat ID: applications, Digio verification, verify, and Bharat ID for Business (API, keys, consents)  |
 | learning | 4006 | Intern tracks, lessons, exams, certificates, openings, companies and the internship pipeline           |
 | vault    | 4007 | encrypted records, files and passwords; Bharat ID unlock; nominee plan, check-ins and release          |

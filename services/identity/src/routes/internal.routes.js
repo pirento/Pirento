@@ -110,6 +110,25 @@ internalRoutes.post(
   },
 );
 
+/** What Digio's Account Aggregator needs to find the owner's accounts: name, mobile, PAN and birth date. */
+internalRoutes.post(
+  '/internal/aa-profile',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const doc = await Identity.findOne({userId: req.body.userId, status: 'approved'}).lean();
+    if (!doc) throw notFound('No issued Bharat ID for this account');
+    const s = doc.sections ?? {};
+    res.json({
+      data: {
+        name: s.personal?.fullName ?? '',
+        mobile: s.contact?.mobile ?? '',
+        pan: s.documents?.pan ?? '',
+        dob: s.personal?.dob ?? '',
+      },
+    });
+  },
+);
+
 /** Pirento AI's look at a person's own Bharat ID: where the application stands and what is next. No details. */
 internalRoutes.post(
   '/internal/assistant',

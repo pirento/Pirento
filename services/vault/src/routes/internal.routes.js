@@ -9,6 +9,7 @@ import {VaultUsage} from '../models/VaultUsage.js';
 import {Record} from '../models/Record.js';
 import {Legacy} from '../models/Legacy.js';
 import {VaultLog} from '../models/VaultLog.js';
+import {Link} from '../models/Link.js';
 
 export const internalRoutes = Router();
 internalRoutes.use('/internal', requireInternal);
@@ -23,6 +24,7 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
     Record.deleteMany({userId}),
     Legacy.deleteMany({userId}),
     VaultLog.deleteMany({userId}),
+    Link.deleteMany({userId}),
   ]);
   await dropFiles(stored);
   res.json({data: {forgotten: true}});

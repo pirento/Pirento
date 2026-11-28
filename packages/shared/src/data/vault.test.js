@@ -1,7 +1,7 @@
 // Tests for vault.js: record checks and the check-in stages.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {VAULT_KINDS, quietStage, validateRecord} from './vault.js';
+import {DEATH_ISSUERS, VAULT_KINDS, deathIssuer, namesMatch, quietStage, validateRecord} from './vault.js';
 
 test('a record keeps only its own fields, trimmed, and drops empty ones', () => {
   const r = validateRecord('bank', '  SBI savings ', {bank: ' SBI ', accountNo: '1234', ifsc: '', balance: '2500.50'});
@@ -33,4 +33,12 @@ test('quiet months move a case: active, three reminders, then a call to the nomi
   assert.deepEqual(quietStage(5), {stage: 'reminding', reminder: 2});
   assert.deepEqual(quietStage(6), {stage: 'reminding', reminder: 3});
   assert.deepEqual(quietStage(7), {stage: 'call-nominee', reminder: 3});
+});
+
+test('a certificate name matches the owner by words and initials, ignoring titles', () => {
+  assert.ok(namesMatch('Late Shri R. K. Verma', 'Ravi Kumar Verma'));
+  assert.ok(namesMatch('RAVI KUMAR VERMA', 'Ravi Kumar Verma'));
+  assert.ok(!namesMatch('Ravi Kumar Sharma', 'Ravi Kumar Verma'));
+  assert.ok(!namesMatch('', 'Ravi Verma'));
+  for (const i of DEATH_ISSUERS) assert.ok(i.params.length && deathIssuer(i.id) === i, i.id);
 });

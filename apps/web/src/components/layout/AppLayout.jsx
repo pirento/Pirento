@@ -336,7 +336,7 @@ export function AppLayout({children}) {
             <PirentoLogo alt="Pirento" className="h-6 w-auto" />
           )}
           <span className="flex items-center gap-2">
-            {user && !business && <NoticeBell align="right" />}
+            {user && <NoticeBell align="right" />}
             <button
               onClick={() => setOpen(true)}
               aria-label="Open menu"

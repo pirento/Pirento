@@ -121,6 +121,14 @@ ticketRoutes.patch(
       {new: true},
     );
     audit(req, 'ticket.assign', `#${ticket.ticketNo}`, assignee?.email ?? 'unassigned');
+    if (assignee && assignee.id !== req.user.sub) {
+      notify(assignee.id, {
+        brand: 'Pirento admin',
+        label: `Ticket #${ticket.ticketNo}`,
+        big: 'Assigned to you',
+        note: `${ticket.subject ?? 'A support ticket'}, from ${req.user.email}.`,
+      });
+    }
     res.json({data: forCaller(req, updated)});
   },
 );

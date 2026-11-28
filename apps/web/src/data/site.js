@@ -848,7 +848,28 @@ export const vaultCopy = {
     intro: 'Mutual funds, stocks, ETFs and insurance in one place, sealed like everything else in your vault.',
     connectTitle: 'Fetch them automatically',
     connectBody:
-      'Your mutual funds, stocks, ETFs and insurance through Digio, with your consent each time. Until it is built, add them here by hand.',
+      'Approve once on your Account Aggregator through Digio. Your mutual funds, stocks, ETFs and insurance come in sealed, and again every month.',
+    offBody:
+      'Your mutual funds, stocks, ETFs and insurance through Digio, with your consent. Until it is switched on, add them here by hand.',
+    connect: 'Link through Digio',
+    opening: 'Opening…',
+    statuses: {
+      pending: 'Waiting for your approval',
+      approved: 'Approved, waiting for your providers',
+      active: 'Linked',
+      rejected: 'You turned it down',
+      revoked: 'Consent withdrawn',
+      paused: 'Paused in your AA app',
+      expired: 'Consent ended',
+      failed: 'Could not be set up',
+    },
+    accounts: (n) => `${n} account${n === 1 ? '' : 's'}`,
+    fetched: 'Last fetched',
+    asked: 'Asked',
+    refresh: 'Check now',
+    remove: 'Remove this link',
+    removeConfirm:
+      'Remove this link and the holdings it fetched? To stop sharing for good, also revoke the consent in your Account Aggregator app.',
   },
   legacy: {
     label: 'Nominee and legacy',
@@ -867,7 +888,7 @@ export const vaultCopy = {
       ['We call', 'If no reminder is answered, our team calls your nominee, and your emergency contact if needed.'],
       [
         'We verify',
-        'Our team checks the death certificate against the original. Checking it with the government through API Setu is Expected.',
+        'Our team checks the death certificate with the body that issued it through API Setu, and Pirento AI checks the name on it is yours. Bodies not on API Setu are checked against the original.',
       ],
       [
         'We release',

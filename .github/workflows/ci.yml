@@ -50,6 +50,17 @@ jobs:
           DIGIO_CLIENT_SECRET: test
           DIGIO_WEBHOOK_SECRET: test-digio-webhook
           DIGIO_ESTAMP_TAG: TEST_STAMP
+          # Vault linked accounts, death certificates and Blue Dart parcels against the same stand-in
+          DIGIO_AA_URL: http://127.0.0.1:4090/fiu_api
+          DIGIO_AA_TEMPLATE: TEST_TEMPLATE
+          APISETU_URL: http://127.0.0.1:4090/apisetu
+          APISETU_CLIENT_ID: test
+          APISETU_API_KEY: test
+          BLUEDART_URL: http://127.0.0.1:4090/bluedart
+          BLUEDART_CLIENT_ID: test
+          BLUEDART_CLIENT_SECRET: test
+          BLUEDART_LOGIN_ID: test
+          BLUEDART_LICENCE_KEY: test
         run: |
           node scripts/digio-standin.mjs > digio.log 2>&1 &
           npm run dev > dev.log 2>&1 &

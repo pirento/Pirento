@@ -1286,6 +1286,52 @@ check(
     })
   ).data?.release === true,
 );
+// Linked accounts through Digio's Account Aggregator (the stand-in under /fiu_api).
+{
+  check('linked accounts are on with the stand-in', (await call('/vault/links', {token: user})).data?.on === true);
+  check(
+    'linking needs the unlock',
+    (await call('/vault/links', {method: 'POST', token: user})).error?.code === 'VAULT_LOCKED',
+  );
+  const started = (await call('/vault/links', {method: 'POST', token: user, headers: U})).data;
+  check(
+    'a consent request for the SDK',
+    /^CRD/.test(started?.consentRequestId ?? '') && started.gatewayToken && started.customerId,
+    started,
+  );
+  const waiting = (await call(`/vault/links/${started?._id}/refresh`, {method: 'POST', token: user})).data;
+  check('it waits for the approval', waiting?.status === 'pending' && waiting.stored === 0, waiting);
+  await fetch(`${DIGIO}/__test/aa/${started?.consentRequestId}`, {method: 'POST', body: '{}'});
+  const got = (await call(`/vault/links/${started?._id}/refresh`, {method: 'POST', token: user})).data;
+  check('approved: the holdings come in', got?.status === 'active' && got.stored === 3, got);
+  const fetched = (await call('/vault/records', {token: user})).data.filter((r) => r.source === 'digio');
+  check(
+    'one record per fund, demat and policy',
+    ['mutual-fund', 'stock', 'insurance'].every((k) => fetched.some((r) => r.kind === k)) &&
+      fetched.every((r) => r.release === false),
+    fetched,
+  );
+  const fund = fetched.find((r) => r.kind === 'mutual-fund');
+  check(
+    'a fund is valued at units × NAV, sealed',
+    (await call(`/vault/records/${fund?._id}`, {token: user, headers: U})).data?.fields.value === '600',
+  );
+  await call(`/vault/links/${started?._id}/refresh`, {method: 'POST', token: user});
+  check(
+    'checking again adds nothing twice',
+    (await call('/vault/records', {token: user})).data.filter((r) => r.source === 'digio').length === 3,
+  );
+  check(
+    'a webhook without the signature is refused',
+    (await call('/vault/digio/webhook', {method: 'POST', body: {event: 'FI_AVAILABLE', payload: {}}})).status === 400,
+  );
+  const removed = (await call(`/vault/links/${started?._id}`, {method: 'DELETE', token: user, headers: U})).data;
+  check(
+    'removing the link removes what it fetched',
+    removed?.records === 3 && (await call('/vault/records', {token: user})).data.length === 3,
+    removed,
+  );
+}
 const legacy0 = (await call('/vault/legacy', {token: user})).data;
 check(
   'the nominee comes from Bharat ID, mobile masked',
@@ -1353,14 +1399,32 @@ check(
   ).data?.stage === 'nominee-reached',
 );
 check(
-  'the death certificate, checked by hand',
+  'API Setu is offered with its issuers',
+  (await call('/vault/staff/certificate-issuers', {token: boss})).data?.issuers.some((i) => i.id === 'chennaicorp'),
+);
+check(
+  'a certificate the issuer does not have is refused',
   (
     await call(`/vault/staff/cases/${caseId}/certificate`, {
       method: 'POST',
       token: boss,
-      body: {number: 'DC-2026-0001', issuedBy: 'Registrar of Births and Deaths, Delhi', date: '2026-01-10'},
+      body: {issuer: 'chennaicorp', params: {REGNO: 'NOTFOUND', DATEOFDEATH: '10/01/2026'}},
     })
-  ).data?.stage === 'verified',
+  ).error?.code === 'NO_CERTIFICATE',
+);
+const certified = (
+  await call(`/vault/staff/cases/${caseId}/certificate`, {
+    method: 'POST',
+    token: boss,
+    body: {issuer: 'chennaicorp', params: {REGNO: '2026/04/045/001204/0', DATEOFDEATH: '10/01/2026'}},
+  })
+).data;
+check(
+  'the death certificate, checked with the issuer through API Setu',
+  certified?.stage === 'verified' &&
+    certified.certificate.method === 'api-setu' &&
+    /^[0-9a-f]{64}$/.test(certified.certificate.pdfHash),
+  certified,
 );
 const released = (await call(`/vault/staff/cases/${caseId}/release`, {method: 'POST', token: boss})).data;
 check(
@@ -1405,8 +1469,8 @@ const vaultLog = (await call('/vault/log', {token: user})).data;
 check(
   'every action is in the log, its chain whole',
   vaultLog?.intact === true &&
-    ['record.add', 'legacy.on', 'reminder', 'certificate.verified', 'released', 'release.open'].every((a) =>
-      vaultLog.items.some((i) => i.action === a),
+    ['record.add', 'linked.fetched', 'legacy.on', 'reminder', 'certificate.api-setu', 'released', 'release.open'].every(
+      (a) => vaultLog.items.some((i) => i.action === a),
     ),
   vaultLog,
 );
@@ -1811,6 +1875,54 @@ const completeReferred = async () => {
   );
   const mine = (await call('/orders/partner/me', {token: user})).data?.orders.find((x) => x._id === ro._id);
   check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
+}
+// Blue Dart shipments (the stand-in under /bluedart): book a Giftox box, follow it, tell the customer.
+{
+  const box = (
+    await call('/orders', {method: 'POST', token: buyer, body: {serviceSlug: 'giftox-welcome-kit', intake: gift}})
+  ).data;
+  await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: box.amount / 100}});
+  await call(`/orders/${box._id}/pay/wallet`, {method: 'POST', token: buyer});
+  const to = {name: 'Ravi', address: '12 MG Road, Pune', pincode: '411001', mobile: '9876500000'};
+  check('a customer cannot book parcels', (await call('/orders/staff/shipments', {token: buyer})).status === 403);
+  const parcel = (
+    await call('/orders/staff/shipments', {
+      method: 'POST',
+      token: boss,
+      body: {orderNo: box.orderNo, to, weightKg: 1.2, value: 999},
+    })
+  ).data;
+  check('Blue Dart books the box', /^\d{11}$/.test(parcel?.awb ?? '') && parcel.status === 'booked', parcel);
+  const boxAfter = (await call(`/orders/${box._id}`, {token: buyer})).data;
+  check(
+    'the order shows the waybill',
+    boxAfter?.fulfilment?.courier === 'Blue Dart' && boxAfter.fulfilment.tracking === parcel?.awb,
+    boxAfter?.fulfilment,
+  );
+  check(
+    'a parcel of its own needs to say what is inside',
+    (await call('/orders/staff/shipments', {method: 'POST', token: boss, body: {to, weightKg: 0.5}})).status === 409,
+  );
+  const tracked = (await call(`/orders/staff/shipments/${parcel?._id}/track`, {method: 'POST', token: boss})).data;
+  check('tracking reads the scans', tracked?.status === 'in-transit' && tracked.scans.length === 1, tracked);
+  await fetch(`${DIGIO}/__test/bluedart/${parcel?.awb}`, {
+    method: 'POST',
+    body: JSON.stringify({type: 'DL', status: 'Shipment delivered'}),
+  });
+  const delivered = (await call(`/orders/staff/shipments/${parcel?._id}/track`, {method: 'POST', token: boss})).data;
+  check('delivered', delivered?.status === 'delivered' && delivered.said === 'Shipment delivered', delivered);
+  const bell = (await call('/auth/me/notices', {token: buyer})).data;
+  check(
+    'the customer hears each change in their bell',
+    ['Booked with Blue Dart', 'Delivered'].every((b) => bell?.items.some((n) => n.big === b)) && bell.unread >= 2,
+    bell,
+  );
+  const listed = (await call(`/orders/staff/shipments?q=${parcel?.awb}`, {token: boss})).data;
+  check('the admin list finds it by waybill', listed?.items.length === 1 && listed.on === true, listed);
+  check(
+    'a delivered parcel cannot be cancelled',
+    (await call(`/orders/staff/shipments/${parcel?._id}/cancel`, {method: 'POST', token: boss})).status === 409,
+  );
 }
 {
   // Two buys at once, the way a double click sends them: one charge, one plan.

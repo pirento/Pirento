@@ -13,6 +13,7 @@ import {Team} from './Team';
 import {Waitlist} from './Waitlist';
 import {Enquiries} from './Enquiries';
 import {VaultCases} from './VaultCases';
+import {Shipments} from './Shipments';
 import {Deletions} from './Deletions';
 import {MyWork} from './MyWork';
 import {BookService} from './BookService';
@@ -53,6 +54,7 @@ export const SECTIONS = {
   tickets: () => <TicketQueue />,
   enquiries: Enquiries,
   vault: VaultCases,
+  shipments: Shipments,
   users: Users,
   payments: Payments,
   withdrawals: Withdrawals,
