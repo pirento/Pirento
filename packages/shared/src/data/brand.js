@@ -33,15 +33,38 @@ export const PRODUCT_COLOURS = {
 };
 
 /**
- * Pirento Foundation's own colours, from its live site as the owner gave them (not in the guidelines' register):
- * a deep blue field, a bright yellow for the one key action, cream text and surfaces, and a soft blue for body
- * text on the blue.
+ * The big brand panels on the Pirento home, each in its own colours as the owner gave them from its live app or site
+ * (not in the guidelines' register): the panel's field, its text, its quieter text, the one key action and the text on
+ * it, and the colour of the heading's last line.
+ *   foundation – Pirento Foundation's site: deep blue, yellow, cream
+ *   blank      – Pirento Blank, the trading app: warm paper, slate, its green
+ *   inv        – Pirento INV, the group's billing app: teal, cream, rust
  */
-export const FOUNDATION_COLOURS = {
-  dark: '#06518A',
-  accent: '#F6E501',
-  cream: '#FFEFD5',
-  soft: '#B9D3EC',
+export const PANEL_COLOURS = {
+  foundation: {
+    paper: '#06518A',
+    ink: '#FFEFD5',
+    muted: '#B9D3EC',
+    accent: '#F6E501',
+    onAccent: '#06518A',
+    highlight: '#F6E501',
+  },
+  blank: {
+    paper: '#FAF7F2',
+    ink: '#2E3336',
+    muted: '#606463',
+    accent: '#446E47',
+    onAccent: '#FAF7F2',
+    highlight: '#446E47',
+  },
+  inv: {
+    paper: '#0E4D64',
+    ink: '#F4EBE5',
+    muted: '#C9D3D5',
+    accent: '#BB4B2C',
+    onAccent: '#FFFFFF',
+    highlight: '#E0AD9F',
+  },
 };
 
 // WCAG 2 relative luminance and contrast ratio.
