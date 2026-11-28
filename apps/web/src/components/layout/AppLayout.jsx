@@ -41,6 +41,8 @@ import {
   WalletCards as Wallet2,
   Wallet as WalletIcon,
   X,
+  ScrollText,
+  TrendingUp,
 } from 'lucide-react';
 import {PirentoLogo, SiteLogo, hasLogo} from './PirentoLogo';
 import {CommandPalette, openCommandPalette} from './CommandPalette';
@@ -80,6 +82,8 @@ const SECTION_ICONS = {
   records: Archive,
   linked: Link2,
   legacy: HeartHandshake,
+  networth: TrendingUp,
+  will: ScrollText,
   chat: MessageSquare,
   referrals: Share2,
   plans: Gem,

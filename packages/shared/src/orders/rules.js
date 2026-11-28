@@ -19,6 +19,9 @@ export const STAFF_TRANSITIONS = {
 export const statusLabel = (status) =>
   status === 'cancelled' ? 'Cancelled' : (ORDER_STEPS.find((s) => s.status === status)?.label ?? status);
 
+/** Products whose orders are parcels: paying makes a Blue Dart shipment (admin → Shipments → Settings). */
+export const SHIPPABLE = ['giftox'];
+
 // A gift needs somewhere to go.
 const GIFT_DELIVERY = [
   {id: 'recipientName', label: 'Recipient name', required: true},

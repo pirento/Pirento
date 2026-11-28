@@ -1,7 +1,7 @@
 // Tests for vault.js: record checks and the check-in stages.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {DEATH_ISSUERS, VAULT_KINDS, deathIssuer, namesMatch, quietStage, validateRecord} from './vault.js';
+import {DEATH_ISSUERS, VAULT_KINDS, deathIssuer, namesMatch, netWorth, quietStage, validateRecord} from './vault.js';
 
 test('a record keeps only its own fields, trimmed, and drops empty ones', () => {
   const r = validateRecord('bank', '  SBI savings ', {bank: ' SBI ', accountNo: '1234', ifsc: '', balance: '2500.50'});
@@ -41,4 +41,22 @@ test('a certificate name matches the owner by words and initials, ignoring title
   assert.ok(!namesMatch('Ravi Kumar Sharma', 'Ravi Kumar Verma'));
   assert.ok(!namesMatch('', 'Ravi Verma'));
   for (const i of DEATH_ISSUERS) assert.ok(i.params.length && deathIssuer(i.id) === i, i.id);
+});
+
+test('net worth adds assets, takes away debts and keeps cover apart', () => {
+  const n = netWorth([
+    {kind: 'bank', title: 'SBI', fields: {balance: '25000.50'}},
+    {kind: 'mutual-fund', title: 'Index', fields: {value: '600'}},
+    {kind: 'owed', title: 'Car loan', fields: {amount: '10000'}},
+    {kind: 'insurance', title: 'Term', fields: {cover: '5000000'}},
+    {kind: 'note', title: 'x', fields: {text: '9'}},
+    {kind: 'bank', title: 'No balance', fields: {}},
+  ]);
+  assert.equal(n.assets, 25600.5);
+  assert.equal(n.debts, 10000);
+  assert.equal(n.net, 15600.5);
+  assert.equal(n.cover, 5000000);
+  assert.equal(n.items.length, 4);
+  assert.equal(n.byKind.bank, 25000.5);
+  assert.equal(n.byKind.insurance, undefined);
 });

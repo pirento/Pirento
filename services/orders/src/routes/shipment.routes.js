@@ -1,8 +1,10 @@
-// Admin → Shipments: every parcel sent with Blue Dart. Staff book one (for a Giftox order or on its own), Blue Dart
-// returns the waybill, and the tracker below follows it until it is delivered or comes back. A Giftox order's
-// delivery record gets the waybill, so the customer sees it on their order, and the customer hears each change.
+// Admin → Shipments: every parcel sent with Blue Dart. A paid Giftox order makes and books its own parcel (lib/
+// shipments.js); staff book others by hand, fix and book a parcel the automatic check held back, print its label and
+// invoice, and set shipping up: automatic on or off, the pickup address, and each service's parcel (the services are
+// listed from the catalogue and can only be edited, never added or removed here).
 import {Router} from 'express';
 import {z} from 'zod';
+import {getProduct} from '@pirento/shared';
 import {
   ACCESS,
   audit,
@@ -18,43 +20,114 @@ import {
 import {bluedartOn} from '../config.js';
 import {Order} from '../models/Order.js';
 import {SHIPMENT_STATUSES, Shipment} from '../models/Shipment.js';
-import {bookWaybill} from '../lib/bluedart.js';
-import {HOUR, WORDS, tellAbout, trackOne} from '../lib/shipments.js';
+import {ShipProduct, ShipSettings} from '../models/ShipSettings.js';
+import {bookShipment, shipSettings, shipperOf, shippableServices, sweepOrders, trackOne} from '../lib/shipments.js';
 
 export const shipmentRoutes = Router();
-shipmentRoutes.use('/staff/shipments', requireAuth, requireRole(...ACCESS.shipping));
+shipmentRoutes.use(['/staff/shipments', '/staff/shipping'], requireAuth, requireRole(...ACCESS.shipping));
+
+const LIVE_ORDERS = ['paid', 'in_progress', 'completed'];
+const PINCODE = /^[1-9]\d{5}$/;
+const MOBILE = /^[6-9]\d{9}$/;
+const toSchema = z.object({
+  name: z.string().trim().min(2, 'Who it goes to').max(80),
+  address: z.string().trim().min(10, 'Enter the full address').max(300),
+  pincode: z.string().regex(PINCODE, 'Enter a 6-digit PIN code'),
+  mobile: z.string().regex(MOBILE, 'Enter a 10-digit mobile number'),
+});
+
+// ── Settings ────────────────────────────────────────────────────────────
+
+shipmentRoutes.get('/staff/shipping/settings', async (_req, res) => {
+  const settings = await shipSettings();
+  res.json({data: {on: bluedartOn(), settings, shipper: shipperOf(settings), services: await shippableServices()}});
+});
+
+shipmentRoutes.put(
+  '/staff/shipping/settings',
+  validate(
+    z.object({
+      auto: z.boolean(),
+      shipper: toSchema.nullable().default(null), // null: the BLUEDART_SHIPPER_* defaults
+    }),
+  ),
+  async (req, res) => {
+    const settings = await ShipSettings.findOneAndUpdate(
+      {_id: 'main'},
+      req.body.shipper
+        ? {$set: {auto: req.body.auto, shipper: req.body.shipper, updatedBy: req.user.email}}
+        : {$set: {auto: req.body.auto, updatedBy: req.user.email}, $unset: {shipper: 1}},
+      {upsert: true, new: true},
+    );
+    audit(req, 'shipping.settings', 'main', `${req.body.auto ? 'automatic' : 'by hand'}`);
+    res.json({data: settings});
+  },
+);
+
+/** One service's parcel. Only services the catalogue lists as shippable; none is added or removed here. */
+shipmentRoutes.put(
+  '/staff/shipping/services/:slug',
+  validate(
+    z.object({
+      autoShip: z.boolean(),
+      weightKg: z.number().min(0.05).max(50),
+      lengthCm: z.number().int().min(1).max(200),
+      breadthCm: z.number().int().min(1).max(200),
+      heightCm: z.number().int().min(1).max(200),
+    }),
+  ),
+  async (req, res) => {
+    const known = (await shippableServices()).some((s) => s.slug === req.params.slug);
+    if (!known) throw notFound('Not a shippable service');
+    const row = await ShipProduct.findOneAndUpdate(
+      {slug: req.params.slug},
+      {$set: {...req.body, updatedBy: req.user.email}},
+      {upsert: true, new: true},
+    );
+    audit(req, 'shipping.service', req.params.slug, `${req.body.weightKg} kg${req.body.autoShip ? '' : ', by hand'}`);
+    res.json({data: row});
+  },
+);
+
+/** Runs the automatic pass now: parcels for paid orders that have none yet. */
+shipmentRoutes.post('/staff/shipping/sweep', async (req, res) => {
+  const made = await sweepOrders();
+  audit(req, 'shipping.sweep', 'orders', String(made));
+  res.json({data: {made}});
+});
+
+// ── Parcels ─────────────────────────────────────────────────────────────
 
 shipmentRoutes.get('/staff/shipments', async (req, res) => {
   const q = String(req.query.q ?? '').trim();
-  const search = /^\d{9,}$/.test(q) ? {awb: q} : searchFilter(q, 'shipmentNo', ['to.name', 'purpose']);
+  // A long number is a waybill; a short one a parcel or order number; words a name or what is inside.
+  const search = /^\d{9,}$/.test(q)
+    ? {awb: q}
+    : /^#?\d{1,8}$/.test(q)
+      ? {$or: [{shipmentNo: Number(q.replace('#', ''))}, {orderNo: Number(q.replace('#', ''))}]}
+      : searchFilter(q, null, ['to.name', 'purpose']);
   const status = SHIPMENT_STATUSES.includes(req.query.status) ? {status: req.query.status} : {};
-  const [items, counts] = await Promise.all([
-    Shipment.find({...status, ...search})
+  const review = req.query.review === '1' ? {'review.0': {$exists: true}, awb: {$exists: false}} : {};
+  const [items, counts, waiting] = await Promise.all([
+    Shipment.find({...status, ...review, ...search})
       .sort({createdAt: -1})
       .limit(100),
     Shipment.aggregate([{$group: {_id: '$status', n: {$sum: 1}}}]),
+    Shipment.countDocuments({'review.0': {$exists: true}, awb: {$exists: false}, status: 'created'}),
   ]);
   res.json({
-    data: {on: bluedartOn(), items, counts: Object.fromEntries(counts.map((c) => [c._id, c.n]))},
+    data: {on: bluedartOn(), items, waiting, counts: Object.fromEntries(counts.map((c) => [c._id, c.n]))},
   });
 });
 
-const PINCODE = /^[1-9]\d{5}$/;
-const MOBILE = /^[6-9]\d{9}$/;
-
-/** Books a parcel. With an order number, it is that order's box and goes to the address the customer gave. */
+/** Books a parcel by hand. With an order number, it is that order's box. */
 shipmentRoutes.post(
   '/staff/shipments',
   validate(
     z.object({
       orderNo: z.coerce.number().int().positive().optional(),
       purpose: z.string().trim().max(120).default(''),
-      to: z.object({
-        name: z.string().trim().min(2, 'Who it goes to').max(80),
-        address: z.string().trim().min(10, 'Enter the full address').max(300),
-        pincode: z.string().regex(PINCODE, 'Enter a 6-digit PIN code'),
-        mobile: z.string().regex(MOBILE, 'Enter a 10-digit mobile number'),
-      }),
+      to: toSchema,
       weightKg: z.number().positive().max(50),
       pieces: z.number().int().min(1).max(20).default(1),
       value: z.number().int().min(0).max(1_000_000).default(0),
@@ -64,7 +137,7 @@ shipmentRoutes.post(
     const {orderNo, ...rest} = req.body;
     let order = null;
     if (orderNo) {
-      order = await Order.findOne({orderNo, status: {$in: ['paid', 'in_progress', 'completed']}});
+      order = await Order.findOne({orderNo, status: {$in: LIVE_ORDERS}});
       if (!order) throw notFound('No paid order with that number');
     }
     if (!rest.purpose && !order) throw conflict('NO_PURPOSE', 'Say what is in the parcel, or give its order number');
@@ -77,25 +150,9 @@ shipmentRoutes.post(
       purpose: rest.purpose || order?.serviceName,
       createdBy: req.user.email,
     });
-    try {
-      const {awb} = await bookWaybill({...rest, ref: `PIR${shipment.shipmentNo}`});
-      shipment.set({awb, status: 'booked', nextCheckAt: new Date(Date.now() + HOUR), error: undefined});
-    } catch (err) {
-      shipment.set({error: err.message});
-    }
-    await shipment.save();
-    if (shipment.awb) {
-      if (order) {
-        // The order's delivery record shows the waybill to the customer; only while the order is still live.
-        await Order.updateOne(
-          {_id: order._id, status: {$in: ['paid', 'in_progress', 'completed']}},
-          {$set: {fulfilment: {courier: 'Blue Dart', tracking: shipment.awb, by: req.user.email, at: new Date()}}},
-        );
-      }
-      tellAbout({...shipment.toObject(), product: order?.product}, WORDS.booked);
-    }
-    audit(req, 'shipment.book', `#${shipment.shipmentNo}`, shipment.awb ?? shipment.error);
-    res.status(201).json({data: shipment});
+    const out = await bookShipment(shipment.toObject(), req.user.email);
+    audit(req, 'shipment.book', `#${shipment.shipmentNo}`, out.awb ?? out.error);
+    res.status(201).json({data: out});
   },
 );
 
@@ -105,19 +162,66 @@ async function shipmentOf(req) {
   return s;
 }
 
-/** Tries the booking again for a parcel Blue Dart refused or did not answer for. */
+/** One parcel with what its label and invoice print: the order, the pickup address. */
+shipmentRoutes.get('/staff/shipments/:id', async (req, res) => {
+  const s = await shipmentOf(req);
+  const order =
+    s.orderId &&
+    (await Order.findById(s.orderId, {
+      orderNo: 1,
+      email: 1,
+      product: 1,
+      serviceName: 1,
+      package: 1,
+      quantity: 1,
+      amount: 1,
+      discount: 1,
+      coupon: 1,
+      payment: 1,
+      timeline: 1,
+      createdAt: 1,
+    }).lean());
+  const paidAt = order?.timeline?.find((t) => t.status === 'paid')?.at;
+  res.json({
+    data: {
+      shipment: s,
+      shipper: shipperOf(await shipSettings()),
+      order: order && {
+        ...order,
+        timeline: undefined,
+        payment: order.payment && {method: order.payment.method, razorpayPaymentId: order.payment.razorpayPaymentId},
+        productName: getProduct(order.product)?.name,
+        paidAt,
+      },
+    },
+  });
+});
+
+/** Fixes a parcel before it is booked (the address the automatic check held back, its weight). */
+shipmentRoutes.patch(
+  '/staff/shipments/:id',
+  validate(z.object({to: toSchema, weightKg: z.number().positive().max(50)})),
+  async (req, res) => {
+    const s = await shipmentOf(req);
+    const done = await Shipment.findOneAndUpdate(
+      {_id: s._id, awb: {$exists: false}, status: 'created'},
+      {$set: {to: req.body.to, weightKg: req.body.weightKg}, $unset: {review: 1}},
+      {new: true},
+    );
+    if (!done) throw conflict('BOOKED', 'A booked parcel cannot be changed');
+    audit(req, 'shipment.edit', `#${s.shipmentNo}`, req.body.to.pincode);
+    res.json({data: done});
+  },
+);
+
+/** Books a parcel that has no waybill yet: one the check held back, or one Blue Dart refused. */
 shipmentRoutes.post('/staff/shipments/:id/book', async (req, res) => {
   const s = await shipmentOf(req);
   if (s.awb) throw conflict('BOOKED', 'This parcel already has a waybill');
-  const {awb} = await bookWaybill({...s.toObject(), ref: `PIR${s.shipmentNo}`});
-  const done = await Shipment.findOneAndUpdate(
-    {_id: s._id, awb: {$exists: false}},
-    {$set: {awb, status: 'booked', nextCheckAt: new Date(Date.now() + HOUR)}, $unset: {error: 1}},
-    {new: true},
-  );
-  if (!done) throw conflict('BOOKED', 'This parcel was just booked');
-  audit(req, 'shipment.book', `#${s.shipmentNo}`, awb);
-  res.json({data: done});
+  if (s.status !== 'created') throw conflict('CANCELLED', 'This parcel was cancelled');
+  const out = await bookShipment(s.toObject(), req.user.email);
+  audit(req, 'shipment.book', `#${s.shipmentNo}`, out.awb ?? out.error);
+  res.json({data: out});
 });
 
 /** Asks Blue Dart where a parcel is now. */
@@ -127,7 +231,7 @@ shipmentRoutes.post('/staff/shipments/:id/track', async (req, res) => {
   res.json({data: await trackOne(s)});
 });
 
-/** Cancels a parcel Blue Dart never booked; a booked one is cancelled with Blue Dart by phone first. */
+/** Cancels a parcel not yet moving; a booked one is cancelled with Blue Dart by phone first. */
 shipmentRoutes.post('/staff/shipments/:id/cancel', async (req, res) => {
   const s = await shipmentOf(req);
   const done = await Shipment.findOneAndUpdate(

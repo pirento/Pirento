@@ -51,9 +51,18 @@ export const addressLines = (address) => {
 };
 
 /** Books a parcel: Blue Dart registers the pickup and returns its waybill number (AWB). */
-export async function bookWaybill({to, weightKg, pieces, value, ref, pickupAt = new Date()}) {
+export async function bookWaybill({
+  to,
+  weightKg,
+  pieces,
+  value,
+  ref,
+  size,
+  shipper = bd.shipper,
+  pickupAt = new Date(),
+}) {
   const [a1 = '', a2 = '', a3 = ''] = addressLines(to.address);
-  const [s1 = '', s2 = '', s3 = ''] = addressLines(bd.shipper.address);
+  const [s1 = '', s2 = '', s3 = ''] = addressLines(shipper.address);
   const r = await call('POST', '/waybill/v1/GenerateWayBill', {
     Request: {
       Consignee: {
@@ -67,13 +76,13 @@ export async function bookWaybill({to, weightKg, pieces, value, ref, pickupAt = 
       Shipper: {
         CustomerCode: bd.customerCode,
         OriginArea: bd.originArea,
-        CustomerName: bd.shipper.name,
+        CustomerName: shipper.name,
         CustomerAddress1: s1,
         CustomerAddress2: s2,
         CustomerAddress3: s3,
-        CustomerPincode: bd.shipper.pincode,
-        CustomerMobile: bd.shipper.mobile,
-        Sender: bd.shipper.name,
+        CustomerPincode: shipper.pincode,
+        CustomerMobile: shipper.mobile,
+        Sender: shipper.name,
       },
       Services: {
         ProductCode: 'A', // Domestic Priority
@@ -84,6 +93,9 @@ export async function bookWaybill({to, weightKg, pieces, value, ref, pickupAt = 
         PickupDate: `/Date(${pickupAt.getTime()})/`,
         PickupTime: '1600',
         RegisterPickup: true,
+        ...(size?.lengthCm && {
+          Dimensions: [{Length: size.lengthCm, Breadth: size.breadthCm, Height: size.heightCm, Count: pieces}],
+        }),
       },
     },
     Profile: profile(),

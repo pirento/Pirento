@@ -1,5 +1,5 @@
 // Pirento Vault dashboard: an overview (what is kept, the legacy plan, space used, password health), then records,
-// linked accounts, documents, passwords and the nominee plan on their own pages. Every page sits inside the Bharat ID
+// linked accounts, net worth, the will, documents, passwords and the nominee plan on their own pages. Every page sits inside the Bharat ID
 // unlock, which asks for the PIN only when an action needs it.
 import {Link} from 'react-router-dom';
 import {ShieldAlert, ShieldCheck} from 'lucide-react';
@@ -13,6 +13,8 @@ import {Passwords} from './PasswordsPanel';
 import {Records} from './RecordsPanel';
 import {Linked} from './LinkedPanel';
 import {Legacy} from './LegacyPanel';
+import {NetWorth} from './NetWorthPanel';
+import {Will} from './WillPanel';
 import {UnlockProvider} from './unlock';
 import {mb} from '../../lib/api/binary';
 import {useApi} from '../../lib/api/useApi';
@@ -26,6 +28,8 @@ const PAGES = {
   linked: {title: vaultCopy.linked.title, intro: vaultCopy.linked.intro, Panel: Linked},
   files: {title: copy.files.title, intro: copy.intro, Panel: Files},
   passwords: {title: copy.passwords.title, intro: copy.intro, Panel: Passwords},
+  networth: {title: vaultCopy.networth.title, intro: vaultCopy.networth.intro, Panel: NetWorth},
+  will: {title: vaultCopy.will.title, intro: vaultCopy.will.intro, Panel: Will},
   legacy: {title: vaultCopy.legacy.title, intro: vaultCopy.legacy.intro, Panel: Legacy},
 };
 
@@ -91,6 +95,8 @@ function Overview({product, section}) {
           {[
             ['/vault/dashboard/records', 'Open records'],
             ['/vault/dashboard/linked', 'Linked accounts'],
+            ['/vault/dashboard/networth', 'Net worth'],
+            ['/vault/dashboard/will', 'Your will'],
             ['/vault/dashboard/files', 'Documents'],
             ['/vault/dashboard/legacy', plan ? 'Your nominee plan' : 'Set up your nominee plan'],
           ].map(([to, label]) => (

@@ -1332,6 +1332,51 @@ check(
     removed,
   );
 }
+// Net worth and the will.
+{
+  check('net worth needs the unlock', (await call('/vault/networth', {token: user})).error?.code === 'VAULT_LOCKED');
+  const worth = (await call('/vault/networth', {token: user, headers: U})).data;
+  check(
+    'net worth adds the bank balance, keeps cover apart',
+    worth?.assets === 25000 && worth.net === 25000 && worth.cover === 5000000,
+    worth,
+  );
+  const willRec = (
+    await call('/vault/records', {
+      method: 'POST',
+      token: user,
+      headers: U,
+      body: {
+        kind: 'will',
+        title: 'My registered will',
+        fields: {executor: 'Rahul', regNo: 'REG-2026-77', office: 'Sub-Registrar, Pune', regDate: '2026-05-01'},
+      },
+    })
+  ).data;
+  check('the will details are kept', willRec?.kind === 'will', willRec);
+  const upload = await fetch(`${B}/vault/files`, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${user}`,
+      ...U,
+      'content-type': 'application/octet-stream',
+      'x-file-name': 'registered-will.pdf',
+      'x-file-type': 'application/pdf',
+    },
+    body: Buffer.from('%PDF-1.4 a will'),
+  });
+  const willFile = (await upload.json()).data;
+  const labelled = (await call(`/vault/files/${willFile?._id}`, {method: 'PATCH', token: user, body: {label: 'Will'}}))
+    .data;
+  check('the registered copy is filed as the will', labelled?.label === 'Will', labelled);
+  check(
+    'the will draft checks its input',
+    (await call('/ai/assist/willDraft', {method: 'POST', token: user, body: {}})).status === 400,
+  );
+  // Leave the vault as the release checks below expect it.
+  await call(`/vault/records/${willRec?._id}`, {method: 'DELETE', token: user, headers: U});
+  await call(`/vault/files/${willFile?._id}`, {method: 'DELETE', token: user, headers: U});
+}
 const legacy0 = (await call('/vault/legacy', {token: user})).data;
 check(
   'the nominee comes from Bharat ID, mobile masked',
@@ -1876,33 +1921,101 @@ const completeReferred = async () => {
   const mine = (await call('/orders/partner/me', {token: user})).data?.orders.find((x) => x._id === ro._id);
   check('partner sees the commission', mine?.commission?.paid === true && mine.commission.amount === due, mine);
 }
-// Blue Dart shipments (the stand-in under /bluedart): book a Giftox box, follow it, tell the customer.
+// Blue Dart shipments (the stand-in under /bluedart): a paid Giftox box ships by itself, the team follows it.
 {
-  const box = (
-    await call('/orders', {method: 'POST', token: buyer, body: {serviceSlug: 'giftox-welcome-kit', intake: gift}})
-  ).data;
-  await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: box.amount / 100}});
-  await call(`/orders/${box._id}/pay/wallet`, {method: 'POST', token: buyer});
-  const to = {name: 'Ravi', address: '12 MG Road, Pune', pincode: '411001', mobile: '9876500000'};
-  check('a customer cannot book parcels', (await call('/orders/staff/shipments', {token: buyer})).status === 403);
-  const parcel = (
-    await call('/orders/staff/shipments', {
-      method: 'POST',
-      token: boss,
-      body: {orderNo: box.orderNo, to, weightKg: 1.2, value: 999},
-    })
-  ).data;
-  check('Blue Dart books the box', /^\d{11}$/.test(parcel?.awb ?? '') && parcel.status === 'booked', parcel);
+  const settings = (await call('/orders/staff/shipping/settings', {token: boss})).data;
+  check(
+    'shipping settings list every Giftox product by themselves',
+    settings?.settings.auto === true && settings.services.some((x) => x.slug === 'giftox-welcome-kit'),
+    settings,
+  );
+  check(
+    'a product is edited, never added here',
+    (
+      await call('/orders/staff/shipping/services/not-a-box', {
+        method: 'PUT',
+        token: boss,
+        body: {autoShip: true, weightKg: 1, lengthCm: 10, breadthCm: 10, heightCm: 10},
+      })
+    ).status === 404,
+  );
+  await call('/orders/staff/shipping/services/giftox-welcome-kit', {
+    method: 'PUT',
+    token: boss,
+    body: {autoShip: true, weightKg: 1.5, lengthCm: 30, breadthCm: 25, heightCm: 12},
+  });
+  const payBox = async (intake) => {
+    const o = (await call('/orders', {method: 'POST', token: buyer, body: {serviceSlug: 'giftox-welcome-kit', intake}}))
+      .data;
+    await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: o.amount / 100}});
+    await call(`/orders/${o._id}/pay/wallet`, {method: 'POST', token: buyer});
+    return o;
+  };
+  // The parcel is made in the background after payment (the address check can take a moment).
+  const parcelOf = async (orderNo) => {
+    for (let i = 0; i < 40; i++) {
+      const found = (await call(`/orders/staff/shipments?q=${orderNo}`, {token: boss})).data?.items[0];
+      if (found && (found.awb || found.review?.length)) return found;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    return null;
+  };
+  check('a customer cannot see parcels', (await call('/orders/staff/shipments', {token: buyer})).status === 403);
+  const box = await payBox(gift);
+  const parcel = await parcelOf(box.orderNo);
+  check(
+    'paying makes and books the parcel by itself',
+    parcel?.auto === true && /^\d{11}$/.test(parcel.awb ?? '') && parcel.status === 'booked' && parcel.weightKg === 1.5,
+    parcel,
+  );
   const boxAfter = (await call(`/orders/${box._id}`, {token: buyer})).data;
   check(
     'the order shows the waybill',
     boxAfter?.fulfilment?.courier === 'Blue Dart' && boxAfter.fulfilment.tracking === parcel?.awb,
     boxAfter?.fulfilment,
   );
+  const swept = (await call('/orders/staff/shipping/sweep', {method: 'POST', token: boss})).data;
+  check(
+    'the sweep never makes a second parcel',
+    (await call(`/orders/staff/shipments?q=${box.orderNo}`, {token: boss})).data?.items.length === 1,
+    swept,
+  );
+  const print = (await call(`/orders/staff/shipments/${parcel?._id}`, {token: boss})).data;
+  check(
+    'the label and invoice have the order and pickup address',
+    print?.order.orderNo === box.orderNo && print.order.amount === box.amount && print.shipper,
+    print,
+  );
+
+  // An address the check doubts waits for the team (lib/shipments.test.js covers the check; the AI is off here).
+  check(
+    'Needs a look lists parcels waiting for the team',
+    Array.isArray((await call('/orders/staff/shipments?review=1', {token: boss})).data?.items),
+  );
+
+  // Shipping by hand only: a paid order makes no parcel.
+  await call('/orders/staff/shipping/settings', {method: 'PUT', token: boss, body: {auto: false}});
+  const manual = await payBox(gift);
+  await new Promise((r) => setTimeout(r, 1500));
+  check(
+    'with automatic shipping off, no parcel',
+    (await call(`/orders/staff/shipments?q=${manual.orderNo}`, {token: boss})).data?.items.length === 0,
+  );
+  await call('/orders/staff/shipping/settings', {method: 'PUT', token: boss, body: {auto: true}});
+  const to = {name: 'Ravi', address: '12 MG Road, Pune', pincode: '411001', mobile: '9876500000'};
   check(
     'a parcel of its own needs to say what is inside',
     (await call('/orders/staff/shipments', {method: 'POST', token: boss, body: {to, weightKg: 0.5}})).status === 409,
   );
+  const own = (
+    await call('/orders/staff/shipments', {
+      method: 'POST',
+      token: boss,
+      body: {purpose: 'Signed documents', to, weightKg: 0.3},
+    })
+  ).data;
+  check('a parcel of its own books by hand', /^\d{11}$/.test(own?.awb ?? '') && !own.orderId, own);
+
   const tracked = (await call(`/orders/staff/shipments/${parcel?._id}/track`, {method: 'POST', token: boss})).data;
   check('tracking reads the scans', tracked?.status === 'in-transit' && tracked.scans.length === 1, tracked);
   await fetch(`${DIGIO}/__test/bluedart/${parcel?.awb}`, {

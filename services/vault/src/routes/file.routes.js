@@ -2,6 +2,7 @@
 import express, {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, badInput, dropFiles, openFile, sealFile, validate} from '@pirento/shared/server';
+import {VAULT_FILE_LABELS as LABELS} from '@pirento/shared';
 import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
@@ -78,22 +79,6 @@ fileRoutes.delete('/files/:id', requireUnlock, async (req, res) => {
   }
   res.json({data: {deleted: true}});
 });
-
-export const LABELS = [
-  'Aadhaar',
-  'PAN',
-  'Passport',
-  'Driving licence',
-  'Voter ID',
-  'Bank',
-  'Bill',
-  'Agreement',
-  'Certificate',
-  'Insurance',
-  'Tax',
-  'Photo',
-  'Other',
-];
 
 /** A label (chosen by hand or suggested by Pirento AI from the name) and the document's expiry date. */
 fileRoutes.patch(

@@ -33,6 +33,18 @@ like [_____] for anything missing. Add a short list of what a lawyer must check 
 legally valid as is.`,
     z.object({title: z.string(), draft: z.string(), mustCheck: lines}),
   ),
+  // Vault
+  willDraft: job(
+    `Job: write a first draft of a will (Indian context) from the details given: a title, the declaration that it
+is the person's last will and revokes earlier ones, the executor, each bequest exactly as the person gave it, a residue
+clause for anything not named, a guardian for minor children if one is given, and a signing block for the person and
+two witnesses. Put [_____] where a detail is missing; never invent an asset, a person, a share or an address. Then list
+what a lawyer must check (for example personal law that limits what a will may give, such as the one-third rule for
+Muslims; joint or nominated property; whether the shares add up) and the steps to sign it: signed and dated by the
+person, two witnesses who are not beneficiaries sign in the person's presence, and registration at the Sub-Registrar
+is optional but makes it harder to dispute. Never say the draft is valid as it stands.`,
+    z.object({title: z.string(), draft: z.string(), mustCheck: lines, signing: lines}),
+  ),
   // 5, 8
   explainDoc: job(
     `Job: explain the attached document (a notice, letter or bill) in plain words: what it is and who sent it, what it

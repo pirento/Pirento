@@ -39,6 +39,7 @@ export {
   checkAnswers,
   validateIntake,
   validateFulfilment,
+  SHIPPABLE,
 } from './orders/rules.js';
 
 // Bharat ID: number format and the application form
@@ -68,6 +69,9 @@ export {
   DEATH_ISSUERS,
   deathIssuer,
   namesMatch,
+  NET_WORTH,
+  netWorth,
+  VAULT_FILE_LABELS,
 } from './data/vault.js';
 export {PROGRAM_MONTHS, PROGRAM_SCORE, PROGRAM_PASS, gradeFor, finalMark} from './data/internProgram.js';
 export {GREEN_DONATION, GREEN_DRIVES} from './data/greenDrives.js';

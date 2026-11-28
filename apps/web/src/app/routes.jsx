@@ -58,6 +58,11 @@ export const ROUTES = [
   {path: '/support/:id', layout: 'app', Page: page(() => import('../features/support/TicketPage'), 'Ticket')},
 
   // Staff
+  {
+    path: '/admin/shipments/:id/print',
+    layout: 'app',
+    Page: page(() => import('../features/admin/ShipmentPrint'), 'ShipmentPrint'),
+  },
   {path: '/admin', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/admin/:section', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},
   {path: '/admin/:section/:id', layout: 'app', Page: page(() => import('../features/admin/AdminPage'), 'Admin')},

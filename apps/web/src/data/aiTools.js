@@ -23,6 +23,21 @@ export const AI_TOOLS = {
     intro: 'What got done, what is pending and what to do next, across every Pirento product.',
     fields: [LANG],
   },
+  willDraft: {
+    title: 'Draft your will',
+    intro:
+      'Your own words in, a first draft out. A lawyer must check it; then sign it with two witnesses and, if you like, register it.',
+    fields: [
+      ['testator', 'You: full name, age, city'],
+      ['family', 'Your family (spouse, children, parents)', 'area'],
+      ['assets', 'What you own (house, accounts, investments, gold…)', 'area'],
+      ['bequests', 'Who gets what', 'area'],
+      ['executor', 'Executor (who carries it out)'],
+      ['guardian', 'Guardian for minor children (optional)'],
+      ['wishes', 'Other wishes (optional)', 'area'],
+      LANG,
+    ],
+  },
   draftDoc: {
     title: 'Draft a document',
     intro: 'A first draft to start from. A lawyer must check it before anyone signs.',
@@ -227,4 +242,5 @@ export const AI_TOOLS_FOR = {
   black: [['explainDoc', {product: 'black'}], ['compliance'], ['recommend', {product: 'black'}]],
   green: [['greenImpact'], ['csrReport']],
   giftox: [['giftPick', {product: 'giftox'}], ['giftMessage']],
+  vault: [['willDraft']],
 };

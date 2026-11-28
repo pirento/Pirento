@@ -2,6 +2,7 @@
 // file names alone, never the contents), and a reminder email 30 days before expiry.
 import {useRef, useState} from 'react';
 import {Download, FileText, Sparkles, Trash2, Upload} from 'lucide-react';
+import {VAULT_FILE_LABELS as LABELS} from '@pirento/shared';
 import {Button} from '../../components/ui/Button';
 import {Label} from '../../components/ui/Heading';
 import {mb, raw} from './files';
@@ -11,23 +12,8 @@ import {formatDate} from '../../lib/format';
 import {ReleaseSwitch} from './ReleaseSwitch';
 import {shown, useUnlock} from './unlock';
 
-const LABELS = [
-  'Aadhaar',
-  'PAN',
-  'Passport',
-  'Driving licence',
-  'Voter ID',
-  'Bank',
-  'Bill',
-  'Agreement',
-  'Certificate',
-  'Insurance',
-  'Tax',
-  'Photo',
-  'Other',
-];
-
-export function Files() {
+/** All documents, or with `only` the ones carrying that label (the Will section's "Will"); uploads there get it. */
+export function Files({only, title = 'Files', n = 1} = {}) {
   const guard = useUnlock();
   const files = useApi('/vault/files');
   const input = useRef(null);
@@ -42,7 +28,7 @@ export function Files() {
     if (file.size > 5 * 1024 * 1024) return setError('Files can be up to 5 MB.');
     setBusy(true);
     try {
-      await guard((unlock) =>
+      const res = await guard((unlock) =>
         raw('/files', {
           method: 'POST',
           headers: {
@@ -54,6 +40,10 @@ export function Files() {
           body: file,
         }),
       );
+      if (only) {
+        const {data} = await res.json();
+        await api(`/vault/files/${data._id}`, {method: 'PATCH', body: {label: only}});
+      }
       files.reload();
     } catch (err) {
       setError(shown(err));
@@ -84,6 +74,7 @@ export function Files() {
     }
   };
   const d = files.data;
+  const list = d && (only ? d.files.filter((f) => f.label === only) : d.files);
   const patch = async (f, body) => {
     setError('');
     try {
@@ -118,10 +109,10 @@ export function Files() {
   return (
     <div className="rounded-[22px] border border-rule p-8" data-reveal>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <Label n={1}>Files</Label>
+        <Label n={n}>{title}</Label>
         <input ref={input} type="file" className="sr-only" onChange={upload} aria-label="Choose a file to upload" />
         <span className="flex flex-wrap gap-2">
-          {d?.files.some((f) => !f.label) && (
+          {!only && d?.files.some((f) => !f.label) && (
             <Button onClick={autoLabel} variant="outline" icon={Sparkles} disabled={busy}>
               Label with AI
             </Button>
@@ -146,9 +137,9 @@ export function Files() {
           ⚠ {error}
         </p>
       )}
-      {d?.files.length === 0 && <p className="body mt-6">No files yet.</p>}
+      {list?.length === 0 && <p className="body mt-6">No files yet.</p>}
       <ul className="mt-4">
-        {d?.files.map((f) => (
+        {list?.map((f) => (
           <li key={f._id} className="flex items-center justify-between gap-3 border-b border-rule py-4">
             <span className="flex min-w-0 items-center gap-3">
               <FileText aria-hidden className="size-4 shrink-0" />
@@ -158,17 +149,19 @@ export function Files() {
                   {mb(f.size)} · {formatDate(f.createdAt)}
                 </span>
                 <span className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <select
-                    aria-label={`Label for ${f.name}`}
-                    value={f.label ?? ''}
-                    onChange={(e) => patch(f, {label: e.target.value})}
-                    className="rounded-full border border-rule bg-paper px-3 py-1"
-                  >
-                    <option value="">No label</option>
-                    {LABELS.map((l) => (
-                      <option key={l}>{l}</option>
-                    ))}
-                  </select>
+                  {!only && (
+                    <select
+                      aria-label={`Label for ${f.name}`}
+                      value={f.label ?? ''}
+                      onChange={(e) => patch(f, {label: e.target.value})}
+                      className="rounded-full border border-rule bg-paper px-3 py-1"
+                    >
+                      <option value="">No label</option>
+                      {LABELS.map((l) => (
+                        <option key={l}>{l}</option>
+                      ))}
+                    </select>
+                  )}
                   <ReleaseSwitch type="files" item={f} onChange={files.reload} />
                   <label className="flex items-center gap-1 text-muted">
                     Expires

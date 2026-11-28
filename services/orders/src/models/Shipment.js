@@ -10,7 +10,7 @@ export const Shipment = mongoose.model(
   new mongoose.Schema(
     {
       shipmentNo: {type: Number, required: true, unique: true},
-      orderId: {type: String, index: true},
+      orderId: String, // indexed below
       orderNo: Number,
       userId: {type: String, index: true}, // who hears about it
       purpose: {type: String, maxlength: 120},
@@ -22,6 +22,9 @@ export const Shipment = mongoose.model(
       },
       weightKg: Number,
       pieces: {type: Number, default: 1},
+      size: {lengthCm: Number, breadthCm: Number, heightCm: Number},
+      auto: Boolean, // made by itself when its order was paid
+      review: [String], // why an automatic parcel waits for the team instead of booking itself
       value: Number, // declared value in rupees
       carrier: {type: String, default: 'bluedart'},
       awb: {type: String, index: true, sparse: true},
@@ -33,5 +36,8 @@ export const Shipment = mongoose.model(
       createdBy: String,
     },
     {timestamps: true},
-  ).index({status: 1, nextCheckAt: 1}),
+  )
+    .index({status: 1, nextCheckAt: 1})
+    // One automatic parcel per order, however many times payment, the sweep and a retry ask for it.
+    .index({orderId: 1}, {unique: true, partialFilterExpression: {auto: true}}),
 );

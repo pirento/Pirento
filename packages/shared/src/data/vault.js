@@ -149,7 +149,11 @@ export const VAULT_KINDS = [
     fields: [
       f('wishes', 'Your wishes', 'long'),
       f('executor', 'Executor'),
-      f('registered', 'Registered will: where and when'),
+      f('regNo', 'Registration number'),
+      f('office', 'Sub-Registrar office'),
+      f('regDate', 'Registered on', 'date'),
+      f('original', 'Where the signed original is kept'),
+      f('registered', 'Other registration details'),
       f('note', 'Note', 'long'),
     ],
   },
@@ -163,6 +167,24 @@ export const VAULT_KINDS = [
 ];
 
 export const vaultKind = (id) => VAULT_KINDS.find((k) => k.id === id);
+
+/** Labels a vault document may carry; "Will" files also show in the Will section. */
+export const VAULT_FILE_LABELS = [
+  'Aadhaar',
+  'PAN',
+  'Passport',
+  'Driving licence',
+  'Voter ID',
+  'Bank',
+  'Bill',
+  'Agreement',
+  'Certificate',
+  'Insurance',
+  'Tax',
+  'Will',
+  'Photo',
+  'Other',
+];
 
 const LIMIT = {text: 200, long: 4000, secret: 500, number: 20, date: 10};
 
@@ -265,4 +287,42 @@ export function namesMatch(a, b) {
   const [x, y] = [words(a), words(b)].sort((p, q) => p.length - q.length);
   if (!x.length) return false;
   return x.every((w) => (w.length === 1 ? y.some((v) => v.startsWith(w)) : y.includes(w)));
+}
+
+/**
+ * Which record field counts toward net worth: assets add, debts subtract, insurance cover is shown apart (it is paid
+ * out only on a claim, so it is not wealth today). Records without the field are left out.
+ */
+export const NET_WORTH = {
+  assets: {bank: 'balance', account: 'value', 'mutual-fund': 'value', stock: 'value', etf: 'value', lent: 'amount'},
+  debts: {owed: 'amount'},
+  cover: {insurance: 'cover', 'health-insurance': 'cover'},
+};
+
+/**
+ * Net worth from opened records ({kind, title, fields}): totals in rupees, by kind, and each counted record.
+ * Amounts are kept to the paisa by summing in paise.
+ */
+export function netWorth(records) {
+  const paise = (v) => Math.round(Number(v) * 100);
+  const items = [];
+  for (const r of records) {
+    for (const side of ['assets', 'debts', 'cover']) {
+      const field = NET_WORTH[side][r.kind];
+      const v = field && r.fields?.[field];
+      if (v && /^\d+(\.\d{1,2})?$/.test(String(v))) items.push({side, kind: r.kind, title: r.title, paise: paise(v)});
+    }
+  }
+  const sum = (side) => items.filter((i) => i.side === side).reduce((s, i) => s + i.paise, 0);
+  const byKind = {};
+  for (const i of items) if (i.side !== 'cover') byKind[i.kind] = (byKind[i.kind] ?? 0) + i.paise; // cover is not wealth
+  const rupees = (p) => p / 100;
+  return {
+    assets: rupees(sum('assets')),
+    debts: rupees(sum('debts')),
+    net: rupees(sum('assets') - sum('debts')),
+    cover: rupees(sum('cover')),
+    byKind: Object.fromEntries(Object.entries(byKind).map(([k, p]) => [k, rupees(p)])),
+    items: items.sort((a, b) => b.paise - a.paise).map(({paise: p, ...i}) => ({...i, value: rupees(p)})),
+  };
 }

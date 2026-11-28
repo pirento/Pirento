@@ -17,9 +17,10 @@ const copy = vaultCopy.records;
 const GROUPS = [...new Set(VAULT_KINDS.map((k) => k.group))];
 
 /** The form for one record: its kind's fields, a title, and whether it goes to the nominee. */
-function RecordForm({start, onSaved, onCancel}) {
+function RecordForm({start, kinds, onSaved, onCancel}) {
   const guard = useUnlock();
-  const [kind, setKind] = useState(start?.kind ?? VAULT_KINDS[0].id);
+  const choices = kinds ? VAULT_KINDS.filter((k) => kinds.includes(k.id)) : VAULT_KINDS;
+  const [kind, setKind] = useState(start?.kind ?? choices[0].id);
   const [title, setTitle] = useState(start?.title ?? '');
   const [fields, setFields] = useState(start?.fields ?? {});
   const [release, setRelease] = useState(start?.release ?? false);
@@ -42,7 +43,7 @@ function RecordForm({start, onSaved, onCancel}) {
   };
   return (
     <form onSubmit={save} noValidate className="grid gap-4 rounded-[18px] border border-rule p-5 sm:grid-cols-2">
-      {!start && (
+      {!start && choices.length > 1 && (
         <label className="block sm:col-span-2">
           <span className="text-sm font-medium">{copy.kind}</span>
           <select
@@ -53,13 +54,15 @@ function RecordForm({start, onSaved, onCancel}) {
             }}
             className="mt-2 block w-full rounded-[14px] border border-rule bg-paper px-4 py-3"
           >
-            {GROUPS.map((g) => (
+            {GROUPS.filter((g) => choices.some((k) => k.group === g)).map((g) => (
               <optgroup key={g} label={g}>
-                {VAULT_KINDS.filter((k) => k.group === g).map((k) => (
-                  <option key={k.id} value={k.id}>
-                    {k.label}
-                  </option>
-                ))}
+                {choices
+                  .filter((k) => k.group === g)
+                  .map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.label}
+                    </option>
+                  ))}
               </optgroup>
             ))}
           </select>
@@ -174,7 +177,7 @@ export function Records({only}) {
       </div>
       {adding && (
         <div className="mt-6">
-          <RecordForm onSaved={done} onCancel={() => setAdding(false)} />
+          <RecordForm kinds={only} onSaved={done} onCancel={() => setAdding(false)} />
         </div>
       )}
       {error && (

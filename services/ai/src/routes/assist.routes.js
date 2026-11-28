@@ -96,6 +96,20 @@ export const ASSISTS = {
       },
     }),
   },
+  willDraft: {
+    // Vault → Will: the person's own words in, a first draft out; nothing is read from their vault.
+    input: z.object({
+      testator: text(300).min(3, 'Your full name, age and city'),
+      family: text(1500).default(''),
+      assets: text(3000).min(5, 'List what you own'),
+      bequests: text(3000).min(5, 'Say who gets what'),
+      executor: text(300).min(3, 'Name an executor'),
+      guardian: text(300).default(''),
+      wishes: text(1500).default(''),
+      language: lang,
+    }),
+    gather: (_req, b) => ({input: b}),
+  },
   draftDoc: {
     // 4
     input: z.object({

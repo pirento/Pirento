@@ -2,7 +2,7 @@
 // and permission needs. Listing shows kinds and titles only; the fields are opened one record at a time.
 import {Router} from 'express';
 import {z} from 'zod';
-import {validateRecord} from '@pirento/shared';
+import {NET_WORTH, netWorth, validateRecord} from '@pirento/shared';
 import {badInput, decrypt, encrypt, validate} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {Record, WITHOUT_FIELDS} from '../models/Record.js';
@@ -30,6 +30,15 @@ recordRoutes.post(
 
 recordRoutes.get('/records', async (req, res) => {
   res.json({data: await Record.find({userId: req.user.sub}, WITHOUT_FIELDS).sort({kind: 1, title: 1})});
+});
+
+/** Net worth from the owner's records (hand-added and fetched through Digio), opened and summed on the server. */
+recordRoutes.get('/networth', requireUnlock, async (req, res) => {
+  const kinds = Object.values(NET_WORTH).flatMap((side) => Object.keys(side));
+  const records = await Record.find({userId: req.user.sub, kind: {$in: kinds}});
+  const out = netWorth(records.map((r) => ({kind: r.kind, title: r.title, fields: openFields(r)})));
+  await logAction(req.user.sub, 'networth.view', {pin: true});
+  res.set('cache-control', 'no-store').json({data: out});
 });
 
 const body = z.object({

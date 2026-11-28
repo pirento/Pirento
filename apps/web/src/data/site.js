@@ -365,6 +365,8 @@ export const productDashboards = {
     {id: 'linked', label: 'Linked accounts', icon: 'linked'},
     {id: 'files', label: 'Documents', icon: 'files'},
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
+    {id: 'networth', label: 'Net worth', icon: 'networth'},
+    {id: 'will', label: 'Will', icon: 'will'},
     {id: 'legacy', label: 'Nominee and legacy', icon: 'legacy'},
   ),
   ai: [
@@ -871,6 +873,42 @@ export const vaultCopy = {
     removeConfirm:
       'Remove this link and the holdings it fetched? To stop sharing for good, also revoke the consent in your Account Aggregator app.',
   },
+  networth: {
+    title: 'What you / are worth.',
+    intro:
+      'Added up from your records, the ones you typed and the ones fetched through Digio, behind your Bharat ID PIN.',
+    show: 'Show my net worth',
+    net: 'Net worth',
+    assets: 'What you own',
+    debts: 'What you owe',
+    cover: 'Insurance cover',
+    coverTag: 'cover, not counted',
+    coverNote: 'Cover is paid only on a claim, so it is shown apart and not counted in your net worth.',
+    byKind: 'Where it is',
+    items: 'Counted records',
+    empty:
+      'Nothing to add up yet. Add bank balances, investments, money lent or owed in Records, or link your accounts.',
+    note: 'Only records with an amount are counted, at the value you or your provider gave. It is not a valuation.',
+  },
+  will: {
+    title: 'Your will, / in one safe place.',
+    intro:
+      'Draft it, sign it with two witnesses, register it if you choose, and keep the registered copy here for your nominee.',
+    steps: [
+      ['Draft it', 'Pirento AI writes a first draft from your own words. A lawyer must check it before you sign.'],
+      ['Sign it', 'Sign and date every page in front of two witnesses who get nothing under the will; they sign too.'],
+      [
+        'Register it (optional)',
+        'At the Sub-Registrar’s office for your area. Registration is not required by law but makes a will harder to dispute.',
+      ],
+      ['Keep it here', 'Upload the signed or registered copy and its details. Choose whether it goes to your nominee.'],
+    ],
+    draft: 'Draft with Pirento AI',
+    details: 'Will details',
+    files: 'Will documents',
+    legal:
+      'Pirento does not make a will valid. Its validity depends on how it is signed and witnessed and on the law that applies to you.',
+  },
   legacy: {
     label: 'Nominee and legacy',
     title: 'If something / happens to you.',
@@ -1074,6 +1112,42 @@ export const checkoutGuest = {
 };
 
 // The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
+// Admin → Shipments: the label and invoice print, and the settings tab.
+export const shippingCopy = {
+  back: 'Back to shipments',
+  print: 'Print or save as PDF',
+  priority: 'Domestic Priority',
+  to: 'Deliver to',
+  from: 'From (return to)',
+  noAwb: 'Not booked yet: no waybill',
+  weight: 'Weight',
+  pieces: 'Pieces',
+  value: 'Declared value',
+  invoice: 'Packing slip and invoice',
+  billedTo: 'Ordered by',
+  shipTo: 'Shipped to',
+  paidOn: 'Paid on',
+  method: 'Paid by',
+  item: 'Item',
+  qty: 'Qty',
+  amount: 'Amount',
+  discount: 'Discount',
+  total: 'Total paid',
+  awb: 'Blue Dart waybill',
+  tabs: {parcels: 'Parcels', settings: 'Settings'},
+  settings: {
+    auto: 'Ship paid orders by themselves',
+    autoNote:
+      'A paid Giftox order makes its parcel at once: Pirento AI checks the address, and a clean one is booked with Blue Dart. One with a problem waits here for the team.',
+    shipper: 'Pickup address',
+    shipperNote: 'Where Blue Dart collects parcels. Left empty, the address set on the server is used.',
+    services: 'Each product’s parcel',
+    servicesNote:
+      'Every Giftox product is listed here from the catalogue by itself. Set its weight and box; a quantity multiplies the weight.',
+    sweep: 'Ship waiting orders now',
+  },
+};
+
 export const receipt = {
   title: 'Payment receipt',
   note: 'This receipt confirms a payment made on Pirento. It is not a GST tax invoice.',
