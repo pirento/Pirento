@@ -330,3 +330,21 @@ h3,
 .joined-field input:focus-visible {
   outline: none;
 }
+
+/* The home page's product strip: one copy slides out as the next slides in. Still under reduced motion. */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: marquee 50s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marquee {
+    animation: none;
+  }
+}

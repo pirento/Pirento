@@ -13,6 +13,7 @@ import {AboutTeaser, FamilySection} from '../about/GroupSections';
 import {EcosystemPicker} from './EcosystemPicker';
 import {Pillars} from './Pillars';
 import {ProductGroups} from './ProductGroups';
+import {ProductMarquee} from './ProductMarquee';
 import {ServiceSearch} from '../products/widgets/ServiceSearch';
 import {usePageMotion} from '../../lib/motion';
 import {usePageMeta} from '../../lib/page';
@@ -55,6 +56,8 @@ export function Home() {
           Scroll
         </div>
       </section>
+
+      <ProductMarquee />
 
       <ProductGroups copy={home.ecosystem} n={1} />
 
