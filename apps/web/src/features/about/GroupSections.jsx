@@ -1,20 +1,42 @@
-// Home: the rest of the Pirento family as linked cards, and a short "about us" that leads to /about.
+// Home: the company's three ventures, the businesses alongside it, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
-import {ABOUT, COMPANY, PARTNER, PEOPLE} from '../../data/group';
+import {ABOUT, ALONGSIDE, COMPANY, PARTNER, PEOPLE, VENTURES} from '../../data/group';
 import {Avatar} from './Avatar';
-import {FamilyRows} from './FamilyRows';
+import {OrgCard} from './OrgCard';
 
-export function FamilySection({n}) {
+export function VenturesSection({n}) {
   return (
     <Section id="family">
       <SectionHeader
         n={n}
-        label="The Pirento family"
-        title="More than / ten products."
-        intro={`Pirento Ecosystem is one part of ${COMPANY.name}. Here is the rest of the family.`}
+        label="Ventures"
+        title={`Built with / ${COMPANY.short}.`}
+        intro={`Three businesses run with ${COMPANY.name}, beside the Pirento products.`}
       />
-      <FamilyRows />
+      <div className="mt-16 grid gap-4 md:grid-cols-3">
+        {VENTURES.map((v) => (
+          <OrgCard key={v.name} item={v} />
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+export function AlongsideSection({n}) {
+  return (
+    <Section className="pt-0! md:pt-0!">
+      <SectionHeader
+        n={n}
+        label="Alongside"
+        title="Close to us, / run on their own."
+        intro="A family business and a charitable trust that share our people, not our company."
+      />
+      <div className="mt-16 grid gap-4 md:grid-cols-2">
+        {ALONGSIDE.map((v) => (
+          <OrgCard key={v.name} item={v} />
+        ))}
+      </div>
     </Section>
   );
 }

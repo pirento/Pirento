@@ -99,7 +99,7 @@ function Card({item}) {
   );
 }
 
-/** `art`: the Foundation's picture, shown where these rows appear first (the home page); every picture is used once. */
+/** `art`: the Foundation's picture (the About page shows it); every picture is used once. */
 export function FamilyRows({art = true}) {
   return (
     <div className="mt-16">
