@@ -1,14 +1,10 @@
-// Home: the rest of the Pirento family as a short directory, and a short "about us" that leads to /about.
-import {ArrowUpRight} from 'lucide-react';
+// Home: the rest of the Pirento family as linked cards, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
-import {ABOUT, COMPANY, FAMILY_GROUPS, FOUNDATION, PARTNER, PEOPLE} from '../../data/group';
+import {ABOUT, COMPANY, PARTNER, PEOPLE} from '../../data/group';
 import {Avatar} from './Avatar';
+import {FamilyRows} from './FamilyRows';
 
-/**
- * The home page's look at the rest of the family: the Foundation on one line, then every other part as a short
- * directory in columns. The full cards (and the Foundation's picture) live on the About page.
- */
 export function FamilySection({n}) {
   return (
     <Section id="family">
@@ -18,60 +14,7 @@ export function FamilySection({n}) {
         title="More than / ten products."
         intro={`Pirento Ecosystem is one part of ${COMPANY.name}. Here is the rest of the family.`}
       />
-      <a
-        href={FOUNDATION.href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="group/fdn mt-16 flex flex-wrap items-baseline justify-between gap-x-8 gap-y-3 border-y border-rule py-8"
-        data-reveal
-      >
-        <span className="min-w-0">
-          <span className="block text-[clamp(1.6rem,3vw,2.4rem)] leading-tight group-hover/fdn:underline">
-            {FOUNDATION.name}
-          </span>
-          <span className="mt-1 block text-muted">
-            {FOUNDATION.tagline} {FOUNDATION.status.split('.')[0]}.
-          </span>
-        </span>
-        <span className="inline-flex items-center gap-2 text-sm font-medium">
-          Visit the Foundation <ArrowUpRight aria-hidden className="size-4" />
-          <span className="sr-only">(opens in a new tab)</span>
-        </span>
-      </a>
-      <div className="mt-12 grid gap-12 md:grid-cols-3">
-        {FAMILY_GROUPS.map((g) => (
-          <div key={g.title} data-reveal>
-            <h3 className="eyebrow">{g.title}</h3>
-            <p className="mt-2 text-sm text-muted">{g.body}</p>
-            <ul className="mt-5 border-t border-rule">
-              {g.items.map((item) => (
-                <li key={item.name} className="border-b border-rule py-3">
-                  {item.href ? (
-                    <a
-                      href={item.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-baseline justify-between gap-4 hover:underline"
-                    >
-                      <span className="min-w-0 break-words">{item.name}</span>
-                      <ArrowUpRight aria-hidden className="size-4 shrink-0" />
-                      <span className="sr-only">(opens in a new tab)</span>
-                    </a>
-                  ) : (
-                    <span className="block break-words">{item.name}</span>
-                  )}
-                  {item.meta && <span className="block text-xs text-muted">{item.meta}</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
-      </div>
-      <div className="mt-10" data-reveal>
-        <Button to="/about#family" variant="outline">
-          The whole family
-        </Button>
-      </div>
+      <FamilyRows />
     </Section>
   );
 }

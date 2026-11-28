@@ -172,6 +172,7 @@ export const home = {
       },
     ],
   },
+  marquee: 'One account · one wallet · one Bharat ID · ten products',
   ecosystem: {
     label: 'Ecosystem',
     title: 'Ten products, / grouped by need.',

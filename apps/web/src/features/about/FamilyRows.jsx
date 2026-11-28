@@ -17,17 +17,19 @@ const ICONS = {
   billing: Receipt,
 };
 
-function FoundationRow() {
+function FoundationRow({art}) {
   return (
     <article
       className="group/foundation overflow-hidden rounded-[22px] border border-rule bg-paper transition-colors duration-500 ease-ui hover:border-ink"
       data-reveal
     >
       <div className="grid lg:grid-cols-12">
-        <div className="flex items-center border-b border-rule bg-stone lg:col-span-5 lg:border-r lg:border-b-0">
-          <Illustration name="leaf" className="w-full rounded-none border-0" />
-        </div>
-        <div className="p-6 md:p-10 lg:col-span-7">
+        {art && (
+          <div className="flex items-center border-b border-rule bg-stone lg:col-span-5 lg:border-r lg:border-b-0">
+            <Illustration name="leaf" className="w-full rounded-none border-0" />
+          </div>
+        )}
+        <div className={`p-6 md:p-10 ${art ? 'lg:col-span-7' : 'lg:col-span-12'}`}>
           <div className="flex flex-wrap items-center gap-2">
             <Tag>Foundation</Tag>
             <Tag>{FOUNDATION.status.split('.')[0]}</Tag>
@@ -97,10 +99,11 @@ function Card({item}) {
   );
 }
 
-export function FamilyRows() {
+/** `art`: the Foundation's picture, shown where these rows appear first (the home page); every picture is used once. */
+export function FamilyRows({art = true}) {
   return (
     <div className="mt-16">
-      <FoundationRow />
+      <FoundationRow art={art} />
       <div className="mt-20 border-t border-rule">
         {FAMILY_GROUPS.map((g, i) => (
           <div key={g.title} className="grid gap-6 border-b border-rule py-10 lg:grid-cols-12" data-reveal>
