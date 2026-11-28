@@ -11,4 +11,8 @@ export const config = {
   // VAULT_LIMITS can be raised past that.
   maxFileBytes: VAULT_LIMITS.fileMb * 1024 * 1024,
   quotaBytes: VAULT_LIMITS.totalMb * 1024 * 1024,
+  identityUrl: env('IDENTITY_URL', 'http://127.0.0.1:4005'),
+  authUrl: env('AUTH_URL', 'http://127.0.0.1:4001'),
+  /** Where links in reminders and release messages point. */
+  siteUrl: env('SITE_URL', 'http://localhost:5173'),
 };

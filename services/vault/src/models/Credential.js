@@ -10,6 +10,7 @@ export const Credential = mongoose.model(
       label: {type: String, required: true, maxlength: 80},
       username: {type: String, maxlength: 200},
       secret: {iv: Buffer, tag: Buffer, data: Buffer},
+      release: {type: Boolean, default: false}, // the owner allows it to go to their nominee
     },
     {timestamps: true},
   ),

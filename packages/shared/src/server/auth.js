@@ -28,6 +28,8 @@ export const ACCESS = {
   openings: ['staff', 'superadmin'],
   booking: ['staff', 'superadmin'], // placing an order for a customer
   ai: ['support', 'staff', 'superadmin'], // Pirento AI: usage, knowledge base, feedback (settings and plans: superadmin)
+  vault: ['support', 'staff', 'superadmin'], // Vault legacy cases: calls to the nominee, the death certificate
+  vaultRelease: ['superadmin'], // releasing a vault to its nominee
 };
 
 export const jwtSecret = () => env('JWT_SECRET', 'dev-only-secret-change-me');

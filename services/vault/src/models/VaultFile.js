@@ -17,6 +17,7 @@ export const VaultFile = mongoose.model(
       tag: Buffer,
       data: Buffer,
       blobKey: String, // where the sealed bytes live in the file bucket, when FILES_S3_BUCKET is set
+      release: {type: Boolean, default: false}, // the owner allows it to go to their nominee
     },
     {timestamps: true},
   ).index({expiresOn: 1, expiryReminded: 1}, {sparse: true}),

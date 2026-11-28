@@ -6,6 +6,8 @@ import {config} from '../config.js';
 import {Credential} from '../models/Credential.js';
 import {findOwned} from './owned.js';
 import {healthOf} from '../lib/health.js';
+import {logAction} from '../lib/log.js';
+import {requireUnlock} from '../lib/unlock.js';
 
 export const credentialRoutes = Router();
 
@@ -15,6 +17,7 @@ credentialRoutes.get('/credentials', async (req, res) => {
 
 credentialRoutes.post(
   '/credentials',
+  requireUnlock,
   validate(
     z.object({
       label: z.string().trim().min(1, 'Name this entry').max(80),
@@ -30,6 +33,7 @@ credentialRoutes.post(
       username,
       secret: encrypt(config.key, Buffer.from(password)),
     });
+    await logAction(req.user.sub, 'password.add', {target: label, pin: true});
     res.status(201).json({data: {_id: saved._id, label, username}});
   },
 );
@@ -43,12 +47,15 @@ credentialRoutes.get('/credentials/health', async (req, res) => {
   });
 });
 
-credentialRoutes.get('/credentials/:id/secret', async (req, res) => {
+credentialRoutes.get('/credentials/:id/secret', requireUnlock, async (req, res) => {
   const credential = await findOwned(Credential, req);
+  await logAction(req.user.sub, 'password.open', {target: credential.label, pin: true});
   res.set('cache-control', 'no-store').json({data: {password: decrypt(config.key, credential.secret).toString()}});
 });
 
-credentialRoutes.delete('/credentials/:id', async (req, res) => {
-  await (await findOwned(Credential, req)).deleteOne();
+credentialRoutes.delete('/credentials/:id', requireUnlock, async (req, res) => {
+  const credential = await findOwned(Credential, req);
+  await credential.deleteOne();
+  await logAction(req.user.sub, 'password.delete', {target: credential.label, pin: true});
   res.json({data: {deleted: true}});
 });

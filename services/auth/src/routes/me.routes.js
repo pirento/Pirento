@@ -6,6 +6,7 @@ import {isUsername, passwordProblem} from '@pirento/shared';
 import {MIN_PASSWORD, hashPassword, verifyPassword} from '../lib/password.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 import {User} from '../models/User.js';
+import {Notice} from '../models/Notice.js';
 
 export const meRoutes = Router();
 meRoutes.use('/me', requireAuth);
@@ -98,3 +99,17 @@ meRoutes.patch(
     res.json({data: user});
   },
 );
+
+/** The bell in every dashboard: the latest notices, newest first, with how many are unread. */
+meRoutes.get('/me/notices', async (req, res) => {
+  const [items, unread] = await Promise.all([
+    Notice.find({userId: req.user.sub}).sort({createdAt: -1}).limit(50).lean(),
+    Notice.countDocuments({userId: req.user.sub, readAt: {$exists: false}}),
+  ]);
+  res.json({data: {items, unread}});
+});
+
+meRoutes.post('/me/notices/read', async (req, res) => {
+  await Notice.updateMany({userId: req.user.sub, readAt: {$exists: false}}, {$set: {readAt: new Date()}});
+  res.json({data: {read: true}});
+});

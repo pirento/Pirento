@@ -33,8 +33,8 @@ export function audit(req, action, target, detail = '') {
  * Emails a customer a short notice (sent by the auth service, which knows their address).
  * Never fails the request that caused it: a lost email is logged, not thrown.
  */
-export function notify(userId, {brand = 'Pirento', label, big, note}) {
-  const row = {userId: String(userId), brand, label, big, note};
+export function notify(userId, {brand = 'Pirento', label, big, note, sms = false}) {
+  const row = {userId: String(userId), brand, label, big, note, sms};
   return callService(env('AUTH_URL', 'http://127.0.0.1:4001'), '/internal/notify', row).catch((err) =>
     console.error('notice lost', label, err.message),
   );

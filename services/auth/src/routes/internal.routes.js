@@ -6,6 +6,7 @@ import {TERMS_VERSION} from '@pirento/shared';
 import {conflict, isId, isProduction, requireInternal, validate} from '@pirento/shared/server';
 import {AuditLog} from '../models/AuditLog.js';
 import {User} from '../models/User.js';
+import {Notice} from '../models/Notice.js';
 import {sendNoticeEmail} from '../lib/email.js';
 import {firstPassword, freeUsername} from '../lib/businessAccount.js';
 import {LoginLink} from '../models/LoginLink.js';
@@ -53,15 +54,21 @@ internalRoutes.post(
       label: z.string().max(80),
       big: z.string().max(80),
       note: z.string().max(600),
+      sms: z.boolean().default(false), // also text it to the account's mobile (Vault check-in reminders)
     }),
   ),
   async (req, res) => {
-    const {userId, ...notice} = req.body;
+    const {userId, sms, ...notice} = req.body;
     const user = isId(userId) && (await User.findById(userId));
     const reachable = user && !user.suspended && !user.email.endsWith('.invalid');
     if (reachable) {
-      // Answer now; the mail server's speed is not the caller's problem.
+      // Kept for the dashboard's bell, then sent; the mail server's speed is not the caller's problem.
+      await Notice.create({userId, ...notice});
       sendNoticeEmail(user.email, notice).catch((err) => console.error('notice email failed', err.message));
+      if (sms && user.phone && phoneCodesOn())
+        sendSms(user.phone, `${notice.brand}: ${notice.big}. ${notice.note}`.slice(0, 300)).catch((err) =>
+          console.error('notice sms failed', err.message),
+        );
     }
     res.json({data: {sent: Boolean(reachable)}});
   },
@@ -170,6 +177,37 @@ internalRoutes.post(
   async (req, res) => {
     await checkCode(codeKey(req.body), req.body.code);
     res.json({data: {ok: true}});
+  },
+);
+
+/** A plain text to any +91 mobile (a Vault release link to a nominee, who may have no account). */
+internalRoutes.post(
+  '/internal/sms',
+  validate(z.object({phone: z.string().regex(/^\+91\d{10}$/), text: z.string().min(1).max(300)})),
+  async (req, res) => {
+    await sendSms(req.body.phone, req.body.text);
+    res.json({data: {sent: true}});
+  },
+);
+
+/** A code to any +91 mobile, for someone with no Pirento account yet (a Vault nominee). Checked with codes/check. */
+internalRoutes.post(
+  '/internal/codes/send-to',
+  validate(
+    z.object({
+      purpose: z.string().regex(/^[\w-]{6,64}$/),
+      phone: z.string().regex(/^\+91\d{10}$/),
+      brand: z.string().max(60),
+    }),
+  ),
+  async (req, res) => {
+    if (!phoneCodesOn()) throw conflict('NO_SMS', 'Mobile codes are not set up yet');
+    const sent = await sendKeyedCode(
+      codeKey({purpose: req.body.purpose, channel: 'mobile'}),
+      {phone: req.body.phone},
+      req.body.brand,
+    );
+    res.json({data: {...sent, sentTo: `+91 ••••• •${req.body.phone.slice(-4)}`}});
   },
 );
 

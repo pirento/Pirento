@@ -3,6 +3,7 @@ import {callService, conflict} from '@pirento/shared/server';
 import {config} from '../config.js';
 import {clearFailures} from './backoff.js';
 import {endAllSessions} from './session.js';
+import {Notice} from '../models/Notice.js';
 
 /**
  * Deletes an account across the ecosystem. Every service that keeps personal
@@ -29,5 +30,6 @@ export async function forgetUser(user) {
   user.suspended = true;
   await user.save();
   await endAllSessions(user._id);
+  await Notice.deleteMany({userId: String(user._id)});
   return user;
 }

@@ -6,6 +6,8 @@ import {config} from '../config.js';
 import {VaultFile, WITHOUT_BYTES} from '../models/VaultFile.js';
 import {findOwned} from './owned.js';
 import {giveRoom, takeRoom} from '../lib/quota.js';
+import {logAction} from '../lib/log.js';
+import {requireUnlock} from '../lib/unlock.js';
 
 export const fileRoutes = Router();
 
@@ -19,6 +21,7 @@ fileRoutes.get('/files', async (req, res) => {
 // never mistaken for a JSON body. The real type travels in x-file-type.
 fileRoutes.post(
   '/files',
+  requireUnlock,
   express.raw({type: 'application/octet-stream', limit: config.maxFileBytes}),
   async (req, res) => {
     let name = '';
@@ -47,13 +50,15 @@ fileRoutes.post(
       await giveRoom(req.user.sub, req.body.length);
       throw err;
     }
+    await logAction(req.user.sub, 'file.add', {target: name, pin: true});
     const {_id, size, type, createdAt} = file;
     res.status(201).json({data: {_id, name, size, type, createdAt}});
   },
 );
 
-fileRoutes.get('/files/:id', async (req, res) => {
+fileRoutes.get('/files/:id', requireUnlock, async (req, res) => {
   const file = await findOwned(VaultFile, req);
+  await logAction(req.user.sub, 'file.open', {target: file.name, pin: true});
   res.set({
     // Always a download, never rendered: an uploaded HTML file must not run on our origin.
     'content-type': 'application/octet-stream',
@@ -63,11 +68,14 @@ fileRoutes.get('/files/:id', async (req, res) => {
   res.send(await openFile(config.key, file));
 });
 
-fileRoutes.delete('/files/:id', async (req, res) => {
+fileRoutes.delete('/files/:id', requireUnlock, async (req, res) => {
   const file = await findOwned(VaultFile, req, WITHOUT_BYTES);
   // Room comes back only for the request that actually removed it, so a double delete gives it back once.
   const {deletedCount} = await VaultFile.deleteOne({_id: file._id});
-  if (deletedCount) await Promise.all([giveRoom(req.user.sub, file.size), dropFiles([file])]);
+  if (deletedCount) {
+    await Promise.all([giveRoom(req.user.sub, file.size), dropFiles([file])]);
+    await logAction(req.user.sub, 'file.delete', {target: file.name, pin: true});
+  }
   res.json({data: {deleted: true}});
 });
 

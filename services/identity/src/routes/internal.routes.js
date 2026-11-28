@@ -4,7 +4,7 @@ import {nextStep} from '../lib/reminders.js';
 import {z} from 'zod';
 import {notFound, requireInternal, validate} from '@pirento/shared/server';
 import {Identity} from '../models/Identity.js';
-import {checkPin} from '../lib/pin.js';
+import {checkOwnPin, checkPin} from '../lib/pin.js';
 import {KycVideo} from '../models/KycVideo.js';
 import {ApiKey} from '../models/ApiKey.js';
 import {Business} from '../models/Business.js';
@@ -78,6 +78,35 @@ internalRoutes.post(
   async (req, res) => {
     const doc = await checkPin(req.body.bharatId, req.body.pin, req.body.dob);
     res.json({data: {userId: doc.userId}});
+  },
+);
+
+/** Pirento Vault: confirms an action with the account's own Bharat ID PIN (same lockout as signing in). */
+internalRoutes.post(
+  '/internal/pin-verify',
+  validate(z.object({userId: z.string().min(1).max(40), pin: z.string().max(6)})),
+  async (req, res) => {
+    const doc = await checkOwnPin(req.body.userId, req.body.pin);
+    res.json({data: {ok: true, bharatId: doc.bharatId}});
+  },
+);
+
+/** Pirento Vault: the nominee and emergency contact from the account's issued Bharat ID, to release to and to call. */
+internalRoutes.post(
+  '/internal/vault-contacts',
+  validate(z.object({userId: z.string().min(1).max(40)})),
+  async (req, res) => {
+    const doc = await Identity.findOne({userId: req.body.userId, status: 'approved'}).lean();
+    if (!doc) throw notFound('No issued Bharat ID for this account');
+    const n = doc.sections?.nominee ?? {};
+    res.json({
+      data: {
+        bharatId: doc.bharatId,
+        name: doc.sections?.personal?.fullName ?? '',
+        nominee: {name: n.nomineeName ?? '', relation: n.nomineeRelation ?? '', mobile: n.nomineeMobile ?? ''},
+        emergency: {name: n.emergencyName ?? '', mobile: n.emergencyMobile ?? ''},
+      },
+    });
   },
 );
 

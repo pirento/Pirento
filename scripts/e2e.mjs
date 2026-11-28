@@ -37,6 +37,7 @@ const intake = {
 
 const user = await login(`u${Date.now()}@example.com`);
 const boss = await login('boss@example.com');
+let vaultWrongUnlock, vaultUnlock; // taken in the Bharat ID block, before its PIN lockout test
 
 check(
   'bad intake rejected',
@@ -1023,6 +1024,10 @@ check(
     (await call('/identity/business/me', {token: user})).data?.prices.verify === 0,
   );
 
+  // Pirento Vault unlocks with this same PIN: tried here, before the lockout below. The unlock lasts ten minutes.
+  vaultWrongUnlock = await call('/vault/unlock', {method: 'POST', token: user, body: {pin: '111111'}});
+  vaultUnlock = await call('/vault/unlock', {method: 'POST', token: user, body: {pin: '482916'}});
+
   // Last, as it locks this PIN for 15 minutes: five wrong tries in a row lock it, even for the right PIN.
   for (let i = 0; i < 5; i++) await pinLogin('999888');
   check('the PIN locks after five wrong tries', (await pinLogin('482916')).error?.code === 'PIN_LOCKED');
@@ -1096,9 +1101,23 @@ check(
 check('fake cert 404', (await call('/learning/verify/PC-00000000')).status === 404);
 
 // ── Vault ───────────────────────────────────────────────────────────────
+check(
+  'a locked vault will not take a file or show a password',
+  (await call('/vault/credentials', {method: 'POST', token: user, body: {label: 'x', password: 'y'}})).error?.code ===
+    'VAULT_LOCKED',
+);
+check(
+  'a wrong Bharat ID PIN does not unlock the vault',
+  vaultWrongUnlock.error?.code === 'PIN_WRONG',
+  vaultWrongUnlock,
+);
+const unlocked = vaultUnlock.data;
+check('the Bharat ID PIN unlocks the vault for a while', Boolean(unlocked?.unlock), vaultUnlock);
+const U = {'x-vault-unlock': unlocked.unlock};
 const up = await fetch(B + '/vault/files', {
   method: 'POST',
   headers: {
+    ...U,
     authorization: `Bearer ${user}`,
     'content-type': 'application/octet-stream',
     'x-file-name': encodeURIComponent('नोट.json'),
@@ -1108,7 +1127,7 @@ const up = await fetch(B + '/vault/files', {
 });
 const file = (await up.json()).data;
 check('upload', up.status === 201 && file.size === 18, file);
-const dl = await fetch(B + `/vault/files/${file._id}`, {headers: {authorization: `Bearer ${user}`}});
+const dl = await fetch(B + `/vault/files/${file._id}`, {headers: {...U, authorization: `Bearer ${user}`}});
 check(
   'download decrypts',
   (await dl.text()) === '{"secret":"hello"}' && /attachment/.test(dl.headers.get('content-disposition')),
@@ -1124,6 +1143,7 @@ const cred = (
   await call('/vault/credentials', {
     method: 'POST',
     token: user,
+    headers: U,
     body: {label: 'Bank', username: 'asha', password: 'p@ss'},
   })
 ).data;
@@ -1131,7 +1151,7 @@ const list2 = (await call('/vault/credentials', {token: user})).data;
 check('password not in list', list2.length === 1 && !JSON.stringify(list2).includes('p@ss'));
 check(
   'reveal password',
-  (await call(`/vault/credentials/${cred._id}/secret`, {token: user})).data?.password === 'p@ss',
+  (await call(`/vault/credentials/${cred._id}/secret`, {token: user, headers: U})).data?.password === 'p@ss',
 );
 const labelled = (
   await call(`/vault/files/${file._id}`, {method: 'PATCH', token: user, body: {label: 'PAN', expiresOn: '2030-01-31'}})
@@ -1152,19 +1172,24 @@ check(
     (await call(`/vault/files/${file._id}`, {method: 'PATCH', token: boss, body: {label: 'PAN'}})).status,
   ),
 );
-check('delete file', (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).data?.deleted);
+check(
+  'delete file',
+  (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user, headers: U})).data?.deleted,
+);
 check(
   'a file deleted twice gives its space back once',
-  (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user})).status === 404,
+  (await call(`/vault/files/${file._id}`, {method: 'DELETE', token: user, headers: U})).status === 404,
 );
 await call('/vault/credentials', {
   method: 'POST',
   token: user,
+  headers: U,
   body: {label: 'Mail', username: 'asha', password: 'p@ss'},
 });
 await call('/vault/credentials', {
   method: 'POST',
   token: user,
+  headers: U,
   body: {label: 'Shop', username: 'asha', password: 'Monsoon-Train-42'},
 });
 const health = await call('/vault/credentials/health', {token: user});
@@ -1183,6 +1208,210 @@ check(
     await call('/vault/credentials/health', {token: boss}),
   ),
 );
+
+// Vault records and the legacy plan: a record kept sealed, the nominee from Bharat ID, the check-in reminders, the
+// team's call, the certificate, the release, and the nominee opening only what was released.
+check(
+  'a vault record needs the unlock',
+  (await call('/vault/records', {method: 'POST', token: user, body: {kind: 'note', title: 'x', fields: {text: 'y'}}}))
+    .error?.code === 'VAULT_LOCKED',
+);
+check(
+  'a vault record is checked against its kind',
+  (
+    await call('/vault/records', {
+      method: 'POST',
+      token: user,
+      headers: U,
+      body: {kind: 'bank', title: 'SBI', fields: {balance: 'lots'}},
+    })
+  ).status === 400,
+);
+const bankRec = (
+  await call('/vault/records', {
+    method: 'POST',
+    token: user,
+    headers: U,
+    body: {
+      kind: 'bank',
+      title: 'SBI savings',
+      fields: {bank: 'SBI', accountNo: '00012345678', balance: '25000'},
+      release: true,
+    },
+  })
+).data;
+const policyRec = (
+  await call('/vault/records', {
+    method: 'POST',
+    token: user,
+    headers: U,
+    body: {
+      kind: 'insurance',
+      title: 'Term plan',
+      fields: {insurer: 'LIC', policyNo: 'P-778899', cover: '5000000'},
+      release: true,
+    },
+  })
+).data;
+const privateRec = (
+  await call('/vault/records', {
+    method: 'POST',
+    token: user,
+    headers: U,
+    body: {kind: 'note', title: 'Private diary', fields: {text: 'only mine'}},
+  })
+).data;
+const recList = (await call('/vault/records', {token: user})).data;
+check(
+  'records list titles, never their fields',
+  recList?.length === 3 && !JSON.stringify(recList).includes('00012345678'),
+  recList,
+);
+check(
+  'a record opens with the unlock',
+  (await call(`/vault/records/${bankRec._id}`, {token: user, headers: U})).data?.fields.accountNo === '00012345678',
+);
+check(
+  "someone else's record stays closed",
+  [403, 404].includes((await call(`/vault/records/${bankRec._id}`, {token: boss, headers: U})).status),
+);
+check(
+  'a password can be set to go to the nominee',
+  (
+    await call(`/vault/credentials/${cred._id}/release`, {
+      method: 'PATCH',
+      token: user,
+      headers: U,
+      body: {release: true},
+    })
+  ).data?.release === true,
+);
+const legacy0 = (await call('/vault/legacy', {token: user})).data;
+check(
+  'the nominee comes from Bharat ID, mobile masked',
+  legacy0?.contacts.nominee.mobile === '••••• •0001' && legacy0.plan === null && legacy0.releasing.records === 2,
+  legacy0,
+);
+check(
+  'the legacy plan needs the unlock',
+  (await call('/vault/legacy', {method: 'POST', token: user, body: {consent: true}})).error?.code === 'VAULT_LOCKED',
+);
+const planOn = (await call('/vault/legacy', {method: 'POST', token: user, headers: U, body: {consent: true}})).data;
+check('the legacy plan is on', planOn?.stage === 'active', planOn);
+const VAULT = process.env.VAULT_URL ?? 'http://127.0.0.1:4007';
+const runCheckins = (monthsAhead) =>
+  fetch(VAULT + '/internal/checkins', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-internal-key': process.env.INTERNAL_KEY ?? 'dev-only-internal-key',
+    },
+    body: JSON.stringify({at: new Date(Date.now() + monthsAhead * 30 * 86_400_000 + 3_600_000).toISOString()}),
+  });
+const caseList = async () => (await call('/vault/staff/cases', {token: boss})).data?.items ?? [];
+check(
+  'an active plan is not in the team queue',
+  !(await caseList()).some((c) => c.userId === legacy0?.plan?.userId && c.stage !== 'active'),
+);
+await runCheckins(4);
+check('four quiet months: the first reminder', (await call('/vault/legacy', {token: user})).data?.plan.reminders === 1);
+await runCheckins(5);
+await runCheckins(6);
+const after6 = (await call('/vault/legacy', {token: user})).data?.plan;
+check('a reminder in the 4th, 5th and 6th month', after6?.stage === 'reminding' && after6.reminders === 3, after6);
+await runCheckins(7);
+const queued = (await caseList()).find((c) => c.stage === 'call-nominee');
+check('then the case waits for the team to call the nominee', Boolean(queued), await caseList());
+const caseId = queued?._id;
+check('a customer cannot open the team queue', (await call('/vault/staff/cases', {token: user})).status === 403);
+const caseView = (await call(`/vault/staff/cases/${caseId}`, {token: boss})).data;
+check(
+  'the team sees who to call, never what is inside',
+  caseView?.contacts.nominee.mobile === '9876500001' &&
+    caseView.policies.length === 0 &&
+    !JSON.stringify(caseView).includes('00012345678'),
+  caseView,
+);
+check(
+  'no certificate before the nominee is reached',
+  (
+    await call(`/vault/staff/cases/${caseId}/certificate`, {
+      method: 'POST',
+      token: boss,
+      body: {number: 'DC-1', issuedBy: 'MCD', date: '2026-01-10'},
+    })
+  ).status === 409,
+);
+check(
+  'a call that reaches the nominee',
+  (
+    await call(`/vault/staff/cases/${caseId}/call`, {
+      method: 'POST',
+      token: boss,
+      body: {outcome: 'reached', note: 'Spoke to Rahul'},
+    })
+  ).data?.stage === 'nominee-reached',
+);
+check(
+  'the death certificate, checked by hand',
+  (
+    await call(`/vault/staff/cases/${caseId}/certificate`, {
+      method: 'POST',
+      token: boss,
+      body: {number: 'DC-2026-0001', issuedBy: 'Registrar of Births and Deaths, Delhi', date: '2026-01-10'},
+    })
+  ).data?.stage === 'verified',
+);
+const released = (await call(`/vault/staff/cases/${caseId}/release`, {method: 'POST', token: boss})).data;
+check(
+  'a superadmin releases it to the nominee',
+  released?.stage === 'released' && /\/vault\/release\//.test(released.link),
+  released,
+);
+const relToken = released?.link.split('/vault/release/')[1];
+check(
+  'the release link needs the code from the nominee mobile',
+  (await call(`/vault/release/${relToken}/open`, {method: 'POST', body: {code: '000000'}})).status >= 400,
+);
+const relCode = (await call(`/vault/release/${relToken}/code`, {method: 'POST'})).data;
+check('a code goes to the nominee mobile', relCode?.sentTo?.endsWith('0001'), relCode);
+const opened = (await call(`/vault/release/${relToken}/open`, {method: 'POST', body: {code: relCode?.devCode}})).data;
+check(
+  'the nominee sees only what was released',
+  opened?.records.length === 2 &&
+    opened.records.some((r) => r.fields.accountNo === '00012345678') &&
+    !JSON.stringify(opened).includes('only mine') &&
+    opened.credentials.some((c) => c.password === 'p@ss') &&
+    opened.owner.bharatId,
+  opened,
+);
+const caseAfter = (await call(`/vault/staff/cases/${caseId}`, {token: boss})).data;
+check(
+  'after release the team sees the policy to help claim',
+  caseAfter?.policies.some((p) => p.insurer === 'LIC' && p.policyNo === 'P-778899') && caseAfter.claims.length === 1,
+  caseAfter,
+);
+check(
+  'the team tracks the insurance claim',
+  (
+    await call(`/vault/staff/cases/${caseId}/claims/${policyRec._id}`, {
+      method: 'PATCH',
+      token: boss,
+      body: {status: 'filed', note: 'Sent to LIC'},
+    })
+  ).data?.status === 'filed',
+);
+const vaultLog = (await call('/vault/log', {token: user})).data;
+check(
+  'every action is in the log, its chain whole',
+  vaultLog?.intact === true &&
+    ['record.add', 'legacy.on', 'reminder', 'certificate.verified', 'released', 'release.open'].every((a) =>
+      vaultLog.items.some((i) => i.action === a),
+    ),
+  vaultLog,
+);
+check('a record kept private never reaches the nominee', !JSON.stringify(opened).includes(String(privateRec?._id)));
+
 const usage = (await call('/ai/usage', {token: user})).data;
 check('AI usage meter', usage?.limit === 30 && usage.used === 0, usage);
 
