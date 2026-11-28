@@ -1,14 +1,16 @@
-// Every picture on the site is used in one place only: the service page template's eight, each product home's two,
+// Every picture on the site is used in one place only: the service page template's eight, each product's home card,
+// each product home's two,
 // the other pages' own, the sign-in panel's and the About page's Foundation picture.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {ART_SCENES, ART_SECTIONS} from '@pirento/shared';
-import {processArt, productArt, productIllustration} from './site.js';
+import {processArt, productArt, productCardArt, productIllustration} from './site.js';
 
 test('no picture is used in two places', () => {
   const used = [
     ...Object.values(ART_SECTIONS),
     ...Object.values(productIllustration),
+    ...Object.values(productCardArt),
     ...Object.values(productArt).flatMap((parts) => Object.values(parts).map((p) => p.scene)),
     ...Object.values(processArt).map((p) => p.scene),
     'signin', // the sign-in panel (features/auth/AuthShell.jsx)
