@@ -4,7 +4,7 @@
 
 // Products and the services they sell
 export {PRODUCTS, getProduct} from './data/products.js';
-export {BRAND, PRODUCT_COLOURS} from './data/brand.js';
+export {BRAND, FOUNDATION_COLOURS, PRODUCT_COLOURS} from './data/brand.js';
 export {LEGAL_CATALOGUE, legalServiceSlug} from './data/legalCatalogue.js';
 export {
   SERVICES,

@@ -1,5 +1,5 @@
 // A deck of family cards in 3D that the page's own scroll plays (GSAP ScrollTrigger): the deck holds in view while
-// each card in turn lifts off the top, and once the last card is in front the page scrolls on. No loop, no box. On a
+// each card in turn is swiped off to the left, and once the last card is in front the page scrolls on. No loop, no box. On a
 // mouse the front card tilts toward the pointer. Under reduced motion the cards simply sit in a grid.
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import gsap from 'gsap';
@@ -50,18 +50,21 @@ function Deck({items, label}) {
   const shown = useRef(0);
 
   /** Lays the deck out for a scroll position `p` (0 = first card in front, count-1 = last). */
-  const render = (p, h) => {
+  const render = (p) => {
     cards.current.forEach((el, i) => {
       if (!el) return;
       const k = i - p;
       if (k < 0) {
-        // Lifting off: up and tipped back, fading as it goes.
+        // Swiped off to the left: turning away and tipping like a card flicked by hand. It stays solid until most of
+        // the way out, so the card behind never shows through it.
         const t = Math.max(k, -1);
-        // It stays solid until most of the way up, so the card behind never shows through it.
         gsap.set(el, {
-          y: t * (h + 160),
+          x: t * (el.offsetWidth * 1.2 + 80),
+          y: -t * 24,
           z: 0,
-          rotationX: -t * 28,
+          rotationX: 0,
+          rotationY: t * 32,
+          rotationZ: t * 10,
           scale: 1,
           autoAlpha: t > -0.7 ? 1 : (1 + t) / 0.3,
           zIndex: count - i,
@@ -71,9 +74,12 @@ function Deck({items, label}) {
         // Waiting: lower, further back, a little smaller and tipped, under a veil.
         const d = Math.min(k, DEPTH);
         gsap.set(el, {
+          x: 0,
           y: d * STEP,
           z: -d * 80,
           rotationX: -d * 5,
+          rotationY: 0,
+          rotationZ: 0,
           scale: 1 - d * 0.06,
           autoAlpha: Math.max(0, Math.min(1, DEPTH - k)),
           zIndex: count - i,
@@ -112,7 +118,7 @@ function Deck({items, label}) {
     if (!height) return undefined;
     const ctx = gsap.context(() => {
       gsap.set(cards.current, {xPercent: -50});
-      render(0, height);
+      render(0);
       trigger.current = ScrollTrigger.create({
         trigger: wrap.current,
         start: 'center center',
@@ -120,7 +126,7 @@ function Deck({items, label}) {
         pin: true,
         // The page wrapper carries a transform (its fade-in), which breaks a fixed pin; a transform pin is unaffected.
         pinType: 'transform',
-        onUpdate: (self) => render(self.progress * (count - 1), height),
+        onUpdate: (self) => render(self.progress * (count - 1)),
       });
     });
     ScrollTrigger.refresh();
@@ -197,7 +203,7 @@ function Deck({items, label}) {
                 cards.current[i] = el;
               }}
               aria-hidden={i !== active}
-              className={`absolute top-0 left-1/2 origin-bottom ${WIDTH}`}
+              className={`absolute top-0 left-1/2 origin-[50%_90%] ${WIDTH}`}
               style={{height: height || undefined, transformStyle: 'preserve-3d'}}
             >
               <div
