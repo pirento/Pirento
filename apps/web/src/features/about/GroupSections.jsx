@@ -39,20 +39,20 @@ export function AboutTeaser({n}) {
     <Section>
       <SectionHeader n={n} label="About us" title={ABOUT.title} intro={ABOUT.intro} />
       <div
-        className="mt-14 grid gap-8 rounded-[22px] border border-rule p-6 md:p-8 lg:grid-cols-12 lg:items-center"
+        className="mt-14 grid gap-8 rounded-[22px] border border-rule p-6 md:p-8 lg:grid-cols-[auto_1fr_auto] lg:items-center"
         data-reveal
       >
-        <ul className="flex flex-wrap gap-y-3 -space-x-3 lg:col-span-5" aria-label="Our people">
+        <ul className="flex flex-wrap gap-y-3 -space-x-1.5 sm:-space-x-3" aria-label="Our people">
           {people.map((p) => (
             <li key={p.name} title={p.name} className="rounded-full ring-4 ring-paper">
-              <Avatar person={p} className="size-14 text-sm" />
+              <Avatar person={p} className="size-10 text-xs sm:size-14 sm:text-sm" />
               <span className="sr-only">{p.name}</span>
             </li>
           ))}
         </ul>
-        <p className="text-sm leading-relaxed text-muted lg:col-span-5">{PARTNER.body}</p>
-        <div className="lg:col-span-2 lg:justify-self-end">
-          <Button to="/about" variant="outline">
+        <p className="text-sm leading-relaxed text-muted">{PARTNER.body}</p>
+        <div>
+          <Button to="/about" variant="outline" className="whitespace-nowrap">
             Meet the team
           </Button>
         </div>

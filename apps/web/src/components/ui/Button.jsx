@@ -21,11 +21,12 @@ export function Button({to, href, variant = 'primary', icon: Icon = ArrowUpRight
   };
   const onLeave = () => (ref.current.style.transform = '');
   const cls = `group/btn relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-6 py-3.5 text-[0.95rem] font-medium transition-[color,border-color,transform] duration-500 ease-ui disabled:opacity-50 ${variants[variant]} ${className}`;
+  // The wipe waits a hair past 100% below: at exactly 100% the rounded edge shows a sliver of it under the border.
   const inner = (
     <>
       <span
         aria-hidden
-        className="absolute inset-0 translate-y-full rounded-full bg-(--wipe) transition-transform duration-500 ease-ui group-hover/btn:translate-y-0"
+        className="absolute inset-0 translate-y-[105%] rounded-full bg-(--wipe) transition-transform duration-500 ease-ui group-hover/btn:translate-y-0"
       />
       <span className="relative">{children}</span>
       {Icon && (

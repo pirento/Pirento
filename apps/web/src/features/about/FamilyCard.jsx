@@ -29,9 +29,9 @@ export function FamilyCard({item, index, count, front}) {
         <h3 className={`text-xl leading-tight ${item.meta ? 'mt-1.5' : ''}`}>{item.name}</h3>
         {item.tagline && <p className="mt-1 text-xs text-muted">{item.tagline}</p>}
         <p className="mt-2.5 text-sm leading-relaxed">{item.body}</p>
-        <div className="mt-auto flex items-center justify-between gap-3 pt-4">
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-3 pt-4">
           {item.lead ? (
-            <span className="flex items-center gap-2 text-xs">
+            <span className="flex items-center gap-2 text-xs whitespace-nowrap">
               <Avatar person={item.lead} className="size-7 text-[0.6rem]" />
               <span>
                 <span className="block font-medium">{item.lead.name}</span>
@@ -42,7 +42,7 @@ export function FamilyCard({item, index, count, front}) {
             <span className="text-xs text-muted">{!item.href && item.domain}</span>
           )}
           {item.href && (
-            <span className="flex items-center gap-2 text-xs font-medium">
+            <span className="flex items-center gap-2 text-xs font-medium whitespace-nowrap">
               {item.domain ?? item.linkLabel}
               <span
                 aria-hidden
