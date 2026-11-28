@@ -15,7 +15,7 @@ test('no picture is used in two places', () => {
     ...Object.values(productArt).flatMap((parts) => Object.values(parts).map((p) => p.scene)),
     ...Object.values(processArt).map((p) => p.scene),
     'signin', // the sign-in panel (features/auth/AuthShell.jsx)
-    'leaf', // the Foundation in the family rows on the About page (features/about/FamilyRows.jsx)
+    'leaf', // the Foundation's panel on the About page (features/about/FamilyRows.jsx → FoundationPanel)
   ];
   const twice = used.filter((s, i) => used.indexOf(s) !== i);
   assert.deepEqual(twice, [], `used more than once: ${twice.join(', ')}`);
