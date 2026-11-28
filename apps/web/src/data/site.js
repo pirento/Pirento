@@ -174,7 +174,7 @@ export const home = {
   },
   marquee: 'Ten products, one account',
   // Under each family stack: how to move it.
-  stackHint: 'Keep scrolling for the next card',
+  stackHint: 'Swipe left for the next card',
   ecosystem: {
     label: 'Ecosystem',
     title: 'Ten products, / grouped by need.',

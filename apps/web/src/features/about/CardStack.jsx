@@ -1,19 +1,18 @@
-// A deck of family cards in 3D that the page's own scroll plays (GSAP ScrollTrigger): the deck holds in view while
-// each card in turn is swiped off to the left, and once the last card is in front the page scrolls on. No loop, no box. On a
-// mouse the front card tilts toward the pointer. Under reduced motion the cards simply sit in a grid.
+// A deck of family cards in 3D (GSAP): swipe the front card left and it turns away off the deck, bringing the next
+// one forward; swipe right to bring it back. It stops at the last card (no loop) and never holds the page's scroll. The
+// names beside it and ← → move it too; on a mouse the front card tilts toward the pointer. Under reduced motion the
+// cards simply sit in a grid.
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import gsap from 'gsap';
-import {ScrollTrigger} from 'gsap/ScrollTrigger';
-import {ArrowDown} from 'lucide-react';
+import {ArrowLeft} from 'lucide-react';
 import {home} from '../../data/site';
-import {lenis, reducedMotion} from '../../lib/motion';
+import {reducedMotion} from '../../lib/motion';
 import {FamilyCard} from './FamilyCard';
-
-gsap.registerPlugin(ScrollTrigger);
 
 const STEP = 22; // px each card behind sits lower
 const DEPTH = 3; // cards seen behind the front one
-const PER_CARD = 0.7; // share of the viewport's height scrolled per card
+const SLOP = 8; // px a pointer moves before it counts as a swipe or a scroll
+const THROW = 50; // px sideways (or a quick flick) that moves to the next card
 const WIDTH = 'w-[min(17rem,74vw)] sm:w-[19rem] lg:w-[21rem]';
 // A soft light where the pointer is, so the tilt reads as a real card (theme colours only).
 const LIGHT =
@@ -41,15 +40,16 @@ function Deck({items, label}) {
   const count = items.length;
   const [active, setActive] = useState(0);
   const [height, setHeight] = useState(0);
-  const wrap = useRef(null);
   const stage = useRef(null);
   const cards = useRef([]);
   const tilts = useRef([]);
   const veils = useRef([]);
-  const trigger = useRef(null);
+  const pos = useRef({p: 0}); // which card is in front, as a float while moving
+  const drag = useRef(null);
+  const moved = useRef(false);
   const shown = useRef(0);
 
-  /** Lays the deck out for a scroll position `p` (0 = first card in front, count-1 = last). */
+  /** Lays the deck out for a position `p` (0 = first card in front, count-1 = last; between while moving). */
   const render = (p) => {
     cards.current.forEach((el, i) => {
       if (!el) return;
@@ -113,41 +113,76 @@ function Deck({items, label}) {
     };
   }, []);
 
-  // The scroll plays the deck: pinned in the middle of the screen for one stretch per card, then let go.
+  // Placed once the cards are measured, and again whenever the width changes.
   useLayoutEffect(() => {
-    if (!height) return undefined;
-    const ctx = gsap.context(() => {
-      gsap.set(cards.current, {xPercent: -50});
-      render(0);
-      trigger.current = ScrollTrigger.create({
-        trigger: wrap.current,
-        start: 'center center',
-        end: () => `+=${(count - 1) * window.innerHeight * PER_CARD}`,
-        pin: true,
-        // The page wrapper carries a transform (its fade-in), which breaks a fixed pin; a transform pin is unaffected.
-        pinType: 'transform',
-        onUpdate: (self) => render(self.progress * (count - 1)),
-      });
-    });
-    ScrollTrigger.refresh();
-    return () => {
-      trigger.current = null;
-      ctx.revert();
-    };
-  }, [height, count]);
+    if (!height) return;
+    gsap.set(cards.current, {xPercent: -50});
+    render(pos.current.p);
+  });
 
-  /** Scrolls the page to where card `i` is in front. */
-  const goTo = (i) => {
-    const st = trigger.current;
-    if (!st) return;
-    const y = st.start + ((st.end - st.start) * i) / Math.max(1, count - 1) + 1;
-    if (lenis) lenis.scrollTo(y, {duration: 1});
-    else window.scrollTo({top: y, behavior: 'smooth'});
+  /** Brings card `i` to the front (no wrapping: it stops at the first and the last). */
+  const go = (i) => {
+    const to = Math.max(0, Math.min(count - 1, i));
+    gsap.killTweensOf(pos.current);
+    if (reducedMotion()) {
+      pos.current.p = to;
+      render(to);
+      return;
+    }
+    gsap.to(pos.current, {p: to, duration: 0.6, ease: 'power3.out', onUpdate: () => render(pos.current.p)});
+  };
+
+  // A sideways swipe moves the deck; an up-and-down one is left to the page, so scrolling never gets stuck here.
+  const onPointerDown = (e) => {
+    if (e.button > 0) return;
+    gsap.killTweensOf(pos.current);
+    moved.current = false;
+    const d = {
+      x: e.clientX,
+      y: e.clientY,
+      p0: Math.round(pos.current.p),
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      v: 0,
+      dx: 0,
+    };
+    drag.current = d;
+    const span = (cards.current[0]?.offsetWidth ?? 300) * 1.2 + 80;
+    const move = (ev) => {
+      d.dx = ev.clientX - d.x;
+      const dy = ev.clientY - d.y;
+      if (!moved.current) {
+        if (Math.abs(dy) > SLOP && Math.abs(dy) > Math.abs(d.dx)) return up(); // a scroll, not a swipe
+        if (Math.abs(d.dx) < SLOP) return;
+        moved.current = true;
+      }
+      d.v = (ev.clientX - d.lastX) / Math.max(1, ev.timeStamp - d.lastT);
+      d.lastX = ev.clientX;
+      d.lastT = ev.timeStamp;
+      let p = d.p0 - d.dx / span;
+      // Past the first or the last card the deck only gives a little.
+      if (p < 0) p *= 0.25;
+      if (p > count - 1) p = count - 1 + (p - count + 1) * 0.25;
+      pos.current.p = p;
+      render(p);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      drag.current = null;
+      if (!moved.current) return;
+      const next = d.dx < -THROW || d.v < -0.4 ? 1 : d.dx > THROW || d.v > 0.4 ? -1 : 0;
+      go(d.p0 + next);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
 
   // On a mouse, the front card tilts toward the pointer and the light follows it.
   const onPointerMove = (e) => {
-    if (e.pointerType !== 'mouse') return;
+    if (e.pointerType !== 'mouse' || drag.current) return;
     const el = tilts.current[active];
     if (!el) return;
     const r = el.getBoundingClientRect();
@@ -162,13 +197,13 @@ function Deck({items, label}) {
   };
 
   return (
-    <div ref={wrap} className="mt-16 grid items-center gap-12 lg:grid-cols-12">
+    <div className="mt-16 grid items-center gap-12 lg:grid-cols-12">
       <ol className="hidden lg:col-span-5 lg:block" aria-label={label}>
         {items.map((item, i) => (
           <li key={item.name}>
             <button
               type="button"
-              onClick={() => goTo(i)}
+              onClick={() => go(i)}
               aria-current={i === active || undefined}
               className={`flex w-full items-center gap-4 border-b border-rule py-3.5 text-left transition-colors duration-500 ${
                 i === active ? 'text-ink' : 'text-muted hover:text-ink'
@@ -191,9 +226,18 @@ function Deck({items, label}) {
           role="region"
           aria-roledescription="carousel"
           aria-label={label}
+          // Keys reach here from the card in front, which holds the focus.
+          onKeyDown={(e) => {
+            const by = {ArrowLeft: 1, ArrowRight: -1}[e.key];
+            if (!by) return;
+            e.preventDefault();
+            go(Math.round(pos.current.p) + by);
+          }}
+          onDragStart={(e) => e.preventDefault()}
+          onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
-          className="group/stage relative"
+          className="group/stage relative cursor-grab touch-pan-y select-none active:cursor-grabbing"
           style={{perspective: '1400px', height: height ? height + DEPTH * STEP + 8 : undefined}}
         >
           {items.map((item, i) => (
@@ -203,6 +247,14 @@ function Deck({items, label}) {
                 cards.current[i] = el;
               }}
               aria-hidden={i !== active}
+              // A swipe never opens a card; a card behind comes to the front instead of opening.
+              onClickCapture={(e) => {
+                if (moved.current || i !== active) {
+                  e.preventDefault();
+                  if (!moved.current) go(i);
+                }
+                moved.current = false;
+              }}
               className={`absolute top-0 left-1/2 origin-[50%_90%] ${WIDTH}`}
               style={{height: height || undefined, transformStyle: 'preserve-3d'}}
             >
@@ -237,7 +289,7 @@ function Deck({items, label}) {
           </span>
           <span aria-hidden className="h-px w-8 bg-rule" />
           <span className="flex items-center gap-1.5">
-            <ArrowDown aria-hidden className="size-3.5" />
+            <ArrowLeft aria-hidden className="size-3.5" />
             {home.stackHint}
           </span>
         </div>
