@@ -1,9 +1,9 @@
-// Home: the company's three ventures, the businesses alongside it, and a short "about us" that leads to /about.
+// Home: the company's three ventures and the businesses alongside it, each as a deck of cards, and a short "about us" that leads to /about.
 import {Button} from '../../components/ui/Button';
 import {Section, SectionHeader} from '../../components/ui/Heading';
 import {ABOUT, ALONGSIDE, COMPANY, PARTNER, PEOPLE, VENTURES} from '../../data/group';
 import {Avatar} from './Avatar';
-import {OrgCard} from './OrgCard';
+import {CardStack} from './CardStack';
 
 export function VenturesSection({n}) {
   return (
@@ -14,11 +14,7 @@ export function VenturesSection({n}) {
         title={`Built with / ${COMPANY.short}.`}
         intro={`Three businesses run with ${COMPANY.name}, beside the Pirento products.`}
       />
-      <div className="mt-16 grid gap-4 md:grid-cols-3">
-        {VENTURES.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
+      <CardStack items={VENTURES.map((v) => ({...v, lead: PEOPLE[v.lead]}))} label="Ventures" />
     </Section>
   );
 }
@@ -32,11 +28,7 @@ export function AlongsideSection({n}) {
         title="Close to us, / run on their own."
         intro="A family business and a charitable trust that share our people, not our company."
       />
-      <div className="mt-16 grid gap-4 md:grid-cols-2">
-        {ALONGSIDE.map((v) => (
-          <OrgCard key={v.name} item={v} />
-        ))}
-      </div>
+      <CardStack items={ALONGSIDE.map((a) => ({...a, meta: a.note}))} label="Alongside" />
     </Section>
   );
 }

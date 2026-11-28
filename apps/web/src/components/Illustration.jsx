@@ -4,6 +4,7 @@ import {PROCESS_SCENES} from './illustrations/process';
 import {PRODUCT_SCENES} from './illustrations/products';
 import {JOURNEY_SCENES} from './illustrations/journeys';
 import {SPOT_SCENES} from './illustrations/spots';
+import {FAMILY_SCENES} from './illustrations/family';
 
 const S = {fill: 'none', stroke: 'var(--ink)', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round'};
 const card = {fill: 'var(--paper)', stroke: 'var(--ink)', strokeWidth: 2};
@@ -151,6 +152,7 @@ export function Illustration({name, className = ''}) {
           PRODUCT_SCENES[name] ??
           JOURNEY_SCENES[name] ??
           SPOT_SCENES[name] ??
+          FAMILY_SCENES[name] ??
           scenes.ecosystem}
       </svg>
     </div>
