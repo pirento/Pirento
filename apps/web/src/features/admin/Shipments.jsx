@@ -119,7 +119,7 @@ function FixForm({s, onDone}) {
   );
 }
 
-function Row({s, onChange}) {
+function Row({s, onChange, picked, onPick}) {
   const [error, setError] = useState('');
   const [fixing, setFixing] = useState(false);
   const run = async (path) => {
@@ -135,15 +135,27 @@ function Row({s, onChange}) {
   return (
     <details className="border-b border-rule">
       <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-4 py-5 [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0">
-          <span className="block font-medium">
-            {s.auto && <Sparkles aria-label="Made automatically" className="mr-1 inline size-3.5" />}#{s.shipmentNo} ·{' '}
-            {s.to?.name}
-            {s.orderNo && <span className="text-muted"> · order #{s.orderNo}</span>}
-          </span>
-          <span className="block text-sm text-muted">
-            {s.awb ? `AWB ${s.awb}` : 'No waybill yet'} · {s.to?.pincode} · {formatDate(s.createdAt)}
-            {last && ` · ${last.text}${last.place ? `, ${last.place}` : ''}`}
+        <span className="flex min-w-0 items-start gap-3">
+          {/* Its own click: ticking a parcel for printing does not open the row. */}
+          <input
+            type="checkbox"
+            checked={picked}
+            onClick={(e) => e.stopPropagation()}
+            onChange={() => onPick(s._id)}
+            aria-label={`Choose parcel ${s.shipmentNo} to print`}
+            className="mt-1 size-4 shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="block font-medium">
+              {s.auto && <Sparkles aria-label="Made automatically" className="mr-1 inline size-3.5" />}#{s.shipmentNo} ·{' '}
+              {s.to?.name}
+              {s.orderNo && <span className="text-muted"> · order #{s.orderNo}</span>}
+            </span>
+            <span className="block text-sm text-muted">
+              {s.awb ? `AWB ${s.awb}` : 'No waybill yet'} · {s.to?.pincode} · {formatDate(s.createdAt)}
+              {last && ` · ${last.text}${last.place ? `, ${last.place}` : ''}`}
+              {s.printedAt && ` · label printed ${formatDate(s.printedAt)}`}
+            </span>
           </span>
         </span>
         <Tag tone={['failed', 'returned', 'created'].includes(s.status) ? 'accent' : 'rule'}>{STATUS[s.status]}</Tag>
@@ -231,6 +243,8 @@ export function Shipments() {
   const [status, setStatus] = useState('');
   const [review, setReview] = useState(false);
   const [q, setQ] = useState('');
+  const [picked, setPicked] = useState([]);
+  const pick = (id) => setPicked((x) => (x.includes(id) ? x.filter((y) => y !== id) : [...x, id].slice(-50)));
   const list = useApi(
     tab === 'parcels'
       ? `/orders/staff/shipments?status=${status}&review=${review ? 1 : 0}&q=${encodeURIComponent(q)}`
@@ -301,9 +315,33 @@ export function Shipments() {
               </div>
             </div>
             {d?.items.length === 0 && <p className="body mt-8">No parcels here.</p>}
-            <div className="mt-6 border-t border-rule">
+            {d?.items.length > 0 && (
+              <div className="mt-6 flex flex-wrap items-center gap-3 text-sm">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPicked(
+                      picked.length ? [] : d.items.filter((x) => x.awb && x.status === 'booked').map((x) => x._id),
+                    )
+                  }
+                  className="underline underline-offset-4"
+                >
+                  {picked.length ? 'Clear the choice' : 'Choose every booked parcel not yet moving'}
+                </button>
+                {picked.length > 0 && (
+                  <Link
+                    to={`/admin/shipments/print?ids=${picked.join(',')}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-paper"
+                  >
+                    <Printer aria-hidden className="size-4" /> Print {picked.length} label
+                    {picked.length === 1 ? '' : 's'} and invoices
+                  </Link>
+                )}
+              </div>
+            )}
+            <div className="mt-4 border-t border-rule">
               {d?.items.map((s) => (
-                <Row key={s._id} s={s} onChange={list.reload} />
+                <Row key={s._id} s={s} onChange={list.reload} picked={picked.includes(s._id)} onPick={pick} />
               ))}
             </div>
           </div>

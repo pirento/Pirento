@@ -1987,6 +1987,14 @@ const completeReferred = async () => {
     print,
   );
 
+  const bulk = (await call(`/orders/staff/shipments/print?ids=${parcel?._id},nope,${parcel?._id}`, {token: boss})).data;
+  check('several parcels print in one go, bad ids skipped', bulk?.length === 2 && bulk[0].order, bulk);
+  await call('/orders/staff/shipments/printed', {method: 'POST', token: boss, body: {ids: [parcel?._id]}});
+  check(
+    'a printed label is marked',
+    (await call(`/orders/staff/shipments?q=${box.orderNo}`, {token: boss})).data?.items[0].printedAt,
+  );
+
   // An address the check doubts waits for the team (lib/shipments.test.js covers the check; the AI is off here).
   check(
     'Needs a look lists parcels waiting for the team',

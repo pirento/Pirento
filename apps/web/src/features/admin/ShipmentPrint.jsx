@@ -1,11 +1,15 @@
-// /admin/shipments/:id/print: one parcel's shipping label (from, to, the waybill as a Code 128 barcode, weight and
-// pieces) and, for an order's box, its packing slip and invoice, to print or save as PDF. The print stylesheet drops
-// the sidebar; the label breaks onto its own page.
-import {Link, Navigate, useParams} from 'react-router-dom';
+// /admin/shipments/:id/print and /admin/shipments/print?ids=a,b: shipping labels and invoices, each on its own page,
+// printed in one go. Two formats: 4 × 6 inch for a thermal label printer, or A4 (the label in a cut-out box). Choose
+// labels, invoices or both; the page sets the paper size itself, prints in pure black, and marks the parcels printed.
+import {useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
+import {Link, Navigate, useParams, useSearchParams} from 'react-router-dom';
 import {ArrowLeft, Printer} from 'lucide-react';
+import {QRCodeSVG} from 'qrcode.react';
 import {PirentoLogo, SiteLogo, hasLogo} from '../../components/layout/PirentoLogo';
 import {brand, receipt as receiptCopy, shippingCopy as copy} from '../../data/site';
 import {useSignedIn} from '../auth/useSignedIn';
+import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {code128} from '../../lib/barcode';
 import {formatDate, inr} from '../../lib/format';
@@ -13,24 +17,37 @@ import {usePageMeta} from '../../lib/page';
 import {isStaffRole} from './adminNav';
 
 const METHOD = {wallet: 'Pirento wallet', razorpay: 'Card / UPI (Razorpay)'};
+const FORMATS = {
+  thermal: {label: copy.formats.thermal, page: '4in 6in'},
+  a4: {label: copy.formats.a4, page: 'A4'},
+};
+const KEY = 'pirento.printFormat';
+const saved = () => {
+  try {
+    return localStorage.getItem(KEY) === 'a4' ? 'a4' : 'thermal';
+  } catch {
+    return 'thermal';
+  }
+};
 
-/** The waybill as bars, drawn in the ink colour so it prints black. */
-function Barcode({value}) {
+/** Code 128 bars in the ink colour, crisp so a scanner reads them. */
+function Barcode({value, height = 60}) {
   const widths = code128(value);
   if (!widths) return null;
   const total = widths.reduce((a, b) => a + b, 0);
   let x = 0;
   return (
     <svg
-      viewBox={`0 0 ${total + 20} 60`}
+      viewBox={`0 0 ${total + 20} ${height}`}
       preserveAspectRatio="none"
       shapeRendering="crispEdges"
-      className="h-20 w-full"
+      className="w-full"
+      style={{height: height === 60 ? '0.85in' : '0.4in'}}
       role="img"
       aria-label={`Barcode ${value}`}
     >
       {widths.map((w, i) => {
-        const bar = i % 2 === 0 && <rect key={i} x={x + 10} y={0} width={w} height={60} fill="var(--ink)" />;
+        const bar = i % 2 === 0 && <rect key={i} x={x + 10} y={0} width={w} height={height} fill="var(--ink)" />;
         x += w;
         return bar;
       })}
@@ -38,165 +55,321 @@ function Barcode({value}) {
   );
 }
 
-const Block = ({label, a}) => (
-  <div>
-    <p className="text-[0.65rem] tracking-[0.12em] text-muted uppercase">{label}</p>
-    <p className="mt-1 font-medium">{a?.name}</p>
-    <p className="text-sm whitespace-pre-line">{a?.address}</p>
-    <p className="text-sm">
-      {a?.pincode && `PIN ${a.pincode}`}
-      {a?.mobile && ` · ${a.mobile}`}
-    </p>
-  </div>
-);
+const lines = (a) => [a?.name, a?.address, [a?.pincode && `PIN ${a.pincode}`, a?.mobile].filter(Boolean).join(' · ')];
+
+/** The 4 × 6 inch label: carrier, ship-to with the PIN code large, the waybill barcode, parcel facts, the order with
+ * a QR to it, contents and the return address. */
+function Label({p}) {
+  const {shipment: s, order, shipper} = p;
+  const qr = order
+    ? `${window.location.origin}/${order.product}/dashboard/orders/${order._id}`
+    : `AWB ${s.awb ?? '-'} · Pirento parcel #${s.shipmentNo}`;
+  const size = s.size?.lengthCm ? `${s.size.lengthCm}×${s.size.breadthCm}×${s.size.heightCm} cm` : '—';
+  return (
+    <div className="flex h-full flex-col border-2 border-ink text-[10pt] leading-tight">
+      <div className="flex items-center justify-between gap-2 border-b-2 border-ink px-3 py-2">
+        <PirentoLogo alt="Pirento" className="h-5 w-auto" />
+        <div className="text-right">
+          <p className="text-[12pt] font-bold tracking-wide">BLUE DART</p>
+          <p className="text-[8pt]">
+            {copy.priority}
+            {order && ` · ${copy.prepaid}`}
+          </p>
+        </div>
+      </div>
+      <div className="flex gap-2 border-b-2 border-ink px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[7pt] font-bold tracking-[0.12em] uppercase">{copy.to}</p>
+          <p className="mt-0.5 text-[12pt] font-bold">{s.to?.name}</p>
+          <p className="text-[9pt] break-words">{s.to?.address}</p>
+          <p className="mt-0.5 text-[9pt]">Mob {s.to?.mobile}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-center justify-center border-2 border-ink px-2 py-1">
+          <p className="text-[7pt] font-bold uppercase">PIN</p>
+          <p className="font-mono text-[18pt] leading-none font-bold">{s.to?.pincode}</p>
+        </div>
+      </div>
+      <div className="border-b-2 border-ink px-3 py-2 text-center">
+        {s.awb ? (
+          <>
+            <Barcode value={s.awb} />
+            <p className="mt-1 font-mono text-[13pt] font-bold tracking-[0.25em]">{s.awb}</p>
+          </>
+        ) : (
+          <p className="py-6 font-bold">{copy.noAwb}</p>
+        )}
+      </div>
+      <dl className="grid grid-cols-4 border-b-2 border-ink text-center text-[8pt]">
+        {[
+          [copy.weight, `${s.weightKg} kg`],
+          [copy.pieces, s.pieces],
+          [copy.value, inr(s.value ?? 0)],
+          [copy.box, size],
+        ].map(([k, v], i) => (
+          <div key={k} className={`px-1 py-1.5 ${i ? 'border-l-2 border-ink' : ''}`}>
+            <dt className="text-[6.5pt] font-bold uppercase">{k}</dt>
+            <dd className="mt-0.5 font-bold">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="flex flex-1 gap-2 border-b-2 border-ink px-3 py-2">
+        <div className="min-w-0 flex-1">
+          <p className="text-[7pt] font-bold tracking-[0.12em] uppercase">{copy.contents}</p>
+          <p className="text-[9pt]">
+            {order ? `${order.serviceName}${order.package?.name ? ` · ${order.package.name}` : ''}` : s.purpose}
+            {order && ` × ${order.quantity ?? 1}`}
+          </p>
+          {order && (
+            <div className="mt-1">
+              <Barcode value={String(order.orderNo)} height={30} />
+              <p className="font-mono text-[8pt]">
+                {copy.order} #{order.orderNo}
+              </p>
+            </div>
+          )}
+        </div>
+        <div className="shrink-0 text-center">
+          <QRCodeSVG value={qr} size={72} level="M" fgColor="currentColor" bgColor="transparent" />
+          <p className="mt-0.5 text-[6pt]">{order ? copy.scanOrder : copy.scanParcel}</p>
+        </div>
+      </div>
+      <div className="px-3 py-2 text-[7.5pt]">
+        <p className="font-bold uppercase">{copy.from}</p>
+        {lines(shipper)
+          .filter(Boolean)
+          .map((l) => (
+            <p key={l}>{l}</p>
+          ))}
+        <p className="mt-1">
+          {copy.parcel} #{s.shipmentNo} · {formatDate(new Date())}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** The packing slip and invoice; tight on a 4 × 6 sheet, roomy on A4. */
+function Invoice({p, a4}) {
+  const {shipment: s, order} = p;
+  const before = order.amount + (order.discount ?? 0);
+  const t = a4
+    ? {pad: 'p-[14mm]', big: 'text-2xl', body: 'text-sm', logo: 'h-12'}
+    : {pad: 'p-3', big: 'text-[12pt] font-bold', body: 'text-[8pt]', logo: 'h-7'};
+  return (
+    <div className={`flex h-full flex-col ${t.pad} ${t.body} leading-snug`}>
+      {/* div, not header/footer: the site print stylesheet hides those. */}
+      <div className="flex items-start justify-between gap-3 border-b-2 border-ink pb-2">
+        {hasLogo(order.product) ? (
+          <SiteLogo brand={order.product} alt={order.productName} className={`${t.logo} w-auto`} />
+        ) : (
+          <PirentoLogo alt="Pirento" className={`${t.logo} w-auto`} />
+        )}
+        <div className="text-right">
+          <h2 className={t.big}>{copy.invoice}</h2>
+          <p className="tabular-nums">
+            No. {order.orderNo} · {formatDate(order.paidAt ?? order.createdAt)}
+          </p>
+        </div>
+      </div>
+      <dl className={`grid grid-cols-2 gap-x-3 gap-y-1.5 border-b border-ink py-2 ${a4 ? 'gap-y-4 py-6' : ''}`}>
+        <div>
+          <dt className="font-bold">{copy.billedTo}</dt>
+          <dd className="break-words">{order.email}</dd>
+        </div>
+        <div>
+          <dt className="font-bold">{copy.shipTo}</dt>
+          <dd>
+            {s.to.name}, {s.to.address}, {s.to.pincode}
+          </dd>
+        </div>
+        <div>
+          <dt className="font-bold">{copy.method}</dt>
+          <dd>{METHOD[order.payment?.method] ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="font-bold">{copy.awb}</dt>
+          <dd className="font-mono">{s.awb ?? '—'}</dd>
+        </div>
+      </dl>
+      <table className={`w-full ${a4 ? 'mt-6' : 'mt-2'}`}>
+        <thead>
+          <tr className="border-b border-ink text-left">
+            <th className="pb-1">{copy.item}</th>
+            <th className="pb-1 text-right">{copy.qty}</th>
+            <th className="pb-1 text-right">{copy.amount}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr className="border-b border-ink">
+            <td className="py-1.5">
+              {order.serviceName}
+              {order.package?.name && ` · ${order.package.name}`}
+            </td>
+            <td className="py-1.5 text-right tabular-nums">{order.quantity ?? 1}</td>
+            <td className="py-1.5 text-right tabular-nums">{inr(before / 100)}</td>
+          </tr>
+          {order.discount > 0 && (
+            <tr className="border-b border-ink">
+              <td className="py-1.5" colSpan={2}>
+                {copy.discount}
+                {order.coupon && ` (${order.coupon})`}
+              </td>
+              <td className="py-1.5 text-right tabular-nums">− {inr(order.discount / 100)}</td>
+            </tr>
+          )}
+          <tr>
+            <td className="py-1.5 font-bold" colSpan={2}>
+              {copy.total}
+            </td>
+            <td className="py-1.5 text-right font-bold tabular-nums">{inr(order.amount / 100)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div className={`mt-auto space-y-0.5 border-t border-ink pt-2 ${a4 ? 'text-xs' : 'text-[6.5pt]'}`}>
+        <p className="font-bold">{brand.legalName}</p>
+        <p>
+          CIN {brand.cin} · GSTIN {brand.gstin} · {brand.supportEmail}
+        </p>
+        <p>{receiptCopy.note}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Every page to print, in order: per parcel its label, then its invoice. */
+function Sheets({items, format, want}) {
+  const a4 = format === 'a4';
+  const sheet = `sheet print-mono ${a4 ? 'sheet-a4' : 'sheet-4x6'} overflow-hidden bg-paper shadow-[0_0_0_1px_var(--rule)]`;
+  return items.flatMap((p) => [
+    want.label && (
+      <section key={`${p.shipment._id}-l`} className={`${sheet} ${a4 ? 'p-[12mm]' : 'p-[0.08in]'}`}>
+        {a4 ? (
+          <div className="sheet-4x6 outline-2 outline-offset-4 outline-ink outline-dashed">
+            <Label p={p} />
+          </div>
+        ) : (
+          <Label p={p} />
+        )}
+        {a4 && <p className="mt-4 text-xs">{copy.cutHere}</p>}
+      </section>
+    ),
+    want.invoice && p.order && (
+      <section key={`${p.shipment._id}-i`} className={sheet}>
+        <Invoice p={p} a4={a4} />
+      </section>
+    ),
+  ]);
+}
 
 export function ShipmentPrint() {
   const {id} = useParams();
+  const [params] = useSearchParams();
+  const ids = id ? [id] : (params.get('ids') ?? '').split(',').filter(Boolean);
   const {redirect, user} = useSignedIn({loginPath: '/admin/login', area: 'any'});
-  const {data} = useApi(user && isStaffRole(user.role) ? `/orders/staff/shipments/${id}` : null);
-  usePageMeta({title: data ? `Parcel #${data.shipment.shipmentNo} — Pirento Admin` : 'Parcel — Pirento Admin'});
+  const staff = user && isStaffRole(user.role);
+  const one = useApi(staff && id ? `/orders/staff/shipments/${id}` : null);
+  const many = useApi(staff && !id && ids.length ? `/orders/staff/shipments/print?ids=${ids.join(',')}` : null);
+  const items = id ? one.data && [one.data] : many.data;
+  const [format, setFormat] = useState(saved);
+  const [want, setWant] = useState({label: true, invoice: true});
+  usePageMeta({title: `${copy.printTitle} — Pirento Admin`});
+
+  // The paper size the printer gets, and only the sheets on it.
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `@media print { @page { size: ${FORMATS[format].page}; margin: 0 } #root { display: none !important } }`;
+    document.head.append(style);
+    return () => {
+      style.remove();
+    };
+  }, [format]);
+  // Once printed, the parcels are marked so the list shows their labels are out.
+  useEffect(() => {
+    if (!items?.length) return undefined;
+    const mark = () => {
+      api('/orders/staff/shipments/printed', {
+        method: 'POST',
+        body: {ids: items.map((p) => p.shipment._id)},
+      }).catch(() => {});
+    };
+    window.addEventListener('afterprint', mark);
+    return () => {
+      window.removeEventListener('afterprint', mark);
+    };
+  }, [items]);
+
   if (redirect) return redirect;
-  if (user && !isStaffRole(user.role)) return <Navigate to="/dashboard" replace />;
-  if (!data) return <div className="min-h-dvh" />;
-  const {shipment: s, order, shipper} = data;
-  const before = order ? order.amount + (order.discount ?? 0) : 0;
+  if (user && !staff) return <Navigate to="/dashboard" replace />;
+  if (!items) return <div className="min-h-dvh" />;
+  const choose = (f) => {
+    setFormat(f);
+    try {
+      localStorage.setItem(KEY, f);
+    } catch {
+      // A blocked storage only loses the remembered choice.
+    }
+  };
+  const pages = items.reduce((n, p) => n + (want.label ? 1 : 0) + (want.invoice && p.order ? 1 : 0), 0);
+  const chip = (on) =>
+    `rounded-full border px-4 py-2 text-sm ${on ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`;
 
   return (
     <div>
-      <div className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
-        <Link to="/admin/shipments" className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
-          <ArrowLeft aria-hidden className="size-4" /> {copy.back}
-        </Link>
-        <button
-          onClick={() => window.print()}
-          className="inline-flex items-center gap-2 rounded-full border border-rule px-5 py-2.5 text-sm hover:border-ink"
-        >
-          <Printer aria-hidden className="size-4" /> {copy.print}
-        </button>
+      <div className="no-print mb-8 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link to="/admin/shipments" className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink">
+            <ArrowLeft aria-hidden className="size-4" /> {copy.back}
+          </Link>
+          <button
+            onClick={() => window.print()}
+            disabled={!pages}
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm text-paper disabled:opacity-40"
+          >
+            <Printer aria-hidden className="size-4" /> {copy.printPages(pages)}
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={copy.format}>
+          <span className="mr-1 text-sm text-muted">{copy.format}</span>
+          {Object.entries(FORMATS).map(([f, x]) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={format === f}
+              onClick={() => choose(f)}
+              className={chip(format === f)}
+            >
+              {x.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <span className="text-muted">{copy.include}</span>
+          {['label', 'invoice'].map((k) => (
+            <label key={k} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={want[k]}
+                onChange={(e) => setWant({...want, [k]: e.target.checked})}
+                className="size-4"
+              />
+              {copy.kinds[k]}
+            </label>
+          ))}
+          <span className="text-muted">· {copy.parcels(items.length)}</span>
+        </div>
+        <p className="text-xs text-muted">{format === 'thermal' ? copy.thermalTip : copy.a4Tip}</p>
       </div>
 
-      {/* The label: about 4 × 6 inches, black on white. */}
-      <article className="mx-auto max-w-md rounded-[14px] border-2 border-ink bg-paper p-5 break-after-page">
-        <header className="flex items-center justify-between gap-4 border-b-2 border-ink pb-3">
-          <PirentoLogo alt="Pirento" className="h-6 w-auto" />
-          <p className="text-right text-sm font-medium">
-            Blue Dart · {copy.priority}
-            <span className="block text-xs text-muted">
-              #{s.shipmentNo}
-              {s.orderNo && ` · order #${s.orderNo}`}
-            </span>
-          </p>
-        </header>
-        <div className="border-b-2 border-ink py-4">
-          <Block label={copy.to} a={s.to} />
-        </div>
-        <div className="border-b-2 border-ink py-4 text-center">
-          {s.awb ? (
-            <>
-              <Barcode value={s.awb} />
-              <p className="mt-1 font-mono text-lg tracking-[0.2em]">{s.awb}</p>
-            </>
-          ) : (
-            <p className="py-6 text-sm">{copy.noAwb}</p>
-          )}
-        </div>
-        <dl className="grid grid-cols-3 gap-2 border-b-2 border-ink py-3 text-center text-sm">
-          <div>
-            <dt className="text-[0.65rem] text-muted uppercase">{copy.weight}</dt>
-            <dd>{s.weightKg} kg</dd>
-          </div>
-          <div>
-            <dt className="text-[0.65rem] text-muted uppercase">{copy.pieces}</dt>
-            <dd>{s.pieces}</dd>
-          </div>
-          <div>
-            <dt className="text-[0.65rem] text-muted uppercase">{copy.value}</dt>
-            <dd>{inr(s.value ?? 0)}</dd>
-          </div>
-        </dl>
-        <div className="pt-4">
-          <Block label={copy.from} a={shipper} />
-        </div>
-      </article>
-
-      {order && (
-        <article className="mx-auto mt-10 max-w-2xl rounded-[22px] border border-rule bg-paper p-6 sm:p-10">
-          <header className="flex flex-wrap items-start justify-between gap-6 border-b border-rule pb-8">
-            {hasLogo(order.product) ? (
-              <SiteLogo brand={order.product} alt={order.productName} className="h-12 w-auto" />
-            ) : (
-              <PirentoLogo alt="Pirento" className="h-8 w-auto" />
-            )}
-            <div className="sm:text-right">
-              <h1 className="text-2xl">{copy.invoice}</h1>
-              <p className="mt-1 text-sm text-muted tabular-nums">No. {order.orderNo}</p>
-            </div>
-          </header>
-          <dl className="grid gap-x-8 gap-y-4 border-b border-rule py-8 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-muted">{copy.billedTo}</dt>
-              <dd className="mt-1 break-words">{order.email}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">{copy.shipTo}</dt>
-              <dd className="mt-1">
-                {s.to.name}, {s.to.address}, {s.to.pincode}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">{copy.paidOn}</dt>
-              <dd className="mt-1">{formatDate(order.paidAt ?? order.createdAt)}</dd>
-            </div>
-            <div>
-              <dt className="text-muted">{copy.method}</dt>
-              <dd className="mt-1">{METHOD[order.payment?.method] ?? '—'}</dd>
-            </div>
-          </dl>
-          <table className="mt-8 w-full text-sm">
-            <thead>
-              <tr className="border-b border-rule text-left text-muted">
-                <th className="pb-2 font-normal">{copy.item}</th>
-                <th className="pb-2 text-right font-normal">{copy.qty}</th>
-                <th className="pb-2 text-right font-normal">{copy.amount}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-rule">
-                <td className="py-3">
-                  {order.serviceName}
-                  {order.package?.name && <span className="text-muted"> · {order.package.name}</span>}
-                </td>
-                <td className="py-3 text-right tabular-nums">{order.quantity ?? 1}</td>
-                <td className="py-3 text-right tabular-nums">{inr(before / 100)}</td>
-              </tr>
-              {order.discount > 0 && (
-                <tr className="border-b border-rule">
-                  <td className="py-3" colSpan={2}>
-                    {copy.discount}
-                    {order.coupon && ` (${order.coupon})`}
-                  </td>
-                  <td className="py-3 text-right tabular-nums">− {inr(order.discount / 100)}</td>
-                </tr>
-              )}
-              <tr>
-                <td className="py-3 text-lg font-medium" colSpan={2}>
-                  {copy.total}
-                </td>
-                <td className="py-3 text-right text-lg font-medium tabular-nums">{inr(order.amount / 100)}</td>
-              </tr>
-            </tbody>
-          </table>
-          <footer className="mt-8 space-y-1 text-xs text-muted">
-            <p className="text-ink">{brand.legalName}</p>
-            <p>
-              CIN {brand.cin} · GSTIN {brand.gstin}
-            </p>
-            <p>{brand.supportEmail}</p>
-            <p className="pt-3">
-              {copy.awb}: {s.awb ?? '—'}. {receiptCopy.note}
-            </p>
-          </footer>
-        </article>
+      {/* On screen: the sheets at their real size, side by side. */}
+      <div className="flex flex-wrap gap-6 overflow-x-auto pb-4">
+        <Sheets items={items} format={format} want={want} />
+      </div>
+      {/* On paper: the same sheets, outside the app so nothing else prints. */}
+      {createPortal(
+        <div className="hidden print:block">
+          <Sheets items={items} format={format} want={want} />
+        </div>,
+        document.body,
       )}
     </div>
   );

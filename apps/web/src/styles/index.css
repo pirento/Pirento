@@ -318,6 +318,40 @@ h3,
   }
 }
 
+/* Shipping labels and invoices (features/admin/ShipmentPrint.jsx): pure black on white whatever the theme, since a
+   thermal printer has no grey and a dark theme would print white text. Sheets are real sizes on screen and paper. */
+.print-mono {
+  --paper: #ffffff;
+  --stone: #ffffff;
+  --ink: #000000;
+  --muted: #000000;
+  --rule: #000000;
+  color: var(--ink);
+  background: var(--paper);
+}
+.sheet-4x6 {
+  width: 4in;
+  height: 6in;
+}
+.sheet-a4 {
+  width: 210mm;
+  height: 297mm;
+}
+/* Logos in grey: a thermal printer turns colour into a muddy dither. */
+.print-mono img {
+  filter: grayscale(1) contrast(1.2);
+}
+@media print {
+  .sheet {
+    break-after: page;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+  .sheet:last-child {
+    break-after: auto;
+  }
+}
+
 /* Sign-in pages: squarer fields under their round buttons (features/auth/AuthButtons.jsx). */
 .auth-form input:not([type='checkbox']):not([type='radio']) {
   border-radius: 8px;

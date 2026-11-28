@@ -162,39 +162,71 @@ async function shipmentOf(req) {
   return s;
 }
 
-/** One parcel with what its label and invoice print: the order, the pickup address. */
-shipmentRoutes.get('/staff/shipments/:id', async (req, res) => {
-  const s = await shipmentOf(req);
-  const order =
-    s.orderId &&
-    (await Order.findById(s.orderId, {
-      orderNo: 1,
-      email: 1,
-      product: 1,
-      serviceName: 1,
-      package: 1,
-      quantity: 1,
-      amount: 1,
-      discount: 1,
-      coupon: 1,
-      payment: 1,
-      timeline: 1,
-      createdAt: 1,
-    }).lean());
-  const paidAt = order?.timeline?.find((t) => t.status === 'paid')?.at;
-  res.json({
-    data: {
+const ORDER_FIELDS = {
+  orderNo: 1,
+  email: 1,
+  product: 1,
+  serviceName: 1,
+  package: 1,
+  quantity: 1,
+  amount: 1,
+  discount: 1,
+  coupon: 1,
+  payment: 1,
+  timeline: 1,
+  createdAt: 1,
+};
+
+/** What a parcel's label and invoice print: the parcel, its order (if any) and the pickup address. */
+async function printable(shipments) {
+  const shipper = shipperOf(await shipSettings());
+  const ids = shipments.map((s) => s.orderId).filter(Boolean);
+  const orders = ids.length ? await Order.find({_id: {$in: ids}}, ORDER_FIELDS).lean() : [];
+  return shipments.map((s) => {
+    const order = orders.find((o) => String(o._id) === s.orderId);
+    return {
       shipment: s,
-      shipper: shipperOf(await shipSettings()),
+      shipper,
       order: order && {
         ...order,
         timeline: undefined,
         payment: order.payment && {method: order.payment.method, razorpayPaymentId: order.payment.razorpayPaymentId},
         productName: getProduct(order.product)?.name,
-        paidAt,
+        paidAt: order.timeline?.find((t) => t.status === 'paid')?.at,
       },
-    },
+    };
   });
+}
+
+/** Several parcels to print in one go (`?ids=a,b,c`, up to 50), in the order asked. */
+shipmentRoutes.get('/staff/shipments/print', async (req, res) => {
+  const ids = String(req.query.ids ?? '')
+    .split(',')
+    .filter(isId)
+    .slice(0, 50);
+  const found = await Shipment.find({_id: {$in: ids}}).lean();
+  const ordered = ids.map((id) => found.find((s) => String(s._id) === id)).filter(Boolean);
+  res.json({data: await printable(ordered)});
+});
+
+/** Marks parcels as printed, so the list shows which labels are already on a box. */
+shipmentRoutes.post(
+  '/staff/shipments/printed',
+  validate(z.object({ids: z.array(z.string().refine(isId)).min(1).max(50)})),
+  async (req, res) => {
+    const done = await Shipment.updateMany(
+      {_id: {$in: req.body.ids}},
+      {$set: {printedAt: new Date()}, $inc: {prints: 1}},
+    );
+    audit(req, 'shipment.print', `${req.body.ids.length} parcels`);
+    res.json({data: {printed: done.modifiedCount}});
+  },
+);
+
+/** One parcel with what its label and invoice print. */
+shipmentRoutes.get('/staff/shipments/:id', async (req, res) => {
+  const s = await shipmentOf(req);
+  res.json({data: (await printable([s.toObject()]))[0]});
 });
 
 /** Fixes a parcel before it is booked (the address the automatic check held back, its weight). */

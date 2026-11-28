@@ -34,6 +34,8 @@ export const Shipment = mongoose.model(
       error: {type: String, maxlength: 200},
       nextCheckAt: Date, // the tracker claims a parcel by moving this forward
       createdBy: String,
+      printedAt: Date, // the label was last printed
+      prints: {type: Number, default: 0},
     },
     {timestamps: true},
   )
