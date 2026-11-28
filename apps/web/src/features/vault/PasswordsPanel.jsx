@@ -1,4 +1,5 @@
-// Vault passwords: save, reveal, copy, delete, and which ones are weak or reused.
+// Vault passwords: save, reveal, copy, delete (each after the Bharat ID unlock), which ones are weak or reused, and
+// whether each goes to the nominee.
 import {useState} from 'react';
 import {Copy, Eye, Trash2} from 'lucide-react';
 import {Button} from '../../components/ui/Button';
@@ -8,8 +9,11 @@ import {Tag} from '../../components/ui/Tag';
 import {appDashboards} from '../../data/site';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
+import {ReleaseSwitch} from './ReleaseSwitch';
+import {shown, useUnlock} from './unlock';
 
 export function Passwords() {
+  const guard = useUnlock();
   const list = useApi('/vault/credentials');
   const health = useApi('/vault/credentials/health');
   const verdict = Object.fromEntries((health.data?.items ?? []).map((h) => [h._id, h]));
@@ -18,44 +22,44 @@ export function Passwords() {
     health.reload();
   };
   const [form, setForm] = useState({label: '', username: '', password: ''});
-  const [shown, setShown] = useState({});
+  const [visible, setVisible] = useState({});
   const [error, setError] = useState('');
   const set = (k) => (e) => setForm((f) => ({...f, [k]: e.target.value}));
   const add = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      await api('/vault/credentials', {method: 'POST', body: form});
+      await guard((headers) => api('/vault/credentials', {method: 'POST', body: form, headers}));
       setForm({label: '', username: '', password: ''});
       reload();
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     }
   };
   const reveal = async (c) => {
-    if (shown[c._id]) return setShown((s) => ({...s, [c._id]: undefined}));
+    if (visible[c._id]) return setVisible((s) => ({...s, [c._id]: undefined}));
     try {
-      const {password} = await api(`/vault/credentials/${c._id}/secret`);
-      setShown((s) => ({...s, [c._id]: password}));
+      const {password} = await guard((headers) => api(`/vault/credentials/${c._id}/secret`, {headers}));
+      setVisible((s) => ({...s, [c._id]: password}));
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     }
   };
   const copy = async (c) => {
     try {
-      const {password} = await api(`/vault/credentials/${c._id}/secret`);
+      const {password} = await guard((headers) => api(`/vault/credentials/${c._id}/secret`, {headers}));
       await navigator.clipboard.writeText(password);
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     }
   };
   const remove = async (c) => {
     if (!confirm(`Delete ${c.label}?`)) return;
     try {
-      await api(`/vault/credentials/${c._id}`, {method: 'DELETE'});
+      await guard((headers) => api(`/vault/credentials/${c._id}`, {method: 'DELETE', headers}));
       reload();
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     }
   };
 
@@ -90,7 +94,10 @@ export function Passwords() {
                 {verdict[c._id]?.reused && <Tag>{appDashboards.vault.health.reused}</Tag>}
               </span>
               <span className="block truncate text-xs text-muted">
-                {c.username || '—'} · <span className="font-mono">{shown[c._id] ?? '••••••••'}</span>
+                {c.username || '—'} · <span className="font-mono">{visible[c._id] ?? '••••••••'}</span>
+              </span>
+              <span className="mt-2 block">
+                <ReleaseSwitch type="credentials" item={c} onChange={list.reload} />
               </span>
             </span>
             <span className="flex shrink-0 gap-1">
@@ -98,7 +105,7 @@ export function Passwords() {
                 onClick={() => reveal(c)}
                 className="rounded-full p-2 hover:bg-stone"
                 aria-label={`Show password for ${c.label}`}
-                aria-pressed={Boolean(shown[c._id])}
+                aria-pressed={Boolean(visible[c._id])}
               >
                 <Eye aria-hidden className="size-4" />
               </button>

@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Handshake,
   Inbox,
+  HeartHandshake,
   LayoutDashboard,
   Mail,
   ListChecks,
@@ -130,6 +131,15 @@ export const ADMIN_SECTIONS = [
     icon: Mail,
     roles: ['support', 'staff', 'superadmin'], // ACCESS.support
     intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
+  },
+  {
+    id: 'vault',
+    group: 'Work',
+    label: 'Vault',
+    icon: HeartHandshake,
+    roles: ['support', 'staff', 'superadmin'], // ACCESS.vault; releasing: superadmin only (ACCESS.vaultRelease)
+    intro:
+      'Legacy plans that need the team: call the nominee, check the death certificate, release (superadmins), and help claim insurance. Never what is inside a vault.',
   },
   {
     id: 'openings',

@@ -85,6 +85,9 @@ export const ROUTES = [
   },
 
   // The ten product sites: home at /<slug>, app at /<slug>/dashboard, legal pages at /<slug>/terms and so on
+  // Pirento Vault's two doors without a sign-in: the check-in reminder's link, and a nominee's release.
+  {path: '/vault/alive', Page: page(() => import('../features/vault/AlivePage'), 'Alive')},
+  {path: '/vault/release/:token', Page: page(() => import('../features/vault/ReleasePage'), 'Release')},
   {path: '/:slug', Page: page(() => import('../features/products/ProductHomePage'), 'ProductHome')},
   {
     path: '/:slug/dashboard',

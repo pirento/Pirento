@@ -12,6 +12,7 @@ import {Coupons} from './Coupons';
 import {Team} from './Team';
 import {Waitlist} from './Waitlist';
 import {Enquiries} from './Enquiries';
+import {VaultCases} from './VaultCases';
 import {Deletions} from './Deletions';
 import {MyWork} from './MyWork';
 import {BookService} from './BookService';
@@ -51,6 +52,7 @@ export const SECTIONS = {
   centres: () => <Centres />,
   tickets: () => <TicketQueue />,
   enquiries: Enquiries,
+  vault: VaultCases,
   users: Users,
   payments: Payments,
   withdrawals: Withdrawals,

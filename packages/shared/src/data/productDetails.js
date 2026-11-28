@@ -79,14 +79,24 @@ export const PRODUCT_DETAILS = {
   },
   vault: {
     more: [
-      {title: 'Fresh IV per item', body: 'Every file and password is sealed with its own random IV and an auth tag.'},
-      {title: 'Never shown in lists', body: 'Passwords stay hidden until you ask to reveal one.'},
-      {title: 'Safe downloads', body: 'Files download as files; they are never opened inside the browser.'},
+      {
+        title: 'Fresh IV per item',
+        body: 'Every record, password and file is sealed with its own random IV and an auth tag.',
+      },
+      {
+        title: 'A ten-minute unlock',
+        body: 'Your Bharat ID PIN opens the vault for ten minutes; five wrong tries lock it.',
+      },
+      {
+        title: 'A log you can trust',
+        body: 'Each action is chained to the one before by hash, so a changed entry shows.',
+      },
+      {title: 'Insurance claims', body: 'After a release, our team helps your nominee claim each policy you released.'},
     ],
     audience: [
-      {title: 'Families', body: 'Keep copies of IDs, certificates and policies in one place.'},
-      {title: 'Freelancers', body: 'Contracts, invoices and client logins kept apart from your phone.'},
-      {title: 'Small teams', body: 'Store the papers your business needs on hand.'},
+      {title: 'Families', body: 'One place your nominee can rely on: accounts, policies, papers and wishes.'},
+      {title: 'Investors', body: 'Mutual funds, stocks, ETFs and policies noted with their folios and numbers.'},
+      {title: 'Anyone who lends', body: 'Money lent and owed, written down with who, how much and when.'},
     ],
     related: ['bharat-id', 'legal', 'black'],
   },

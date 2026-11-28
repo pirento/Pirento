@@ -1,4 +1,4 @@
-// Vault files: upload, download, delete; a label and expiry date on each (Pirento AI can suggest labels from the
+// Vault documents: upload, download, delete (each after the Bharat ID unlock), whether each goes to the nominee; a label and expiry date on each (Pirento AI can suggest labels from the
 // file names alone, never the contents), and a reminder email 30 days before expiry.
 import {useRef, useState} from 'react';
 import {Download, FileText, Sparkles, Trash2, Upload} from 'lucide-react';
@@ -8,6 +8,8 @@ import {mb, raw} from './files';
 import {api} from '../../lib/api/client';
 import {useApi} from '../../lib/api/useApi';
 import {formatDate} from '../../lib/format';
+import {ReleaseSwitch} from './ReleaseSwitch';
+import {shown, useUnlock} from './unlock';
 
 const LABELS = [
   'Aadhaar',
@@ -26,6 +28,7 @@ const LABELS = [
 ];
 
 export function Files() {
+  const guard = useUnlock();
   const files = useApi('/vault/files');
   const input = useRef(null);
   const [error, setError] = useState('');
@@ -39,24 +42,34 @@ export function Files() {
     if (file.size > 5 * 1024 * 1024) return setError('Files can be up to 5 MB.');
     setBusy(true);
     try {
-      await raw('/files', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/octet-stream',
-          'x-file-name': encodeURIComponent(file.name),
-          'x-file-type': file.type,
-        },
-        body: file,
-      });
+      await guard((unlock) =>
+        raw('/files', {
+          method: 'POST',
+          headers: {
+            ...unlock,
+            'content-type': 'application/octet-stream',
+            'x-file-name': encodeURIComponent(file.name),
+            'x-file-type': file.type,
+          },
+          body: file,
+        }),
+      );
       files.reload();
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     } finally {
       setBusy(false);
     }
   };
   const download = async (f) => {
-    const url = URL.createObjectURL(await (await raw(`/files/${f._id}`)).blob());
+    setError('');
+    let res;
+    try {
+      res = await guard((headers) => raw(`/files/${f._id}`, {headers}));
+    } catch (err) {
+      return setError(shown(err));
+    }
+    const url = URL.createObjectURL(await res.blob());
     const a = Object.assign(document.createElement('a'), {href: url, download: f.name});
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -64,10 +77,10 @@ export function Files() {
   const remove = async (f) => {
     if (!confirm(`Delete ${f.name}? This cannot be undone.`)) return;
     try {
-      await api(`/vault/files/${f._id}`, {method: 'DELETE'});
+      await guard((headers) => api(`/vault/files/${f._id}`, {method: 'DELETE', headers}));
       files.reload();
     } catch (err) {
-      setError(err.message);
+      setError(shown(err));
     }
   };
   const d = files.data;
@@ -156,6 +169,7 @@ export function Files() {
                       <option key={l}>{l}</option>
                     ))}
                   </select>
+                  <ReleaseSwitch type="files" item={f} onChange={files.reload} />
                   <label className="flex items-center gap-1 text-muted">
                     Expires
                     <input

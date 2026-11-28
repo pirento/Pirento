@@ -194,20 +194,44 @@ const SITE = {
     ],
   },
   vault: {
-    pill: 'Encrypted at rest',
+    pill: 'Your nominee plan',
     steps: [
       signIn,
       bharatIdFirst('Pirento Vault'),
-      {title: 'Upload or save', body: 'Files up to 5 MB each, 50 MB in all, and any number of passwords.'},
-      {title: 'Encrypted on arrival', body: 'Each item is sealed with AES-256-GCM and its own random IV.'},
-      {title: 'Open when you need it', body: 'Download a file or reveal a password from your dashboard.'},
+      {
+        title: 'Keep everything',
+        body: 'Accounts, investments, policies, money lent and owed, dreams, a will, passwords and documents, each sealed with AES-256-GCM.',
+      },
+      {
+        title: 'Confirm with your PIN',
+        body: 'Every opening and change asks for your Bharat ID PIN, and goes in your log.',
+      },
+      {
+        title: 'Choose for your nominee',
+        body: 'Mark what goes to the nominee in your Bharat ID. We check in when you are quiet, and release only after a verified death certificate.',
+      },
     ],
     faq: [
       {
-        q: 'Can Pirento read my files?',
-        a: 'Pirento holds the key, so its servers can decrypt your data. This is not end-to-end encryption.',
+        q: 'Can Pirento read my vault?',
+        a: 'Pirento holds the key, so its servers can decrypt your data. This is not end-to-end encryption. Our team never sees what you keep; after a release, only the insurer, policy number and cover of a policy you released, to help your nominee claim it.',
       },
-      {q: 'What if I lose access?', a: 'Sign in again with your email code. Nominee handover is not built yet.'},
+      {
+        q: 'When does my nominee get anything?',
+        a: 'Only what you marked, and only after we have reminded you in the 4th, 5th and 6th quiet month, called your nominee, and checked a death certificate against the original.',
+      },
+      {
+        q: 'Who is my nominee?',
+        a: 'The nominee and emergency contact in your Bharat ID. Change them there, with a change request.',
+      },
+      {
+        q: 'Is it accepted as legal proof?',
+        a: 'Every action is confirmed with your Bharat ID PIN and kept in a log chained by hash, so a change shows. We do not promise that any court accepts it, and it is not a will.',
+      },
+      {
+        q: 'Can it fetch my mutual funds and policies?',
+        a: 'Fetching them through Digio with your consent is Expected. Today you add them by hand.',
+      },
     ],
   },
   one: {
@@ -407,16 +431,24 @@ export const PRODUCTS = [
     name: 'Pirento Vault',
     short: 'Vault',
     quote: 'Privacy is not an option, it is a right.',
-    overview: 'Store your files and passwords encrypted at rest on our servers.',
+    overview:
+      'Keep your accounts, investments, policies, passwords and documents sealed, and choose what goes to your nominee.',
     highlights: [
       {
-        title: 'Encrypted files',
-        body: 'Files are encrypted at rest with AES-256-GCM. The service manages the key.',
+        title: 'Everything you keep',
+        body: 'Bank and other accounts, mutual funds, stocks, ETFs, insurance, money lent and owed, dreams and a will.',
       },
-      {title: 'Credential storage', body: 'Store and retrieve encrypted credentials from your account.'},
-      {title: 'File management', body: 'Browse, download and remove your files within your limits.'},
+      {
+        title: 'Confirmed with Bharat ID',
+        body: 'Every opening and change asks for your Bharat ID PIN and goes in a hash-chained log.',
+      },
+      {
+        title: 'For your nominee',
+        body: 'Released only after reminders, a call to your nominee and a verified death certificate.',
+      },
     ],
-    caveat: 'Vault is not zero-knowledge or end-to-end encrypted. Nominee handover is not built yet.',
+    caveat:
+      'Vault is not zero-knowledge or end-to-end encrypted. It is not a will, and we do not promise that any court accepts its records. Fetching investments through Digio and checking certificates through API Setu are Expected.',
     status: 'now',
   },
   {

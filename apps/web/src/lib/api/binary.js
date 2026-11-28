@@ -7,7 +7,11 @@ export const mb = (bytes) =>
 /** fetch under /api, throwing the server's message on failure. */
 export async function raw(path, init = {}) {
   const res = await authFetch(`/api${path}`, init);
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error?.message ?? 'Something went wrong');
+  if (!res.ok) {
+    const {error} = await res.json().catch(() => ({}));
+    // The code lets a caller react to a known case (the vault asks for the PIN again on VAULT_LOCKED).
+    throw Object.assign(new Error(error?.message ?? 'Something went wrong'), {code: error?.code, status: res.status});
+  }
   return res;
 }
 

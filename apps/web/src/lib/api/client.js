@@ -57,10 +57,10 @@ export async function authFetch(url, init = {}) {
   return res;
 }
 
-export async function api(path, {method = 'GET', body} = {}) {
+export async function api(path, {method = 'GET', body, headers = {}} = {}) {
   const res = await authFetch(`/api${path}`, {
     method,
-    headers: body ? {'Content-Type': 'application/json'} : {},
+    headers: {...(body ? {'Content-Type': 'application/json'} : {}), ...headers},
     body: body ? JSON.stringify(body) : undefined,
   });
   const json = await res.json().catch(() => ({}));

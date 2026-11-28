@@ -361,8 +361,11 @@ export const productDashboards = {
     {id: 'company', label: 'Company', icon: 'company'},
   ),
   vault: APP_SECTIONS(
-    {id: 'files', label: 'Files', icon: 'files'},
+    {id: 'records', label: 'Records', icon: 'records'},
+    {id: 'linked', label: 'Linked accounts', icon: 'linked'},
+    {id: 'files', label: 'Documents', icon: 'files'},
     {id: 'passwords', label: 'Passwords', icon: 'passwords'},
+    {id: 'legacy', label: 'Nominee and legacy', icon: 'legacy'},
   ),
   ai: [
     {id: 'overview', label: 'Chat', icon: 'chat'},
@@ -732,7 +735,7 @@ export const appDashboards = {
   vault: {
     hello: 'Your vault, / locked.',
     intro:
-      'Files and passwords, encrypted with AES-256-GCM before they are stored. Pirento holds the key, so this is not end-to-end encryption.',
+      'Records, documents and passwords, sealed with AES-256-GCM before they are stored, and opened only with your Bharat ID PIN. Pirento holds the key, so this is not end-to-end encryption.',
     glance: {label: 'At a glance', title: 'What you / keep here.'},
     health: {
       label: 'Password health',
@@ -811,6 +814,132 @@ export const appDashboards = {
 };
 
 // A service's own page (features/legal/ServicePage.jsx): headings around the catalogue's sections.
+// Pirento Vault's dashboard and its two public pages (the "I am here" link and a nominee's release).
+export const vaultCopy = {
+  unlock: {
+    title: 'Confirm it is you',
+    body: 'Type your Bharat ID PIN. Your vault stays open for ten minutes, and every action is logged as confirmed.',
+    label: 'Bharat ID PIN',
+    submit: 'Unlock',
+    checking: 'Checking',
+    cancel: 'Cancel',
+    cancelled: 'Not unlocked',
+  },
+  records: {
+    label: 'Records',
+    title: 'Everything / you keep.',
+    intro:
+      'Accounts, policies, money lent and owed, dreams, a will. Only the title shows in the list; the rest is sealed until you open it with your PIN.',
+    add: 'Add a record',
+    kind: 'What is it?',
+    name: 'Title',
+    release: 'Give this to my nominee',
+    save: 'Save record',
+    open: 'Open',
+    close: 'Close',
+    edit: 'Edit',
+    remove: 'Delete',
+    all: 'All',
+    empty: 'Nothing here yet. Add your first record.',
+  },
+  linked: {
+    label: 'Linked accounts',
+    title: 'Investments / and cover.',
+    intro: 'Mutual funds, stocks, ETFs and insurance in one place, sealed like everything else in your vault.',
+    connectTitle: 'Fetch them automatically',
+    connectBody:
+      'Your mutual funds, stocks, ETFs and insurance through Digio, with your consent each time. Until it is built, add them here by hand.',
+  },
+  legacy: {
+    label: 'Nominee and legacy',
+    title: 'If something / happens to you.',
+    intro:
+      'Choose what goes to your nominee. We release it only after our team has spoken to your nominee and checked a death certificate.',
+    how: [
+      [
+        'You choose',
+        'Mark the records, passwords and documents that should go to your nominee. The rest is never released.',
+      ],
+      [
+        'We check in',
+        'Any visit to your vault tells us you are well. After three quiet months we remind you in the 4th, 5th and 6th month by email and SMS.',
+      ],
+      ['We call', 'If no reminder is answered, our team calls your nominee, and your emergency contact if needed.'],
+      [
+        'We verify',
+        'Our team checks the death certificate against the original. Checking it with the government through API Setu is Expected.',
+      ],
+      [
+        'We release',
+        'Your nominee gets a link on their mobile, proves it with a code, and sees only what you chose, to save as a PDF.',
+      ],
+      ['We help claim', 'Our team helps your nominee claim each insurance policy you released.'],
+    ],
+    on: 'Turn on my legacy plan',
+    off: 'Turn off',
+    consent:
+      'I agree that the items I mark go to my nominee named in my Bharat ID, after Pirento has verified my death as described here.',
+    status: 'Status',
+    lastSeen: 'Last seen',
+    reminders: 'Reminders sent',
+    nominee: 'Nominee',
+    emergency: 'Emergency contact',
+    fromId: 'From your Bharat ID. To change them, ask for a change in your Bharat ID dashboard.',
+    releasing: (n) => {
+      const of = (k, one, many) => `${n[k]} ${n[k] === 1 ? one : many}`;
+      return `${of('records', 'record', 'records')}, ${of('credentials', 'password', 'passwords')} and ${of('files', 'document', 'documents')} will go to your nominee.`;
+    },
+    none: 'Not on yet.',
+    alive: 'I am here',
+    log: 'Every action',
+    intact: 'The log is whole: no entry has been changed or removed.',
+    broken: 'An entry in the log does not match. Contact support.',
+    legal:
+      'Every action is confirmed with your Bharat ID PIN and kept in a log whose entries are chained by hash, so a change shows. This record is not a will: a will must be made the way the law asks. Keep the original safe and note in a Will record where it is.',
+    // The same stages as the team's desk names them.
+    staffStages: {
+      active: 'Active',
+      reminding: 'Reminders sent',
+      'call-nominee': 'Call the nominee',
+      'nominee-reached': 'Nominee reached',
+      verified: 'Certificate verified',
+      released: 'Released',
+      closed: 'Closed',
+    },
+    stages: {
+      active: 'Active: we see you',
+      reminding: 'Reminders sent',
+      'call-nominee': 'Our team will call your nominee',
+      'nominee-reached': 'Our team has spoken to your nominee',
+      verified: 'Death certificate verified',
+      released: 'Released to your nominee',
+      closed: 'Closed',
+    },
+  },
+  alive: {
+    title: 'Thank you. / We know you are well.',
+    body: 'Your legacy plan is active again. Nothing has been released.',
+    failed: 'This link has been used or is no longer needed. Open your vault to check your plan.',
+    checking: 'Telling your vault you are here…',
+  },
+  release: {
+    title: 'What was / left for you.',
+    intro:
+      'Someone named you as their nominee in Pirento Vault. To open what they left, we send a code to your mobile.',
+    send: 'Send the code',
+    code: '6-digit code',
+    open: 'Open',
+    print: 'Save as PDF',
+    from: 'From',
+    certificate: 'Death certificate',
+    records: 'Records',
+    passwords: 'Passwords',
+    files: 'Documents',
+    download: 'Download',
+    note: 'This page shows only what the owner chose to give you. Pirento verified the death certificate before releasing it. Keep these details private.',
+  },
+};
+
 // Pirento Legal's home: the price rail and the service page's bar on a phone.
 export const legalCopy = {
   popular: 'Asked for most',

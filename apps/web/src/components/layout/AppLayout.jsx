@@ -7,6 +7,7 @@ import {
   Award,
   BookOpen,
   Briefcase,
+  Archive,
   Building2,
   ClipboardList,
   FileText,
@@ -14,6 +15,8 @@ import {
   Gem,
   GraduationCap,
   Handshake,
+  HeartHandshake,
+  Link2,
   Home,
   KeyRound,
   LayoutDashboard,
@@ -46,6 +49,7 @@ import {useSession} from '../../lib/api/session';
 import {siteName, useProductSite} from '../../lib/site';
 import {isStaffRole, sectionsFor} from '../../features/admin/adminNav';
 import {ThemeToggle} from './ThemeToggle';
+import {NoticeBell} from './NoticeBell';
 import {SINGLE_PAGE_SECTIONS, bharatIdBusiness, productDashboards} from '../../data/site';
 
 const SECTION_ICONS = {
@@ -73,6 +77,9 @@ const SECTION_ICONS = {
   company: Building2,
   files: FolderLock,
   passwords: KeyRound,
+  records: Archive,
+  linked: Link2,
+  legacy: HeartHandshake,
   chat: MessageSquare,
   referrals: Share2,
   plans: Gem,
@@ -277,7 +284,10 @@ function Sidebar({onNavigate}) {
         <div className="flex items-center justify-between gap-2 px-3 pt-3">
           {/* A long email wraps before its @ (a zero-width space), never mid-word. */}
           <span className="min-w-0 text-xs break-words text-muted">{user?.email?.replace('@', '\u200b@')}</span>
-          <ThemeToggle />
+          <span className="flex items-center gap-2">
+            {user && <NoticeBell />}
+            <ThemeToggle />
+          </span>
         </div>
         <button
           onClick={signOut}
@@ -295,6 +305,7 @@ export function AppLayout({children}) {
   const {pathname} = useLocation();
   const product = useProductSite();
   const business = isBusiness(pathname);
+  const {user} = useSession();
   useEffect(() => setOpen(false), [pathname]);
 
   return (
@@ -302,7 +313,8 @@ export function AppLayout({children}) {
       <div className="min-h-dvh bg-paper lg:grid lg:grid-cols-[17rem_minmax(0,1fr)]">
         {/* Desktop: a fixed sidebar. Phones: a top bar that opens it as a drawer. */}
         <aside
-          className={`sticky top-0 hidden h-dvh border-r border-rule px-4 py-6 lg:block ${business ? 'inverse' : 'bg-stone'}`}
+          // Above the page, so the bell's list opens over the content beside it.
+          className={`sticky top-0 z-30 hidden h-dvh border-r border-rule px-4 py-6 lg:block ${business ? 'inverse' : 'bg-stone'}`}
         >
           <Sidebar />
         </aside>
@@ -323,14 +335,17 @@ export function AppLayout({children}) {
           ) : (
             <PirentoLogo alt="Pirento" className="h-6 w-auto" />
           )}
-          <button
-            onClick={() => setOpen(true)}
-            aria-label="Open menu"
-            aria-expanded={open}
-            className="flex size-10 items-center justify-center rounded-full border border-rule"
-          >
-            <Menu aria-hidden className="size-4" />
-          </button>
+          <span className="flex items-center gap-2">
+            {user && !business && <NoticeBell align="right" />}
+            <button
+              onClick={() => setOpen(true)}
+              aria-label="Open menu"
+              aria-expanded={open}
+              className="flex size-10 items-center justify-center rounded-full border border-rule"
+            >
+              <Menu aria-hidden className="size-4" />
+            </button>
+          </span>
         </header>
         {open && (
           <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
