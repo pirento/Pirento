@@ -66,15 +66,26 @@ export const FOUNDATION = {
   body: 'The social-impact arm of Venturecore Solutions Private Limited, with the company’s directors as its first trustees. It starts in Basti and eastern Uttar Pradesh.',
   // The profile asks for this until registration and 80G approval arrive.
   status: 'Registration pending. No tax exemption is offered yet.',
+  place: 'Basti, Uttar Pradesh',
   programmes: [
     {
       title: 'Pirento Green',
+      icon: 'tree',
       body: 'Native trees that survive: geotagged sites, survival checks at 6, 12 and 24 months.',
     },
-    {title: 'Food and relief', body: 'Ration kits and meals for verified households; relief in floods and cold waves.'},
-    {title: 'Education', body: 'Scholarships, school kits, digital access and skill courses for youth.'},
+    {
+      title: 'Food and relief',
+      icon: 'food',
+      body: 'Ration kits and meals for verified households; relief in floods and cold waves.',
+    },
+    {
+      title: 'Education',
+      icon: 'school',
+      body: 'Scholarships, school kits, digital access and skill courses for youth.',
+    },
     {
       title: 'Health and livelihood',
+      icon: 'health',
       body: 'Health camps with qualified doctors; livelihood training for women and youth.',
     },
   ],

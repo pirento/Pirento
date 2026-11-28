@@ -32,6 +32,18 @@ export const PRODUCT_COLOURS = {
   giftox: {dark: '#1E1216', accent: '#FF1066', support: ['#1B2A33']},
 };
 
+/**
+ * Pirento Foundation's own colours, from its live site as the owner gave them (not in the guidelines' register):
+ * a deep blue field, a bright yellow for the one key action, cream text and surfaces, and a soft blue for body
+ * text on the blue.
+ */
+export const FOUNDATION_COLOURS = {
+  dark: '#06518A',
+  accent: '#F6E501',
+  cream: '#FFEFD5',
+  soft: '#B9D3EC',
+};
+
 // WCAG 2 relative luminance and contrast ratio.
 const luminance = (hex) => {
   const channel = (i) => {
