@@ -1148,6 +1148,20 @@ export const productIllustration = {
   giftox: 'delivery',
 };
 
+// Each product's card on the Pirento home: its own small scene, drawn for that card only.
+export const productCardArt = {
+  legal: 'lawbook',
+  black: 'invoice',
+  green: 'earth',
+  intern: 'gradcap',
+  ai: 'chip',
+  vault: 'keyring',
+  one: 'megaphone',
+  capital: 'coins',
+  'bharat-id': 'qrcard',
+  giftox: 'balloons',
+};
+
 // Each product home's second picture: how its work goes, under "How it works" (Pirento One has no such section, so its
 // picture sits under "Who it is for"). Every scene on the site is used in one place only; captions say only what each
 // product does today.
