@@ -1,5 +1,5 @@
 // The Pirento Ecosystem home page: hero, the ten products, Legal, the one-account pillars, the Foundation, the
-// ventures and the bodies alongside, how it works, numbers on a stone band, about us, questions.
+// two tools (Pirento Blank, Pirento INV), the ventures and the bodies alongside, how it works, numbers on a stone band, about us, questions.
 import {useRef} from 'react';
 import {Link} from 'react-router-dom';
 import {PRODUCTS} from '@pirento/shared';
@@ -10,6 +10,7 @@ import {Heading, Section, SectionHeader} from '../../components/ui/Heading';
 import {home, processArt, stats} from '../../data/site';
 import {ArtFigure} from '../../components/ArtFigure';
 import {FoundationSection} from '../about/FoundationSection';
+import {ToolSection} from '../about/ToolSection';
 import {AboutTeaser, AlongsideSection, VenturesSection} from '../about/GroupSections';
 import {EcosystemPicker} from './EcosystemPicker';
 import {Pillars} from './Pillars';
@@ -101,12 +102,16 @@ export function Home() {
 
       <FoundationSection n={4} />
 
-      <VenturesSection n={5} />
+      <ToolSection tool="blank" n={5} />
 
-      <AlongsideSection n={6} />
+      <ToolSection tool="inv" n={6} />
+
+      <VenturesSection n={7} />
+
+      <AlongsideSection n={8} />
 
       <Section inverse>
-        <SectionHeader n={7} label={home.how.label} title={home.how.title} />
+        <SectionHeader n={9} label={home.how.label} title={home.how.title} />
         <ArtFigure {...processArt.how} className="mt-12 max-w-3xl" />
         <div className="mt-20">
           <Steps steps={home.how.steps} />
@@ -116,18 +121,18 @@ export function Home() {
       {/* The people and the numbers together, on a stone band, so the page changes pace before the questions. */}
       <section className="bg-stone py-24 md:py-32">
         <div className="container-x">
-          <SectionHeader n={8} label={home.numbers.label} title={home.numbers.title} />
+          <SectionHeader n={10} label={home.numbers.label} title={home.numbers.title} />
           <div className="mt-16">
             <StatsRow stats={stats} />
           </div>
         </div>
       </section>
-      <AboutTeaser n={9} />
+      <AboutTeaser n={11} />
 
       <Section className="pt-0! md:pt-0!">
         <div className="grid gap-12 md:grid-cols-12">
           <div className="md:col-span-4">
-            <SectionHeader n={10} label={home.faq.label} title={home.faq.title} />
+            <SectionHeader n={12} label={home.faq.label} title={home.faq.title} />
             <ArtFigure {...processArt.faq} className="mt-12" />
           </div>
           <div className="md:col-span-8">
@@ -136,7 +141,7 @@ export function Home() {
         </div>
       </Section>
 
-      <ContactCta n={11} />
+      <ContactCta n={13} />
     </div>
   );
 }

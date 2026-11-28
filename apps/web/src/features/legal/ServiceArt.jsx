@@ -6,12 +6,15 @@ import {servicePageCopy as copy} from '../../data/site';
 
 export function ServiceArt({page, section, className = ''}) {
   const art = page?.art?.[section] ?? {};
+  // On a phone the picture stays small and centred, so the page does not grow by a screen per section.
   return (
-    <ArtFigure
-      scene={art.scene ?? ART_SECTIONS[section]}
-      caption={art.caption ?? copy.art[section]}
-      image={art.image}
-      className={className}
-    />
+    <div className={className}>
+      <ArtFigure
+        scene={art.scene ?? ART_SECTIONS[section]}
+        caption={art.caption ?? copy.art[section]}
+        image={art.image}
+        className="mx-auto max-w-[19rem] sm:mx-0 sm:max-w-none"
+      />
+    </div>
   );
 }

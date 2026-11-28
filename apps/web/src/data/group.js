@@ -1,5 +1,5 @@
 // The company behind Pirento: its people, story, ventures and the bodies alongside it. Copy only; pages render it.
-// Sources: the Pirento Foundation and JBC Seva Trust profiles, the Pirento Blank and Venturecore Billing guides,
+// Sources: the Pirento Foundation and JBC Seva Trust profiles, the Pirento Blank and Pirento INV guides,
 // the Vakilsearch business partner agreement, and the ventures' own websites.
 
 // People. `photo` is a file in public/team/; without one the page shows initials. `face` is a square crop of the
@@ -129,13 +129,121 @@ export const TOOLS = [
     name: 'Pirento Blank',
     icon: 'journal',
     meta: 'Tool · Traders',
-    body: 'A private trading journal and planning tool for Indian share-market traders: net P&L after charges, risk checks and trade reviews. It gives no investment advice.',
+    domain: 'pirento.in',
+    body: 'A trading journal, plans, risk limits, an AI coach and live broker orders in one place for NSE traders, on phone and desktop, in Hindi and English. It gives no investment advice.',
   },
   {
-    name: 'Venturecore Billing',
+    name: 'Pirento INV',
     icon: 'billing',
     meta: 'Tool · Every business',
-    body: 'Quotations, invoices, payments, GST and finance for every business in the group, each with its own data, logo and payment gateway.',
+    body: 'Billing and accounts for every business in the group: invoices, quotations, payments, GST and finance, each business with its own data, logo, email and payment gateway.',
+  },
+];
+
+// The two tools as big panels on the Pirento home, in their own colours (PANEL_COLOURS in brand.js). Every line is
+// from the owner's brief of each app.
+export const TOOL_PANELS = [
+  {
+    key: 'blank',
+    name: 'Pirento Blank',
+    side: ['Web app for NSE traders', 'Hindi and English'],
+    status: 'pirento.in · not live yet',
+    title: ['Plan it.', 'Check it.', 'Then trade.'],
+    body: 'For intraday (MIS) and delivery (CNC) traders who want their losses kept in check: a trading journal, plans, risk limits, an AI coach and live orders through your broker, in one place. On phone and desktop, in Hindi and English. It gives no investment advice.',
+    items: [
+      {
+        icon: 'book',
+        title: 'Journal and trade book',
+        body: 'Every trade: entry, exit, P&L, charges, notes, mistakes and emotion; CSV, Excel or broker fills.',
+      },
+      {
+        icon: 'calculator',
+        title: 'Calculator',
+        body: 'The right quantity from your risk % and stop-loss, with charges, against your broker balance.',
+      },
+      {
+        icon: 'review',
+        title: 'Order review',
+        body: 'Save a plan, have the AI check it against your rules, then send it; exit or set a stop-loss / target GTT later.',
+      },
+      {
+        icon: 'shield',
+        title: 'Risk limits',
+        body: 'A daily loss limit and a trades-per-day limit; once one is hit, new orders stop.',
+      },
+      {
+        icon: 'broker',
+        title: 'Five brokers',
+        body: 'Zerodha, Dhan, Upstox, Fyers and Angel One: portfolio, balance and orders.',
+      },
+      {
+        icon: 'chart',
+        title: 'Reports',
+        body: 'P&L, win rate, calendar, insights, a weekly report, a tax report and analytics, by strategy too.',
+      },
+      {
+        icon: 'ai',
+        title: 'AI coach',
+        body: 'Chat, trade review, a pre-market briefing, research and journal search.',
+      },
+      {
+        icon: 'tools',
+        title: 'Market tools',
+        body: 'Watchlist, live chart, price alerts, option chain, backtest and paper trading.',
+      },
+    ],
+    note: 'Live trading: switched on by an admin on the server and by each member for themselves. Every order is a LIMIT order, never a market order, sent after MFA, a symbol check and a broker balance check; one plan sends one order, under a daily order limit.',
+  },
+  {
+    key: 'inv',
+    name: 'Pirento INV',
+    side: ['Billing and accounts', 'Venturecore / Pirento group'],
+    status: 'For the group’s businesses',
+    title: ['Every invoice.', 'Every business.', 'One workspace.'],
+    body: 'The Venturecore / Pirento group’s billing and accounts app. Every business in the group (A T Elevator, Inzario Space, Shri Sarraf, Pirento Legal and more) runs from one place, and every login sees only what it has been given.',
+    items: [
+      {
+        icon: 'invoice',
+        title: 'Every document',
+        body: 'Tax invoice, quotation, proforma, delivery challan, and credit and debit notes; unit and GST from a list.',
+      },
+      {
+        icon: 'ai',
+        title: 'GST from the HSN code',
+        body: 'Type the HSN code and the AI suggests the right GST rate; add a new customer on the spot.',
+      },
+      {
+        icon: 'pdf',
+        title: 'PDF on the letterhead',
+        body: 'Every document as a clean PDF with the business’s own logo and letterhead.',
+      },
+      {
+        icon: 'mail',
+        title: 'Email in its own name',
+        body: 'Sent in the business’s own name and colours with the PDF and a Razorpay payment link; payment, reminder and receipt emails go by themselves.',
+      },
+      {
+        icon: 'chart',
+        title: 'Finance dashboard',
+        body: 'Sales, money received, outstanding, expenses, profit and GST for every business; Excel or PDF; bank statements matched with AI.',
+      },
+      {
+        icon: 'team',
+        title: 'Team logins',
+        body: 'Staff, Finance and Business owner; an owner changes their own business’s settings.',
+      },
+      {
+        icon: 'lock',
+        title: 'Settings kept locked',
+        body: 'Each business’s SMTP email, Razorpay or Cashfree gateway and OpenAI key, stored encrypted.',
+      },
+      {
+        icon: 'more',
+        title: 'And the rest',
+        body: 'Customer ledger, payment reminders, recurring invoices, expenses, GSTR-1, reports, stock, e-invoice and e-way bill JSON, backups.',
+      },
+    ],
+    note: 'Works on a phone too, with large, clear buttons.',
   },
 ];
 
@@ -192,7 +300,7 @@ export const STORY = [
   },
   {
     title: 'Tools for the group',
-    body: 'Pirento Blank for traders, and Venturecore Billing for every business’s invoices.',
+    body: 'Pirento Blank for traders, and Pirento INV for every business’s invoices.',
   },
 ];
 

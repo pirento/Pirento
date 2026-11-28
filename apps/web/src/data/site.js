@@ -811,6 +811,21 @@ export const appDashboards = {
 };
 
 // A service's own page (features/legal/ServicePage.jsx): headings around the catalogue's sections.
+// Pirento Legal's home: the price rail and the service page's bar on a phone.
+export const legalCopy = {
+  popular: 'Asked for most',
+  seeAll: (n, area) => `All ${n} in ${area}`,
+  swipe: 'Swipe for more',
+  prev: 'Earlier services',
+  next: 'More services',
+  usually: (t) => `Usually ${t}`,
+  bar: 'See packages',
+  jump: 'Jump to a category',
+  results: (n) => `${n} ${n === 1 ? 'service' : 'services'} found`,
+  clear: 'Clear search',
+  showAll: (n) => `Show all ${n}`,
+};
+
 export const servicePageCopy = {
   from: 'From',
   choose: 'See the packages',
