@@ -2,6 +2,7 @@
 // the brand guidelines (Appendix A) are written inline: Pirento dark, master red,
 // light neutral, and a body grey that passes 4.5:1 on white.
 import nodemailer from 'nodemailer';
+import {ApiError, isProduction} from '@pirento/shared/server';
 
 const C = {paper: '#F4F6F7', ink: '#1B2A33', muted: '#56636C', rule: '#D6D6D6', accent: '#E40E2A'};
 
@@ -50,6 +51,11 @@ export function renderNoticeEmail({brand, label, big, note}) {
 
 export async function sendNoticeEmail(to, notice, via = mailer()) {
   const {subject, text, html} = renderNoticeEmail(notice);
-  if (!via) return console.log(`Email to ${to}: ${text} (no SMTP_URL, so not sent)`);
+  if (!via) {
+    // A notice can carry a first password or a one-time sign-in link: in production, without a mail server, refuse
+    // rather than print it to the logs and report it as sent.
+    if (isProduction()) throw new ApiError(503, 'EMAIL_UNAVAILABLE', 'Email is not set up yet');
+    return console.log(`Email to ${to}: ${text} (no SMTP_URL, so not sent)`);
+  }
   await via.sendMail({from: process.env.EMAIL_FROM ?? 'Pirento <no-reply@pirento.com>', to, subject, text, html});
 }

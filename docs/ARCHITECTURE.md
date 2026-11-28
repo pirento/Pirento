@@ -23,25 +23,30 @@ apps/web/src
   main.jsx                 entry: styles, router, session, app shell
   app/                     App shell, route table (routes.jsx), page-change effects
   components/
-    layout/                navbar, footer, preloader, cursor, contact block
+    layout/                navbar, footer, app shell, command palette, preloader, cursor, contact block
     ui/                    Button, Tag, Heading/Section, Field, TextArea, Blocks
-    PageHero.jsx, Illustration.jsx
+    illustrations/         the hand-drawn SVG scenes, one file per set (process, products, journeys, spots, family)
+    PageHero.jsx, Illustration.jsx, ArtFigure.jsx
   features/<area>/         one folder per area of the product, pages and their parts
-    ecosystem/  products/  auth/  account/  admin/  orders/  legal/  verify/  green/
-    identity/   learning/  vault/ ai/      partner/ capital/ support/
+    ecosystem/  the Pirento home, the Products page, terms / privacy / refunds pages, 404
+    about/      the group: the About page, and the family parts the home also shows (brand panels, decks, cards)
+    products/   every product's home (layouts in designs.js, widgets/) and dashboard frame
+    legal/  green/  identity/  business/  learning/  vault/  ai/  partner/  capital/   one product each
+    auth/  account/  orders/  support/  verify/  admin/   shared across products
   lib/
     api/                   client (token + silent refresh), session, useApi
-    format.js  motion.js  page.js  site.js (which product site you are on)
-  data/site.js             site copy for the ecosystem pages
-apps/web/public/brand      the Pirento logo and "t" mark (dark and light), square artwork, favicons and app icons
+    format.js  motion.js  page.js  prices.jsx  links.js  productIcons.js  site.js (which product site you are on)
+  data/                    site copy: site.js (pages), group.js (the company and its family), legal.js,
+                           aiTools.js; art.test.js keeps every picture to one place
   styles/index.css         colour and type tokens
+apps/web/public/brand      the Pirento logo and "t" mark (dark and light), square artwork, favicons and app icons
 
 packages/shared/src
   index.js                 browser-safe exports
   data/                    raw data: products, brand colours, catalogue, prices, intake, exam bank,
                            and legalPages/ (every Legal service's page, one file per area)
-  catalog/ orders/ identity/ money/   rules shared by browser and server
-  server/                  createApp, errors, env, auth, internal calls, validate, db, crypto
+  account/ catalog/ orders/ identity/ money/   rules shared by browser and server
+  server/                  createApp, errors, env, auth, internal calls, validate, db, crypto, files, cache, razorpay
 
 services/<name>/src
   index.js                 boots the service: createApp, mount routes, start

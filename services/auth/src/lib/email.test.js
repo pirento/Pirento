@@ -2,7 +2,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import nodemailer from 'nodemailer';
-import {renderOtpEmail, sendOtpEmail} from './email.js';
+import {renderOtpEmail, sendNoticeEmail, sendOtpEmail} from './email.js';
 
 test('OTP email carries the code and brand, escaped', () => {
   const {subject, text, html} = renderOtpEmail({code: '123456', brand: 'Pirento <Legal>'});
@@ -20,4 +20,15 @@ test('sendOtpEmail builds a real message', async () => {
   assert.equal(sent[0].to[0].address, 'a@example.com');
   assert.match(sent[0].subject, /654321/);
   assert.match(sent[0].html, /Pirento AI/);
+});
+
+test('without a mail server, production refuses a notice instead of logging its secret', async () => {
+  const before = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    const notice = {brand: 'Pirento', label: 'Your user ID', big: 'asha', note: 'Your password is secret-123'};
+    await assert.rejects(sendNoticeEmail('a@example.com', notice, null), {code: 'EMAIL_UNAVAILABLE'});
+  } finally {
+    process.env.NODE_ENV = before;
+  }
 });
