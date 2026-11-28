@@ -27,6 +27,14 @@ test("the AI's problems hold it back, and its PIN code fills a missing one", () 
   assert.equal(held.to.pincode, '411001'); // the customer's own PIN code wins
 });
 
+test('the delivery state ends the address unless it is already there', () => {
+  assert.equal(reviewOf({...intake, state: 'Maharashtra'}).to.address, '12 MG Road, Pune, Maharashtra');
+  assert.equal(
+    reviewOf({...intake, address: '12 MG Road, Pune, Maharashtra', state: 'Maharashtra'}).to.address,
+    '12 MG Road, Pune, Maharashtra',
+  );
+});
+
 test('plain checks catch what is missing', () => {
   const {review} = reviewOf({recipientName: '', address: 'Pune', pincode: '1234', phone: '12'});
   assert.deepEqual(review, [

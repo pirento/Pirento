@@ -14,6 +14,8 @@ import {aiRoutes} from './routes/ai.routes.js';
 import {greenRoutes} from './routes/green.routes.js';
 import {shipmentRoutes} from './routes/shipment.routes.js';
 import {startShipmentTracker} from './lib/shipments.js';
+import {startInvoiceSweep} from './lib/invoices.js';
+import {invoiceRoutes} from './routes/invoice.routes.js';
 
 const app = createApp('orders');
 // Order matters: the fixed paths (/partner, /staff) must come before /:id.
@@ -22,6 +24,7 @@ app.use(
   aiRoutes,
   greenRoutes, // before staffRoutes, so /staff/green is not read as an order id
   shipmentRoutes, // likewise /staff/shipments
+  invoiceRoutes, // and /staff/invoices
   publicRoutes,
   partnerRoutes,
   couponRoutes,
@@ -33,3 +36,4 @@ app.use(
 
 start(finish(app), {name: 'orders', port: config.port, mongoUri: config.mongoUri});
 startShipmentTracker(); // Blue Dart parcels: where each one is, every hour
+startInvoiceSweep(); // invoices for paid orders that have none yet

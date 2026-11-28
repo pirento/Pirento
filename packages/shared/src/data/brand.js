@@ -10,6 +10,14 @@
  */
 
 /** The Pirento masterbrand: ecosystem pages, the shared account, admin. */
+/** The company behind Pirento, as registered: printed on invoices and receipts. */
+export const COMPANY = {
+  legalName: 'Venturecore Solutions Private Limited',
+  cin: 'U63121UP2023PTC188021',
+  gstin: '09AAJCV6240P1ZL',
+  supportEmail: 'support@pirento.com',
+};
+
 export const BRAND = {
   dark: '#1B2A33',
   accent: '#E40E2A', // master red: masterbrand emphasis, not a general error colour

@@ -59,6 +59,11 @@ export const ROUTES = [
 
   // Staff
   {
+    path: '/admin/invoices/print',
+    layout: 'app',
+    Page: page(() => import('../features/admin/InvoicePrint'), 'InvoicePrint'),
+  },
+  {
     path: '/admin/shipments/print',
     layout: 'app',
     Page: page(() => import('../features/admin/ShipmentPrint'), 'ShipmentPrint'),

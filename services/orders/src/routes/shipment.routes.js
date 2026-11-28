@@ -18,6 +18,7 @@ import {
   validate,
 } from '@pirento/shared/server';
 import {bluedartOn} from '../config.js';
+import {Invoice} from '../models/Invoice.js';
 import {Order} from '../models/Order.js';
 import {SHIPMENT_STATUSES, Shipment} from '../models/Shipment.js';
 import {ShipProduct, ShipSettings} from '../models/ShipSettings.js';
@@ -181,12 +182,18 @@ const ORDER_FIELDS = {
 async function printable(shipments) {
   const shipper = shipperOf(await shipSettings());
   const ids = shipments.map((s) => s.orderId).filter(Boolean);
-  const orders = ids.length ? await Order.find({_id: {$in: ids}}, ORDER_FIELDS).lean() : [];
+  const [orders, invoices] = ids.length
+    ? await Promise.all([
+        Order.find({_id: {$in: ids}}, ORDER_FIELDS).lean(),
+        Invoice.find({orderId: {$in: ids}}).lean(),
+      ])
+    : [[], []];
   return shipments.map((s) => {
     const order = orders.find((o) => String(o._id) === s.orderId);
     return {
       shipment: s,
       shipper,
+      invoice: invoices.find((i) => i.orderId === s.orderId) ?? null,
       order: order && {
         ...order,
         timeline: undefined,

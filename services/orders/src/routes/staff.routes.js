@@ -28,6 +28,7 @@ import {
 } from '@pirento/shared/server';
 import {PAID_STATUSES, config} from '../config.js';
 import {liveService} from '../lib/catalog.js';
+import {cancelInvoice} from '../lib/invoices.js';
 import {commissionFor, payCommission} from '../lib/commission.js';
 import {Order} from '../models/Order.js';
 import {Partner} from '../models/Partner.js';
@@ -427,6 +428,10 @@ staffRoutes.patch(
           },
           {new: true},
         )) ?? (await Order.findById(order._id));
+      // A cancelled paid order gets a credit note against its invoice.
+      await cancelInvoice(order, note || 'Order cancelled').catch((err) =>
+        console.error('credit note', order.orderNo, err.message),
+      );
     }
     audit(req, `order.${status}`, `#${order.orderNo}`, note);
     if (!retryRefund) {

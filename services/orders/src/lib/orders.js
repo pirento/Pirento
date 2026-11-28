@@ -5,6 +5,7 @@ import {canUse, isId, nextSeq, notFound, productScope, razorpayConfig, refundPay
 import {CODE_PREFIX} from '../config.js';
 import {Order} from '../models/Order.js';
 import {takeUse} from './coupons.js';
+import {issueInvoice} from './invoices.js';
 import {autoShip} from './shipments.js';
 
 /** Six-digit order numbers, starting at 100001. */
@@ -59,8 +60,11 @@ export async function markPaid(id, payment, note) {
   // Counted once per order (a wallet payment took it before debiting; then this is a no-op).
   if (paid) {
     await takeUse(paid, {strict: false});
-    // A gift box ships by itself; in the background, since Pirento AI checks the address first.
-    autoShip(paid).catch((err) => console.error('autoship', paid.orderNo, err.message));
+    // The invoice first, so a parcel booked right after can carry its number; both in the background.
+    issueInvoice(paid)
+      .catch((err) => console.error('invoice', paid.orderNo, err.message))
+      // A gift box ships by itself once Pirento AI has checked the address.
+      .finally(() => autoShip(paid).catch((err) => console.error('autoship', paid.orderNo, err.message)));
   }
   return paid;
 }

@@ -1,8 +1,7 @@
 // /admin/shipments/:id/print and /admin/shipments/print?ids=a,b: shipping labels and invoices, each on its own page,
 // printed in one go. Two formats: 4 × 6 inch for a thermal label printer, or A4 (the label in a cut-out box). Choose
 // labels, invoices or both; the page sets the paper size itself, prints in pure black, and marks the parcels printed.
-import {useEffect, useState} from 'react';
-import {createPortal} from 'react-dom';
+import {useState} from 'react';
 import {Link, Navigate, useParams, useSearchParams} from 'react-router-dom';
 import {ArrowLeft, Printer} from 'lucide-react';
 import {QRCodeSVG} from 'qrcode.react';
@@ -15,21 +14,10 @@ import {code128} from '../../lib/barcode';
 import {formatDate, inr} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
 import {isStaffRole} from './adminNav';
+import {InvoiceDoc} from '../orders/InvoiceDoc';
+import {FormatPicker, PrintArea, Sheet, useAfterPrint, useFormat, usePrintPaper} from '../orders/print';
 
 const METHOD = {wallet: 'Pirento wallet', razorpay: 'Card / UPI (Razorpay)'};
-const FORMATS = {
-  thermal: {label: copy.formats.thermal, page: '4in 6in'},
-  a4: {label: copy.formats.a4, page: 'A4'},
-};
-const KEY = 'pirento.printFormat';
-const saved = () => {
-  try {
-    return localStorage.getItem(KEY) === 'a4' ? 'a4' : 'thermal';
-  } catch {
-    return 'thermal';
-  }
-};
-
 /** Code 128 bars in the ink colour, crisp so a scanner reads them. */
 function Barcode({value, height = 60}) {
   const widths = code128(value);
@@ -141,7 +129,8 @@ function Label({p}) {
             <p key={l}>{l}</p>
           ))}
         <p className="mt-1">
-          {copy.parcel} #{s.shipmentNo} · {formatDate(new Date())}
+          {copy.parcel} #{s.shipmentNo}
+          {p.invoice && ` · ${copy.invoiceNo} ${p.invoice.invoiceNo}`} · {formatDate(new Date())}
         </p>
       </div>
     </div>
@@ -149,7 +138,8 @@ function Label({p}) {
 }
 
 /** The packing slip and invoice; tight on a 4 × 6 sheet, roomy on A4. */
-function Invoice({p, a4}) {
+/** The packing slip for an order paid before invoices were issued (it has no invoice of its own). */
+function PackingSlip({p, a4}) {
   const {shipment: s, order} = p;
   const before = order.amount + (order.discount ?? 0);
   const t = a4
@@ -236,13 +226,12 @@ function Invoice({p, a4}) {
   );
 }
 
-/** Every page to print, in order: per parcel its label, then its invoice. */
+/** Every page to print, in order: per parcel its label, then its invoice (or packing slip). */
 function Sheets({items, format, want}) {
   const a4 = format === 'a4';
-  const sheet = `sheet print-mono ${a4 ? 'sheet-a4' : 'sheet-4x6'} overflow-hidden bg-paper shadow-[0_0_0_1px_var(--rule)]`;
   return items.flatMap((p) => [
     want.label && (
-      <section key={`${p.shipment._id}-l`} className={`${sheet} ${a4 ? 'p-[12mm]' : 'p-[0.08in]'}`}>
+      <Sheet key={`${p.shipment._id}-l`} format={format} className={a4 ? 'p-[12mm]' : 'p-[0.08in]'}>
         {a4 ? (
           <div className="sheet-4x6 outline-2 outline-offset-4 outline-ink outline-dashed">
             <Label p={p} />
@@ -251,12 +240,12 @@ function Sheets({items, format, want}) {
           <Label p={p} />
         )}
         {a4 && <p className="mt-4 text-xs">{copy.cutHere}</p>}
-      </section>
+      </Sheet>
     ),
     want.invoice && p.order && (
-      <section key={`${p.shipment._id}-i`} className={sheet}>
-        <Invoice p={p} a4={a4} />
-      </section>
+      <Sheet key={`${p.shipment._id}-i`} format={format}>
+        {p.invoice ? <InvoiceDoc invoice={p.invoice} size={format} /> : <PackingSlip p={p} a4={a4} />}
+      </Sheet>
     ),
   ]);
 }
@@ -270,48 +259,26 @@ export function ShipmentPrint() {
   const one = useApi(staff && id ? `/orders/staff/shipments/${id}` : null);
   const many = useApi(staff && !id && ids.length ? `/orders/staff/shipments/print?ids=${ids.join(',')}` : null);
   const items = id ? one.data && [one.data] : many.data;
-  const [format, setFormat] = useState(saved);
+  const [format, setFormat] = useFormat();
   const [want, setWant] = useState({label: true, invoice: true});
   usePageMeta({title: `${copy.printTitle} — Pirento Admin`});
-
-  // The paper size the printer gets, and only the sheets on it.
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `@media print { @page { size: ${FORMATS[format].page}; margin: 0 } #root { display: none !important } }`;
-    document.head.append(style);
-    return () => {
-      style.remove();
-    };
-  }, [format]);
+  usePrintPaper(format);
   // Once printed, the parcels are marked so the list shows their labels are out.
-  useEffect(() => {
-    if (!items?.length) return undefined;
-    const mark = () => {
-      api('/orders/staff/shipments/printed', {
-        method: 'POST',
-        body: {ids: items.map((p) => p.shipment._id)},
-      }).catch(() => {});
-    };
-    window.addEventListener('afterprint', mark);
-    return () => {
-      window.removeEventListener('afterprint', mark);
-    };
-  }, [items]);
+  useAfterPrint(
+    items?.length &&
+      (() => {
+        api('/orders/staff/shipments/printed', {
+          method: 'POST',
+          body: {ids: items.map((p) => p.shipment._id)},
+        }).catch(() => {});
+      }),
+    [items],
+  );
 
   if (redirect) return redirect;
   if (user && !staff) return <Navigate to="/dashboard" replace />;
   if (!items) return <div className="min-h-dvh" />;
-  const choose = (f) => {
-    setFormat(f);
-    try {
-      localStorage.setItem(KEY, f);
-    } catch {
-      // A blocked storage only loses the remembered choice.
-    }
-  };
   const pages = items.reduce((n, p) => n + (want.label ? 1 : 0) + (want.invoice && p.order ? 1 : 0), 0);
-  const chip = (on) =>
-    `rounded-full border px-4 py-2 text-sm ${on ? 'border-ink bg-ink text-paper' : 'border-rule hover:border-ink'}`;
 
   return (
     <div>
@@ -328,20 +295,7 @@ export function ShipmentPrint() {
             <Printer aria-hidden className="size-4" /> {copy.printPages(pages)}
           </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2" role="group" aria-label={copy.format}>
-          <span className="mr-1 text-sm text-muted">{copy.format}</span>
-          {Object.entries(FORMATS).map(([f, x]) => (
-            <button
-              key={f}
-              type="button"
-              aria-pressed={format === f}
-              onClick={() => choose(f)}
-              className={chip(format === f)}
-            >
-              {x.label}
-            </button>
-          ))}
-        </div>
+        <FormatPicker format={format} onChange={setFormat} />
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <span className="text-muted">{copy.include}</span>
           {['label', 'invoice'].map((k) => (
@@ -360,17 +314,9 @@ export function ShipmentPrint() {
         <p className="text-xs text-muted">{format === 'thermal' ? copy.thermalTip : copy.a4Tip}</p>
       </div>
 
-      {/* On screen: the sheets at their real size, side by side. */}
-      <div className="flex flex-wrap gap-6 overflow-x-auto pb-4">
+      <PrintArea>
         <Sheets items={items} format={format} want={want} />
-      </div>
-      {/* On paper: the same sheets, outside the app so nothing else prints. */}
-      {createPortal(
-        <div className="hidden print:block">
-          <Sheets items={items} format={format} want={want} />
-        </div>,
-        document.body,
-      )}
+      </PrintArea>
     </div>
   );
 }

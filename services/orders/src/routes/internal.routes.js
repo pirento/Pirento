@@ -7,6 +7,7 @@ import {dropFiles, isId, notFound, requireInternal, validate} from '@pirento/sha
 import {orderFacts} from '../lib/facts.js';
 import {Order} from '../models/Order.js';
 import {Shipment} from '../models/Shipment.js';
+import {Invoice} from '../models/Invoice.js';
 import {OrderFile} from '../models/OrderFile.js';
 import {Partner} from '../models/Partner.js';
 
@@ -32,6 +33,11 @@ internalRoutes.post('/internal/forget', validate(z.object({userId: z.string().mi
       {arrayFilters: [{'mine.from': 'customer'}]},
     ),
     OrderFile.deleteMany({userId}),
+    // Invoices are tax records and stay, like the orders; the email and mobile on them go.
+    Invoice.updateMany(
+      {userId},
+      {$set: {'buyer.email': `deleted-${userId}@deleted.invalid`}, $unset: {'buyer.phone': 1}},
+    ),
     // A parcel's address and mobile are theirs; the parcel stays as a record of what was sent.
     Shipment.updateMany({userId}, {$set: {'to.name': 'Deleted account'}, $unset: {'to.address': 1, 'to.mobile': 1}}),
     Partner.deleteMany({userId}),

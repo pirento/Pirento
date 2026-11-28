@@ -2,7 +2,7 @@
 import {Router} from 'express';
 import {z} from 'zod';
 import {ApiError, conflict, notFound, requireAuth, validate} from '@pirento/shared/server';
-import {isUsername, passwordProblem} from '@pirento/shared';
+import {GSTIN_PATTERN, STATE_NAMES, isUsername, passwordProblem} from '@pirento/shared';
 import {MIN_PASSWORD, hashPassword, verifyPassword} from '../lib/password.js';
 import {DeletionRequest} from '../models/DeletionRequest.js';
 import {User} from '../models/User.js';
@@ -22,6 +22,33 @@ meRoutes.patch(
   validate(z.object({name: z.string().trim().min(2, 'Enter your name').max(80)})),
   async (req, res) => {
     res.json({data: await User.findByIdAndUpdate(req.user.sub, {name: req.body.name}, {new: true})});
+  },
+);
+
+/** Billing details for your invoices from now on: a business name, GSTIN, address and state (all optional). */
+meRoutes.get('/me/billing', async (req, res) => {
+  const user = await User.findById(req.user.sub, {billing: 1});
+  res.json({data: user?.billing ?? {}});
+});
+
+meRoutes.put(
+  '/me/billing',
+  validate(
+    z.object({
+      name: z.string().trim().max(120).default(''),
+      gstin: z
+        .string()
+        .trim()
+        .toUpperCase()
+        .regex(new RegExp(`${GSTIN_PATTERN}|^$`), 'Enter a valid 15-character GSTIN')
+        .default(''),
+      address: z.string().trim().max(300).default(''),
+      state: z.enum(['', ...STATE_NAMES]).default(''),
+    }),
+  ),
+  async (req, res) => {
+    const user = await User.findByIdAndUpdate(req.user.sub, {billing: req.body}, {new: true, projection: {billing: 1}});
+    res.json({data: user.billing});
   },
 );
 

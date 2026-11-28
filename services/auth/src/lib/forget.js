@@ -21,6 +21,7 @@ export async function forgetUser(user) {
   await clearFailures([`user:${user.email}`, `user:${user.username}`, `staff:${user.staffId}`]);
   user.email = `deleted-${user._id}@deleted.invalid`;
   user.name = '';
+  user.billing = undefined;
   user.role = 'customer';
   user.products = [];
   // No way back in: no staff door, no Google link.

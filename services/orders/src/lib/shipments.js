@@ -4,6 +4,7 @@
 import {SHIPPABLE, editedServicesFor, getProduct} from '@pirento/shared';
 import {callService, nextSeq, notify} from '@pirento/shared/server';
 import {bluedartOn, config} from '../config.js';
+import {Invoice} from '../models/Invoice.js';
 import {Order} from '../models/Order.js';
 import {LIVE_SHIPMENTS, Shipment} from '../models/Shipment.js';
 import {DEFAULT_PARCEL, ShipProduct, ShipSettings} from '../models/ShipSettings.js';
@@ -88,6 +89,7 @@ export async function bookShipment(shipment, by = 'system') {
       {new: true, projection: {product: 1}},
     );
     product = order?.product;
+    await Invoice.updateOne({orderId: done.orderId}, {$set: {shipping: {courier: 'Blue Dart', awb}}});
   }
   tellAbout({...done, product}, WORDS.booked);
   return done;
@@ -98,6 +100,10 @@ export async function bookShipment(shipment, by = 'system') {
  * when the AI is off): the AI's cleaned name and address, the PIN code given or the one it found, and its problems
  * plus the plain checks. An empty review means the parcel may book by itself.
  */
+/** The address with the delivery state added at its end, unless the customer already wrote it. */
+const withState = (address, state) =>
+  state && !address.toLowerCase().includes(String(state).toLowerCase()) ? `${address}, ${state}` : address;
+
 export function reviewOf(intake = {}, ai = null) {
   const given = {
     name: String(intake.recipientName ?? '').trim(),
@@ -107,7 +113,7 @@ export function reviewOf(intake = {}, ai = null) {
   };
   const to = {
     name: (ai?.name || given.name).slice(0, 80),
-    address: (ai?.address || given.address).slice(0, 300),
+    address: withState(ai?.address || given.address, intake.state).slice(0, 300),
     pincode: PINCODE.test(given.pincode) ? given.pincode : (ai?.pincode ?? ''),
     mobile: given.mobile,
   };
@@ -126,6 +132,7 @@ export async function checkAddress(intake = {}) {
     address: intake.address ?? '',
     pincode: intake.pincode ?? '',
     mobile: intake.phone ?? '',
+    state: intake.state ?? '',
   };
   const ai = await callService(config.aiUrl, '/internal/jobs/shipAddress', {input}, {timeoutMs: 60_000}).catch(
     () => null,
@@ -145,6 +152,8 @@ export async function autoShip(order) {
   if (!row.autoShip) return null;
   if (await Shipment.exists({orderId: String(order._id), auto: true})) return null;
   const {to, review} = await checkAddress(order.intake);
+  // Goods worth more than ₹50,000 travel with an e-way bill, which the team makes on the GST portal first.
+  if (order.amount > 50_000 * 100) review.push('E-way bill needed: the goods are worth more than ₹50,000');
   const quantity = order.quantity ?? 1;
   let shipment;
   try {

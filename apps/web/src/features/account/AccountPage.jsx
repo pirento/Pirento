@@ -14,6 +14,7 @@ import {useSignedIn} from '../auth/useSignedIn';
 import {DeleteAccount} from './DeleteAccount';
 import {PasswordCard} from './PasswordCard';
 import {SecurityCard} from './SecurityCard';
+import {BillingCard} from './BillingCard';
 
 /** Pick a user ID once (accounts made by email code have none). */
 function UserIdForm({me, onDone}) {
@@ -133,6 +134,7 @@ export function Account() {
       <ProfileCard n={1} me={me.data} onDone={me.reload} />
       {me.data && <PasswordCard n={2} me={me.data} onDone={me.reload} />}
       {me.data && <SecurityCard n={3} me={me.data} />}
+      {me.data && <BillingCard n={4} />}
     </div>
   );
 }

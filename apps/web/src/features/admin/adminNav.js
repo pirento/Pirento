@@ -20,6 +20,7 @@ import {
   QrCode,
   Megaphone,
   ScrollText,
+  ReceiptText,
   Truck,
   SlidersHorizontal,
   TicketPercent,
@@ -132,6 +133,15 @@ export const ADMIN_SECTIONS = [
     icon: Mail,
     roles: ['support', 'staff', 'superadmin'], // ACCESS.support
     intro: 'Messages from the contact form on every site. Reply by email or phone, then mark them handled.',
+  },
+  {
+    id: 'invoices',
+    group: 'Work',
+    label: 'Invoices',
+    icon: ReceiptText,
+    roles: MONEY, // ACCESS.payments
+    intro:
+      'An invoice is issued by itself for every paid order, with GST worked out from the settings, and a credit note when a paid order is cancelled. Print, export a month for the GST return, and set the tax details.',
   },
   {
     id: 'shipments',

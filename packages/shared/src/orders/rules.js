@@ -1,5 +1,6 @@
 // Order life cycle. Staff move an order forward; cancelling a paid order refunds it.
 import {intakeQuestions} from '../data/intake.js';
+import {STATE_NAMES} from './invoice.js';
 
 export const ORDER_STEPS = [
   {status: 'pending_payment', label: 'Awaiting payment'},
@@ -27,6 +28,8 @@ const GIFT_DELIVERY = [
   {id: 'recipientName', label: 'Recipient name', required: true},
   {id: 'address', label: 'Delivery address', placeholder: 'House, street, area, city', required: true},
   {id: 'pincode', label: 'PIN code', placeholder: '6 digits', pattern: '^[1-9]\\d{5}$'},
+  // The delivery state is the place of supply for GST on goods, and helps the courier.
+  {id: 'state', label: 'State', options: STATE_NAMES},
 ];
 
 /** Phone is always asked; then the product's own questions, or the set an admin gave this service. */

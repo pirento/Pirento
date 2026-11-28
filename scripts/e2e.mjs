@@ -1801,6 +1801,7 @@ const gift = {
   recipientName: 'Ravi',
   address: '12 MG Road, Pune',
   pincode: '411001',
+  state: 'Maharashtra',
   occasion: 'Personal celebration',
   whoFor: 'A gift for someone',
   timeline: 'As soon as possible',
@@ -2044,6 +2045,142 @@ const completeReferred = async () => {
     'a delivered parcel cannot be cancelled',
     (await call(`/orders/staff/shipments/${parcel?._id}/cancel`, {method: 'POST', token: boss})).status === 409,
   );
+}
+// Invoices: issued by themselves when an order is paid, GST from admin's settings, a credit note on cancelling.
+{
+  check('a customer cannot open invoices', (await call('/orders/staff/invoices', {token: buyer})).status === 403);
+  check(
+    'a GSTIN is checked',
+    (await call('/auth/me/billing', {method: 'PUT', token: buyer, body: {gstin: 'NOT-A-GSTIN'}})).status === 400,
+  );
+  const billing = (
+    await call('/auth/me/billing', {
+      method: 'PUT',
+      token: buyer,
+      body: {name: 'Acme Traders', gstin: '27ABCDE1234F1Z5', address: '1 Link Road, Mumbai', state: 'Maharashtra'},
+    })
+  ).data;
+  check('billing details are kept', billing?.gstin === '27ABCDE1234F1Z5', billing);
+
+  // Before the tax details are set, a paid order gets a plain invoice.
+  const firstPaid = (await call('/orders', {token: buyer})).data?.find(
+    (o) => o.payment?.method && o.product === 'giftox',
+  );
+  const plain = (await call(`/orders/${firstPaid?._id}/invoice`, {token: buyer})).data;
+  check(
+    'before the tax details, invoices are plain',
+    plain?.kind === 'plain' &&
+      /^PIR\/\d\d-\d\d\/\d{5}$/.test(plain.invoiceNo) &&
+      plain.amounts.total === firstPaid.amount,
+    plain,
+  );
+
+  await call('/orders/staff/invoices/settings', {
+    method: 'PUT',
+    token: boss,
+    body: {address: 'Registered office, Lucknow, Uttar Pradesh', prefix: 'PIR', note: 'Thank you.'},
+  });
+  check(
+    'a product is edited, never added',
+    (
+      await call('/orders/staff/invoices/settings/products/not-a-product', {
+        method: 'PUT',
+        token: boss,
+        body: {code: '998213', rate: 18},
+      })
+    ).status === 404,
+  );
+  check(
+    'a GST rate must be a real one',
+    (
+      await call('/orders/staff/invoices/settings/products/legal', {
+        method: 'PUT',
+        token: boss,
+        body: {code: '998213', rate: 17},
+      })
+    ).status === 400,
+  );
+  const products = (
+    await call('/orders/staff/invoices/settings/products/legal', {
+      method: 'PUT',
+      token: boss,
+      body: {code: '998213', rate: 18},
+    })
+  ).data;
+  check('tax details for Legal', products?.find((p) => p.product === 'legal')?.rate === 18, products);
+
+  const legal = (await call('/orders', {method: 'POST', token: buyer, body: {serviceSlug: 'gst-registration', intake}}))
+    .data;
+  await call('/wallet/topup', {method: 'POST', token: buyer, body: {amount: legal.amount / 100}});
+  await call(`/orders/${legal._id}/pay/wallet`, {method: 'POST', token: buyer});
+  const inv = (await call(`/orders/${legal._id}/invoice`, {token: buyer})).data;
+  check(
+    'a paid order has a tax invoice, IGST to a buyer in another state',
+    inv?.kind === 'tax' &&
+      inv.placeOfSupply.state === 'Maharashtra' &&
+      inv.buyer.gstin === '27ABCDE1234F1Z5' &&
+      inv.amounts.igst > 0 &&
+      inv.amounts.cgst === 0 &&
+      inv.amounts.taxable + inv.amounts.igst === legal.amount &&
+      inv.line.code === '998213' &&
+      /^Rupees /.test(inv.words),
+    inv,
+  );
+  check(
+    'someone else cannot read it',
+    (await call(`/orders/${legal._id}/invoice`, {token: await login(`z${Date.now()}@example.com`)})).status === 404,
+  );
+  const again = (await call(`/orders/${legal._id}/invoice`, {token: buyer})).data;
+  check('one invoice per order', again?.invoiceNo === inv?.invoiceNo);
+  check(
+    'the order carries its invoice number',
+    (await call(`/orders/${legal._id}`, {token: buyer})).data?.invoiceNo === inv?.invoiceNo,
+  );
+
+  const month = new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 7);
+  const listed = (
+    await call(`/orders/staff/invoices?month=${month}&q=${encodeURIComponent(inv?.invoiceNo)}`, {token: boss})
+  ).data;
+  check(
+    'admin finds it, with GST totals',
+    listed?.items.length === 1 && listed.totals.igst === inv?.amounts.igst,
+    listed,
+  );
+  const csv = await fetch(`${B}/orders/staff/invoices/export?month=${month}`, {
+    headers: {authorization: `Bearer ${boss}`},
+  });
+  const text = await csv.text();
+  check(
+    'the month exports as CSV',
+    csv.headers.get('content-type')?.startsWith('text/csv') &&
+      text.includes(inv?.invoiceNo) &&
+      text.startsWith('Invoice no'),
+    text.slice(0, 200),
+  );
+  const printed = (await call(`/orders/staff/invoices/print?ids=${inv?._id},bad`, {token: boss})).data;
+  check('invoices print in one go', printed?.length === 1);
+
+  await call(`/orders/staff/${legal._id}`, {
+    method: 'PATCH',
+    token: boss,
+    body: {status: 'cancelled', note: 'Asked to cancel'},
+  });
+  const cn = (await call(`/orders/${legal._id}/invoice`, {token: buyer})).data;
+  check(
+    'cancelling a paid order adds a credit note',
+    cn?.status === 'cancelled' && /^CN\/\d\d-\d\d\/\d{5}$/.test(cn.creditNote?.no ?? ''),
+    cn,
+  );
+  check(
+    'a credit note takes it out of the GST totals',
+    (
+      await call(`/orders/staff/invoices?month=${month}&q=${encodeURIComponent(inv?.invoiceNo)}&status=issued`, {
+        token: boss,
+      })
+    ).data?.items.length === 0,
+  );
+  const swept = (await call('/orders/staff/invoices/sweep', {method: 'POST', token: boss})).data;
+  check('the sweep issues none twice', typeof swept?.made === 'number', swept);
 }
 {
   // Two buys at once, the way a double click sends them: one charge, one plan.

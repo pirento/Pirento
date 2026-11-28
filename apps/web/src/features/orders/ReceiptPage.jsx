@@ -11,6 +11,7 @@ import {formatDate, inr} from '../../lib/format';
 import {usePageMeta} from '../../lib/page';
 import {hasReceipt, paidAt} from './receipts';
 import {orderTitle} from './helpers';
+import {InvoiceDoc} from './InvoiceDoc';
 
 const METHOD = {wallet: 'Pirento wallet', razorpay: 'Card / UPI (Razorpay)'};
 
@@ -25,6 +26,8 @@ export function Receipt() {
   const {slug, id} = useParams();
   const {redirect, user} = useSignedIn({area: 'any'});
   const {data: order, error} = useApi(user ? `/orders/${id}` : null);
+  // The invoice, when the order has one (every order paid since invoices began); else the plain receipt below.
+  const invoice = useApi(order && hasReceipt(order) ? `/orders/${id}/invoice` : null);
   usePageMeta({title: order ? `Receipt #${order.orderNo} — Pirento` : 'Receipt — Pirento'});
   if (redirect) return redirect;
   // The receipt lives under its own product's dashboard, so a Legal receipt never opens in Black's colours.
@@ -33,6 +36,33 @@ export function Receipt() {
 
   const product = getProduct(order.product);
   const before = order.amount + (order.discount ?? 0);
+  const toolbar = (
+    <div className="no-print mb-8 flex flex-wrap items-center justify-between gap-4">
+      <Link
+        to={`/${slug}/dashboard/receipts`}
+        className="inline-flex items-center gap-2 text-sm text-muted hover:text-ink"
+      >
+        <ArrowLeft aria-hidden className="size-4" /> Back
+      </Link>
+      <button
+        onClick={() => window.print()}
+        className="inline-flex items-center gap-2 rounded-full border border-rule px-5 py-2.5 text-sm hover:border-ink"
+      >
+        <Printer aria-hidden className="size-4" /> Print or save as PDF
+      </button>
+    </div>
+  );
+  if (invoice.loading) return <div className="min-h-dvh" />;
+  if (invoice.data) {
+    return (
+      <div>
+        {toolbar}
+        <article className="print-mono mx-auto max-w-3xl overflow-hidden rounded-[22px] border border-rule print:rounded-none print:border-0">
+          <InvoiceDoc invoice={invoice.data} size="a4" />
+        </article>
+      </div>
+    );
+  }
 
   return (
     <div>

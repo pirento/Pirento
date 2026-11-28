@@ -1,14 +1,14 @@
 // All site copy lives here; components only render it.
-import {PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
+import {COMPANY, PRODUCTS, SERVICES, LEGAL_CATALOGUE} from '@pirento/shared';
 
 export const brand = {
   name: 'Pirento',
   // Pirento Ecosystem is a brand; the company behind it is Venturecore.
-  legalName: 'Venturecore Solutions Private Limited',
-  cin: 'U63121UP2023PTC188021',
-  gstin: '09AAJCV6240P1ZL',
+  legalName: COMPANY.legalName,
+  cin: COMPANY.cin,
+  gstin: COMPANY.gstin,
   email: 'hello@pirento.com',
-  supportEmail: 'support@pirento.com',
+  supportEmail: COMPANY.supportEmail,
   status: 'Legal services open',
   motto: 'One account. Every record in one place.',
 };
@@ -1112,6 +1112,43 @@ export const checkoutGuest = {
 };
 
 // The printable payment receipt for a paid order (features/orders/ReceiptPage.jsx).
+// Invoices (features/orders/InvoiceDoc.jsx, admin → Invoices, the account's billing details).
+export const invoiceCopy = {
+  taxTitle: 'Tax invoice',
+  plainTitle: 'Invoice',
+  from: 'Sold by',
+  to: 'Bill to',
+  shipTo: 'Ship to',
+  code: 'code',
+  order: 'Order',
+  place: 'Place of supply',
+  paid: 'Paid',
+  shipment: 'Shipment',
+  item: 'Description',
+  qty: 'Qty',
+  amount: 'Amount',
+  discount: 'Discount',
+  taxable: 'Taxable value',
+  total: 'Total',
+  included: 'GST is included in the price paid.',
+  cancelled: 'Cancelled',
+  creditNote: 'Credit note',
+  taxNote: 'This is a computer-made invoice for a payment received on Pirento.',
+  plainNote:
+    'This invoice confirms a payment made on Pirento. It is not a GST tax invoice: Pirento had not set the tax details for this product when it was issued.',
+  billing: {
+    title: 'Billing details',
+    intro:
+      'For invoices from now on: a business name and GSTIN to claim input tax credit, and the address and state to bill. All optional.',
+    name: 'Name on invoices',
+    gstin: 'GSTIN',
+    address: 'Billing address',
+    state: 'State',
+    save: 'Save billing details',
+    saved: 'Saved. Your next invoices use these details.',
+  },
+};
+
 // Admin → Shipments: the label and invoice print, and the settings tab.
 export const shippingCopy = {
   back: 'Back to shipments',
@@ -1133,6 +1170,7 @@ export const shippingCopy = {
   contents: 'Contents',
   order: 'Order',
   parcel: 'Parcel',
+  invoiceNo: 'Invoice',
   scanOrder: 'Scan for the order',
   scanParcel: 'Parcel details',
   priority: 'Domestic Priority',

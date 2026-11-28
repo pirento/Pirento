@@ -24,6 +24,8 @@ export const User = mongoose.model(
       // Customers: a verified mobile (+91…), a user ID of their choice (or their email), and when they accepted the terms.
       phone: {type: String, unique: true, sparse: true},
       username: {type: String, unique: true, sparse: true, lowercase: true, trim: true},
+      // Who invoices are made out to, when it is not just the account's name: a business, its GSTIN, its address.
+      billing: {name: String, gstin: String, address: String, state: String},
       termsAcceptedAt: Date,
       termsVersion: String,
     },

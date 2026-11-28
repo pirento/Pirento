@@ -14,6 +14,7 @@ import {Waitlist} from './Waitlist';
 import {Enquiries} from './Enquiries';
 import {VaultCases} from './VaultCases';
 import {Shipments} from './Shipments';
+import {Invoices} from './Invoices';
 import {Deletions} from './Deletions';
 import {MyWork} from './MyWork';
 import {BookService} from './BookService';
@@ -55,6 +56,7 @@ export const SECTIONS = {
   enquiries: Enquiries,
   vault: VaultCases,
   shipments: Shipments,
+  invoices: Invoices,
   users: Users,
   payments: Payments,
   withdrawals: Withdrawals,

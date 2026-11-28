@@ -25,7 +25,8 @@ export function ReceiptList({orders, showProduct = false}) {
               <span className="min-w-0 flex-1">
                 <span className="block font-medium group-hover:underline sm:truncate">{orderTitle(o)}</span>
                 <span className="block text-sm text-muted">
-                  {product && `${product.name} · `}Receipt #{o.orderNo} · {formatDate(paidAt(o))}
+                  {product && `${product.name} · `}
+                  {o.invoiceNo ? `Invoice ${o.invoiceNo}` : `Receipt #${o.orderNo}`} · {formatDate(paidAt(o))}
                   {o.payment?.refunded && ' · refunded'}
                 </span>
               </span>

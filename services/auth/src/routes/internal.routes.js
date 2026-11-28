@@ -277,3 +277,21 @@ internalRoutes.post(
     });
   },
 );
+
+/** Who an invoice is made out to: the billing details if set, else the account's name, email and mobile. */
+internalRoutes.post('/internal/billing', validate(z.object({userId: z.string().min(1).max(40)})), async (req, res) => {
+  const user =
+    isId(req.body.userId) && (await User.findById(req.body.userId, {name: 1, email: 1, phone: 1, billing: 1}));
+  if (!user) return res.json({data: null});
+  const b = user.billing ?? {};
+  res.json({
+    data: {
+      name: b.name || user.name || '',
+      email: user.email,
+      phone: user.phone ?? '',
+      gstin: b.gstin || '',
+      address: b.address || '',
+      state: b.state || '',
+    },
+  });
+});

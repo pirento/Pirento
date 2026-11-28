@@ -4,7 +4,7 @@
 
 // Products and the services they sell
 export {PRODUCTS, getProduct} from './data/products.js';
-export {BRAND, PANEL_COLOURS, PRODUCT_COLOURS} from './data/brand.js';
+export {BRAND, COMPANY, PANEL_COLOURS, PRODUCT_COLOURS} from './data/brand.js';
 export {LEGAL_CATALOGUE, legalServiceSlug} from './data/legalCatalogue.js';
 export {
   SERVICES,
@@ -41,6 +41,18 @@ export {
   validateFulfilment,
   SHIPPABLE,
 } from './orders/rules.js';
+export {
+  GST_STATES,
+  STATE_NAMES,
+  GST_RATES,
+  GSTIN_PATTERN,
+  gstState,
+  isGstin,
+  stateOfGstin,
+  financialYear,
+  splitTax,
+  amountInWords,
+} from './orders/invoice.js';
 
 // Bharat ID: number format and the application form
 export {bharatIdFromSeq, isBharatId, formatBharatId, verhoeffCheckDigit} from './identity/bharatId.js';
